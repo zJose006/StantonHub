@@ -1,0 +1,108 @@
+﻿<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Acceso - Star Citizen</title>
+  <link rel="stylesheet" href="../styles/styles.css" />
+</head>
+<body data-page="login">
+  <header class="hero hero-compact">
+    <div class="hero-topbar">
+      <a class="home-button" href="index.html" aria-label="Inicio">
+        <span class="home-icon" aria-hidden="true">SC</span>
+        Stanton Hub
+      </a>
+      <nav class="site-nav" aria-label="Navegacion principal">
+        <a class="page-btn" href="index.html">Inicio</a>
+        <div class="nav-group">
+          <button class="nav-trigger" type="button" aria-expanded="false">Operaciones</button>
+          <div class="nav-menu">
+            <div class="nav-menu-intro">
+              <strong>Operaciones</strong>
+              <span>Rutas, farmeo y actividad del hub</span>
+            </div>
+            <a class="nav-menu-item" href="forum.html">
+              <strong>Base de operaciones</strong>
+              <span>Consejos destacados, rutas aUEC y actividad reciente.</span>
+            </a>
+            <a class="nav-menu-item" href="editor.html?type=forum">
+              <strong>Publicar consejo</strong>
+              <span>A&ntilde;ade una ruta, aviso o recomendaci&oacute;n para pilotos.</span>
+            </a>
+          </div>
+        </div>
+        <div class="nav-group">
+          <button class="nav-trigger" type="button" aria-expanded="false">Biblioteca</button>
+          <div class="nav-menu">
+            <div class="nav-menu-intro">
+              <strong>Biblioteca</strong>
+              <span>Guias y preparacion de vuelo</span>
+            </div>
+            <a class="nav-menu-item" href="guias.html">
+              <strong>Gu&iacute;as</strong>
+              <span>Manuales, preparaci&oacute;n y mec&aacute;nicas explicadas.</span>
+            </a>
+            <a class="nav-menu-item" href="naves.html">
+              <strong>Naves</strong>
+              <span>Catálogo con precios, filtros y detalles técnicos.</span>
+            </a>
+            <a class="nav-menu-item" href="editor.html?type=guides">
+              <strong>Nueva gu&iacute;a</strong>
+              <span>Publica una ayuda completa con texto e im&aacute;genes.</span>
+            </a>
+          </div>
+        </div>
+        <div class="nav-group">
+          <button class="nav-trigger" type="button" aria-expanded="false">Comunidad</button>
+          <div class="nav-menu">
+            <div class="nav-menu-intro">
+              <strong>Comunidad</strong>
+              <span>Intel y actividad de la comunidad</span>
+            </div>
+            <a class="nav-menu-item" href="noticias.html">
+              <strong>Intel</strong>
+              <span>Novedades, eventos y oportunidades del verso.</span>
+            </a>
+          </div>
+        </div>
+      </nav>
+      <a class="profile-link active" href="perfil.html">Perfil</a>
+    </div>
+
+    <div class="hero-content">
+      <span class="eyebrow">Acceso de piloto</span>
+      <h1>Inicia sesi&oacute;n</h1>
+      <p>Entra con tu email para publicar gu&iacute;as, rutas de farmeo y ayudas para otros pilotos.</p>
+    </div>
+  </header>
+
+  <main class="container single-column">
+    <section class="panel auth-panel">
+      <div class="panel-header">
+        <div>
+          <span class="section-label">Terminal segura</span>
+          <h2>Acceso</h2>
+        </div>
+      </div>
+
+      <form id="login-form" class="auth-form">
+        <label>
+          Email
+          <input type="email" id="login-identifier" required maxlength="80" autocomplete="email" />
+        </label>
+        <label>
+          Contrase&ntilde;a
+          <input type="password" id="login-password" required maxlength="80" autocomplete="current-password" />
+        </label>
+        <p class="form-message" id="auth-message"></p>
+        <button type="submit" class="submit-btn">Entrar</button>
+      </form>
+
+      <p class="auth-link">&iquest;No tienes cuenta? <a href="registro.html">Crear perfil de usuario</a></p>
+    </section>
+  </main>
+
+  <script src="../scripts/script.js"></script>
+</body>
+</html>

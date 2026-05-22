@@ -1,0 +1,141 @@
+﻿<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Perfil - Star Citizen</title>
+  <link rel="stylesheet" href="../styles/styles.css" />
+</head>
+<body data-page="profile">
+  <header class="hero hero-compact">
+    <div class="hero-topbar">
+      <a class="home-button" href="index.html" aria-label="Inicio">
+        <span class="home-icon" aria-hidden="true">SC</span>
+        Stanton Hub
+      </a>
+      <nav class="site-nav" aria-label="Navegacion principal">
+        <a class="page-btn" href="index.html">Inicio</a>
+        <div class="nav-group">
+          <button class="nav-trigger" type="button" aria-expanded="false">Operaciones</button>
+          <div class="nav-menu">
+            <div class="nav-menu-intro">
+              <strong>Operaciones</strong>
+              <span>Rutas, farmeo y actividad del hub</span>
+            </div>
+            <a class="nav-menu-item" href="forum.html">
+              <strong>Base de operaciones</strong>
+              <span>Consejos destacados, rutas aUEC y actividad reciente.</span>
+            </a>
+            <a class="nav-menu-item" href="editor.html?type=forum">
+              <strong>Publicar consejo</strong>
+              <span>A&ntilde;ade una ruta, aviso o recomendaci&oacute;n para pilotos.</span>
+            </a>
+          </div>
+        </div>
+        <div class="nav-group">
+          <button class="nav-trigger" type="button" aria-expanded="false">Biblioteca</button>
+          <div class="nav-menu">
+            <div class="nav-menu-intro">
+              <strong>Biblioteca</strong>
+              <span>Guias y preparacion de vuelo</span>
+            </div>
+            <a class="nav-menu-item" href="guias.html">
+              <strong>Gu&iacute;as</strong>
+              <span>Manuales, preparaci&oacute;n y mec&aacute;nicas explicadas.</span>
+            </a>
+            <a class="nav-menu-item" href="naves.html">
+              <strong>Naves</strong>
+              <span>Catálogo con precios, filtros y detalles técnicos.</span>
+            </a>
+            <a class="nav-menu-item" href="editor.html?type=guides">
+              <strong>Nueva gu&iacute;a</strong>
+              <span>Publica una ayuda completa con texto e im&aacute;genes.</span>
+            </a>
+          </div>
+        </div>
+        <div class="nav-group">
+          <button class="nav-trigger" type="button" aria-expanded="false">Comunidad</button>
+          <div class="nav-menu">
+            <div class="nav-menu-intro">
+              <strong>Comunidad</strong>
+              <span>Intel y actividad de la comunidad</span>
+            </div>
+            <a class="nav-menu-item" href="noticias.html">
+              <strong>Intel</strong>
+              <span>Novedades, eventos y oportunidades del verso.</span>
+            </a>
+          </div>
+        </div>
+      </nav>
+      <a class="profile-link active" href="perfil.html">Perfil</a>
+    </div>
+
+    <div class="hero-content">
+      <span class="eyebrow">Expediente de piloto</span>
+      <h1>Perfil operativo</h1>
+      <p>Consulta tu identidad, especialidad, permisos y actividad publicada dentro de Stanton Hub.</p>
+    </div>
+  </header>
+
+  <main class="container profile-shell">
+    <section class="profile-identity-panel">
+      <div class="profile-identity-main">
+        <div class="profile-avatar profile-avatar-command" id="profile-avatar">SC</div>
+        <div>
+          <span class="section-label" id="profile-role-badge">Piloto sin identificar</span>
+          <h2 id="profile-name">Invitado</h2>
+          <p id="profile-status">Inicia sesi&oacute;n para activar tu expediente y publicar contenido.</p>
+        </div>
+      </div>
+
+      <dl class="profile-dossier">
+        <div>
+          <dt>Email</dt>
+          <dd id="profile-email">No disponible</dd>
+        </div>
+        <div>
+          <dt>Alta</dt>
+          <dd id="profile-created">Sin registro</dd>
+        </div>
+        <div>
+          <dt>Acceso</dt>
+          <dd id="profile-access">Lectura</dd>
+        </div>
+      </dl>
+
+      <div class="profile-actions profile-command-actions" id="profile-actions"></div>
+    </section>
+
+    <section class="profile-ops-panel">
+      <div class="panel-header profile-section-header">
+        <div>
+          <span class="section-label">Actividad</span>
+          <h2>Registro de aportes</h2>
+        </div>
+      </div>
+
+      <div class="profile-metrics" id="profile-metrics"></div>
+
+      <div class="profile-briefing-grid">
+        <article class="profile-briefing">
+          <span>Directiva</span>
+          <strong>Publica con contexto</strong>
+          <p>Las rutas, gu&iacute;as e intel funcionan mejor cuando incluyen objetivo, preparaci&oacute;n y riesgo.</p>
+        </article>
+        <article class="profile-briefing">
+          <span>Permisos</span>
+          <strong>Cuenta o modo pruebas</strong>
+          <p>Para escribir, votar o comentar necesitas iniciar sesi&oacute;n o activar el modo pruebas.</p>
+        </article>
+      </div>
+
+      <label class="test-toggle profile-test-toggle">
+        <input type="checkbox" id="test-bypass" />
+        <span>Modo pruebas: permitir publicar sin registro</span>
+      </label>
+    </section>
+  </main>
+
+  <script src="../scripts/script.js"></script>
+</body>
+</html>

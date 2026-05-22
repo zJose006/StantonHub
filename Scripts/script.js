@@ -16,13 +16,16 @@ const profileName = document.getElementById('profile-name');
 const profileStatus = document.getElementById('profile-status');
 const profileActions = document.getElementById('profile-actions');
 const profileMetrics = document.getElementById('profile-metrics');
+const profileRoleBadge = document.getElementById('profile-role-badge');
+const profileEmail = document.getElementById('profile-email');
+const profileCreated = document.getElementById('profile-created');
+const profileAccess = document.getElementById('profile-access');
 const testBypass = document.getElementById('test-bypass');
 const loginForm = document.getElementById('login-form');
 const registerForm = document.getElementById('register-form');
 const authMessage = document.getElementById('auth-message');
 
 const currentSection = body.dataset.page || 'forum';
-const fallbackStorageKey = 'star-citizen-json-fallback';
 const dateFormat = new Intl.DateTimeFormat('es-ES', {
   dateStyle: 'medium',
   timeStyle: 'short'
@@ -37,35 +40,47 @@ const defaultState = {
     comments: {}
   },
   content: {
-    forum: [
-      {
-        title: 'Ruta inicial para generar aUEC',
-        content: 'Comparte rutas de farmeo, contratos recomendados y consejos para optimizar cada salida en el verso.',
-        author: 'Stanton Hub',
-        date: formatDate()
-      }
-    ],
-    guides: [
-      {
-        title: 'Gu\u00eda b\u00e1sica de preparaci\u00f3n',
-        content: 'Prepara nave, equipamiento, combustible y destino antes de iniciar misiones o rutas comerciales.',
-        author: 'Stanton Hub',
-        date: formatDate()
-      }
-    ],
-    news: [
-      {
-        title: 'Intel reciente del verso',
-        content: 'Registra cambios, eventos y oportunidades que puedan afectar al farmeo, comercio o progreso.',
-        author: 'Stanton Hub',
-        date: formatDate()
-      }
-    ]
+    forum: [],
+    guides: [],
+    news: []
   }
 };
 
 let appState = structuredClone(defaultState);
-let apiAvailable = false;
+function closeNavigationMenus(exceptGroup = null) {
+  document.querySelectorAll('.nav-group.is-open').forEach((group) => {
+    if (group === exceptGroup) return;
+    group.classList.remove('is-open');
+    group.querySelector('.nav-trigger')?.setAttribute('aria-expanded', 'false');
+    group.querySelector('.nav-menu')?.setAttribute('hidden', '');
+  });
+}
+
+function setupNavigationMenus() {
+  document.querySelectorAll('.nav-menu').forEach((menu) => {
+    menu.setAttribute('hidden', '');
+  });
+
+  document.querySelectorAll('.nav-trigger').forEach((trigger) => {
+    trigger.addEventListener('click', (event) => {
+      const group = event.currentTarget.closest('.nav-group');
+      const menu = group.querySelector('.nav-menu');
+      const willOpen = !group.classList.contains('is-open');
+      closeNavigationMenus(group);
+      group.classList.toggle('is-open', willOpen);
+      menu?.toggleAttribute('hidden', !willOpen);
+      event.currentTarget.setAttribute('aria-expanded', String(willOpen));
+    });
+  });
+
+  document.addEventListener('click', (event) => {
+    if (!event.target.closest('.nav-group')) closeNavigationMenus();
+  });
+
+  document.addEventListener('keydown', (event) => {
+    if (event.key === 'Escape') closeNavigationMenus();
+  });
+}
 
 function formatDate() {
   return dateFormat.format(new Date());
@@ -104,119 +119,47 @@ async function requestJson(url, options = {}) {
   return payload;
 }
 
-function loadFallbackState() {
-  try {
-    return JSON.parse(localStorage.getItem(fallbackStorageKey)) || structuredClone(defaultState);
-  } catch {
-    return structuredClone(defaultState);
-  }
-}
-
-function saveFallbackState() {
-  localStorage.setItem(fallbackStorageKey, JSON.stringify(appState));
-}
-
 async function loadState() {
   try {
     appState = await requestJson('/api/state');
-    apiAvailable = true;
-  } catch {
-    appState = loadFallbackState();
-    apiAvailable = false;
+  } catch (error) {
+    appState = structuredClone(defaultState);
+    showMessage('No se pudo conectar con la base de datos.', true);
   }
 }
 
 async function registerUserInStore(userData) {
-  if (apiAvailable) {
-    appState = await requestJson('/api/register', {
-      method: 'POST',
-      body: JSON.stringify(userData)
-    });
-    return;
-  }
-
-  const email = userData.email.toLowerCase();
-  if (appState.users.some((user) => user.email === email)) {
-    throw new Error('Ese email ya est\u00e1 registrado.');
-  }
-
-  const user = {
-    id: crypto.randomUUID ? crypto.randomUUID() : `${Date.now()}-${Math.random()}`,
-    username: userData.username,
-    email,
-    role: userData.role,
-    password: userData.password,
-    createdAt: formatDate()
-  };
-
-  appState.users.push(user);
-  appState.sessionUserId = user.id;
-  saveFallbackState();
+  appState = await requestJson('/api/register', {
+    method: 'POST',
+    body: JSON.stringify(userData)
+  });
 }
 
 async function loginUserInStore(email, password) {
-  if (apiAvailable) {
-    appState = await requestJson('/api/login', {
-      method: 'POST',
-      body: JSON.stringify({ email, password })
-    });
-    return;
-  }
-
-  const user = appState.users.find((item) => item.email === email && item.password === password);
-  if (!user) {
-    throw new Error('No se encontr\u00f3 una cuenta con esos datos.');
-  }
-
-  appState.sessionUserId = user.id;
-  saveFallbackState();
+  appState = await requestJson('/api/login', {
+    method: 'POST',
+    body: JSON.stringify({ email, password })
+  });
 }
 
 async function logoutUser() {
-  if (apiAvailable) {
-    appState = await requestJson('/api/logout', { method: 'POST' });
-  } else {
-    appState.sessionUserId = null;
-    saveFallbackState();
-  }
-
+  appState = await requestJson('/api/logout', { method: 'POST' });
   renderAll();
 }
 
 async function updateBypass(enabled) {
-  if (apiAvailable) {
-    appState = await requestJson('/api/bypass', {
-      method: 'POST',
-      body: JSON.stringify({ enabled })
-    });
-  } else {
-    appState.testBypass = enabled;
-    saveFallbackState();
-  }
-
+  appState = await requestJson('/api/bypass', {
+    method: 'POST',
+    body: JSON.stringify({ enabled })
+  });
   renderProfile();
 }
 
 async function saveContent(section, title, content) {
-  if (apiAvailable) {
-    appState = await requestJson('/api/content', {
-      method: 'POST',
-      body: JSON.stringify({ section, title, content })
-    });
-    return;
-  }
-
-  if (!canPublish()) {
-    throw new Error('Necesitas iniciar sesi\u00f3n para publicar.');
-  }
-
-  appState.content[section].push({
-    title,
-    content,
-    author: getPublisherName(),
-    date: formatDate()
+  appState = await requestJson('/api/content', {
+    method: 'POST',
+    body: JSON.stringify({ section, title, content })
   });
-  saveFallbackState();
 }
 
 function renderAll() {
@@ -232,6 +175,15 @@ function renderPosts() {
 }
 
 function renderList(items) {
+  if (!items.length) {
+    return `
+      <div class="empty-state">
+        <strong>No hay publicaciones todav&iacute;a</strong>
+        <p>Cuando un usuario publique contenido, aparecer&aacute; aqu&iacute;.</p>
+      </div>
+    `;
+  }
+
   return items
     .slice()
     .reverse()
@@ -378,8 +330,12 @@ function renderProfile() {
     profileAvatar.textContent = getInitials(user.username);
     profileName.textContent = user.username;
     profileStatus.textContent = `${user.role} | Publicaci\u00f3n habilitada`;
+    if (profileRoleBadge) profileRoleBadge.textContent = user.role;
+    if (profileEmail) profileEmail.textContent = user.email;
+    if (profileCreated) profileCreated.textContent = user.createdAt || 'Fecha no disponible';
+    if (profileAccess) profileAccess.textContent = 'Publicacion habilitada';
     profileActions.innerHTML = `
-      <a class="action-btn primary-action" href="perfil.html">Ver perfil</a>
+      <a class="action-btn primary-action" href="editor.html?type=forum">Publicar</a>
       <button class="action-btn" type="button" id="logout-btn">Cerrar sesi\u00f3n</button>
     `;
   } else {
@@ -388,6 +344,10 @@ function renderProfile() {
     profileStatus.textContent = bypassEnabled
       ? 'Publicaci\u00f3n temporal habilitada sin registro.'
       : 'Inicia sesi\u00f3n para publicar gu\u00edas, rutas y ayudas.';
+    if (profileRoleBadge) profileRoleBadge.textContent = bypassEnabled ? 'Acceso temporal' : 'Piloto sin identificar';
+    if (profileEmail) profileEmail.textContent = 'No disponible';
+    if (profileCreated) profileCreated.textContent = 'Sin registro';
+    if (profileAccess) profileAccess.textContent = bypassEnabled ? 'Modo pruebas' : 'Lectura';
     profileActions.innerHTML = `
       <a class="action-btn primary-action" href="login.html">Iniciar sesi\u00f3n</a>
       <a class="action-btn" href="registro.html">Crear cuenta</a>
@@ -569,4 +529,5 @@ if (loginForm) {
   loginForm.addEventListener('submit', loginUser);
 }
 
+setupNavigationMenus();
 loadState().then(renderAll);

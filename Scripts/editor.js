@@ -116,6 +116,41 @@ document.querySelectorAll('.editor-toolbar button[data-command]').forEach((butto
   });
 });
 
+function closeNavigationMenus(exceptGroup = null) {
+  document.querySelectorAll('.nav-group.is-open').forEach((group) => {
+    if (group === exceptGroup) return;
+    group.classList.remove('is-open');
+    group.querySelector('.nav-trigger')?.setAttribute('aria-expanded', 'false');
+    group.querySelector('.nav-menu')?.setAttribute('hidden', '');
+  });
+}
+
+function setupNavigationMenus() {
+  document.querySelectorAll('.nav-menu').forEach((menu) => {
+    menu.setAttribute('hidden', '');
+  });
+
+  document.querySelectorAll('.nav-trigger').forEach((trigger) => {
+    trigger.addEventListener('click', (event) => {
+      const group = event.currentTarget.closest('.nav-group');
+      const menu = group.querySelector('.nav-menu');
+      const willOpen = !group.classList.contains('is-open');
+      closeNavigationMenus(group);
+      group.classList.toggle('is-open', willOpen);
+      menu?.toggleAttribute('hidden', !willOpen);
+      event.currentTarget.setAttribute('aria-expanded', String(willOpen));
+    });
+  });
+
+  document.addEventListener('click', (event) => {
+    if (!event.target.closest('.nav-group')) closeNavigationMenus();
+  });
+
+  document.addEventListener('keydown', (event) => {
+    if (event.key === 'Escape') closeNavigationMenus();
+  });
+}
+
 document.getElementById('insert-link-btn').addEventListener('click', () => {
   const url = window.prompt('URL del enlace');
   if (!url) return;
@@ -176,7 +211,7 @@ editorForm.addEventListener('submit', async (event) => {
     });
     showEditorMessage('Publicaci\u00f3n guardada. Redirigiendo...');
     const target = {
-      forum: 'index.html',
+      forum: 'forum.html',
       guides: 'guias.html',
       news: 'noticias.html'
     }[sectionSelect.value];
@@ -187,3 +222,5 @@ editorForm.addEventListener('submit', async (event) => {
     showEditorMessage(error.message, true);
   }
 });
+
+setupNavigationMenus();
