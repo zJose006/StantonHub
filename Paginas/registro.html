@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Registro - Star Citizen</title>
+  <link rel="stylesheet" href="../Estilos/styles.css" />
+</head>
+<body data-page="register">
+  <header class="hero hero-compact">
+    <div class="hero-topbar">
+      <a class="home-button" href="index.html" aria-label="Inicio">
+        <span class="home-icon" aria-hidden="true">SC</span>
+        Stanton Hub
+      </a>
+      <div class="page-buttons">
+        <a class="page-btn" href="noticias.html">Intel</a>
+        <a class="page-btn" href="guias.html">Gu&iacute;as</a>
+        <a class="page-btn active" href="perfil.html">Perfil</a>
+      </div>
+    </div>
+
+    <div class="hero-content">
+      <span class="eyebrow">Nuevo usuario</span>
+      <h1>Crea tu perfil</h1>
+      <p>Usa tu email para crear la cuenta. El username solo se mostrar&aacute; como tu nombre dentro del juego.</p>
+    </div>
+  </header>
+
+  <main class="container single-column">
+    <section class="panel auth-panel">
+      <div class="panel-header">
+        <div>
+          <span class="section-label">Alta de cuenta</span>
+          <h2>Registro</h2>
+        </div>
+      </div>
+
+      <form id="register-form" class="auth-form">
+        <label>
+          Username en el juego
+          <input type="text" id="register-callsign" required maxlength="32" autocomplete="nickname" />
+        </label>
+        <label>
+          Email
+          <input type="email" id="register-email" required maxlength="80" autocomplete="email" />
+        </label>
+        <label>
+          Especialidad
+          <select id="register-role">
+            <option value="Farmeo">Farmeo</option>
+            <option value="Comercio">Comercio</option>
+            <option value="Mineria">Miner&iacute;a</option>
+            <option value="Combate">Combate</option>
+            <option value="Exploracion">Exploraci&oacute;n</option>
+          </select>
+        </label>
+        <label>
+          Contrase&ntilde;a
+          <input type="password" id="register-password" required minlength="4" maxlength="80" autocomplete="new-password" />
+        </label>
+        <p class="form-message" id="auth-message"></p>
+        <button type="submit" class="submit-btn">Crear perfil</button>
+      </form>
+
+      <p class="auth-link">&iquest;Ya tienes cuenta? <a href="login.html">Iniciar sesi&oacute;n</a></p>
+    </section>
+  </main>
+
+  <script src="../Scripts/script.js"></script>
+</body>
+</html>

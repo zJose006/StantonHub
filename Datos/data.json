@@ -1,0 +1,75 @@
+{
+  "users": [
+    {
+      "id": "8a1d4108-0ec2-4a51-9312-6d988a68cf99",
+      "username": "TesterSC",
+      "email": "tester@example.local",
+      "role": "Farmeo",
+      "password": "test1234",
+      "createdAt": "22/5/2026, 12:30:54"
+    },
+    {
+      "id": "db0a81e8-d869-4c66-b43d-bef96ecd292d",
+      "username": "zG0KII",
+      "email": "zgk@gmail.com",
+      "role": "Exploracion",
+      "password": "zgkzG0KII",
+      "createdAt": "22/5/2026, 12:32:42"
+    }
+  ],
+  "sessionUserId": "db0a81e8-d869-4c66-b43d-bef96ecd292d",
+  "testBypass": false,
+  "content": {
+    "forum": [
+      {
+        "id": "7ba78439-73a6-40b7-83e5-58c95881512c",
+        "contentHtml": "",
+        "images": [],
+        "title": "Ruta inicial para generar aUEC",
+        "content": "Comparte rutas de farmeo, contratos recomendados y consejos para optimizar cada salida en el verso.",
+        "author": "Stanton Hub",
+        "date": "22 may 2026, 12:00"
+      }
+    ],
+    "guides": [
+      {
+        "id": "79229297-7cd2-4fba-8eae-e553a064f106",
+        "contentHtml": "",
+        "images": [],
+        "title": "Guía básica de preparación",
+        "content": "Prepara nave, equipamiento, combustible y destino antes de iniciar misiones o rutas comerciales.",
+        "author": "Stanton Hub",
+        "date": "22 may 2026, 12:00"
+      },
+      {
+        "id": "c30761cb-8e25-4b33-870d-4cdf8ba14968",
+        "contentHtml": "",
+        "images": [],
+        "title": "Prueba JSON de ruta rentable",
+        "content": "Esta guia se guarda directamente dentro del archivo Datos/data.json usando la API local.",
+        "author": "TesterSC",
+        "date": "22 may 2026, 12:31"
+      },
+      {
+        "id": "c695defa-6978-459e-8598-08308fa27206",
+        "contentHtml": "",
+        "images": [],
+        "title": "Me llamo antonio y me gusta la poronga",
+        "content": "hola",
+        "author": "zG0KII",
+        "date": "22 may 2026, 12:33"
+      }
+    ],
+    "news": [
+      {
+        "id": "a627e0ea-3bfd-4af9-b0a3-09db6a31ed4d",
+        "contentHtml": "",
+        "images": [],
+        "title": "Intel reciente del verso",
+        "content": "Registra cambios, eventos y oportunidades que puedan afectar al farmeo, comercio o progreso.",
+        "author": "Stanton Hub",
+        "date": "22 may 2026, 12:00"
+      }
+    ]
+  }
+}
