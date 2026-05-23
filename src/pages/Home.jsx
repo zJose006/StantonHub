@@ -1,0 +1,10 @@
+import React from 'react';
+import { routes } from '../config/routes.js';
+import { routeClick } from '../utils/navigation.js';
+
+/** Pagina de bienvenida con accesos directos a las secciones principales. */
+export function Home({ navigate }) {
+  const cards = [[routes.forum,'Operaciones','Base de operaciones','Rutas de farmeo, consejos de pilotos, avisos tacticos y comentarios de la comunidad.'],[routes.guides,'Biblioteca','Guias','Manuales, preparacion de vuelo y explicaciones de mecanicas para consultar antes de salir.'],[routes.ships,'Catalogo UEX','Naves','Listado filtrable de vehiculos con fabricante, tamano, carga, precios de compra, alquiler y pledge.'],[routes.news,'Comunidad','Intel','Novedades, eventos y oportunidades publicadas por usuarios del hub.'],[routes.profile,'Acceso','Perfil','Panel de cuenta, rol, metricas de aportes y acceso rapido al editor.']];
+  const workflow = [['Consulta','Revisa naves, guias e intel antes de preparar una ruta o comprar un vehiculo.'],['Publica','Crea rutas, guias o avisos desde el editor con texto enriquecido e imagenes.'],['Participa','Vota y comenta publicaciones para mantener vivo el conocimiento de la comunidad.']];
+  return <main className="container home-shell"><section className="welcome-panel panel"><div className="welcome-copy"><span className="section-label">Centro de mando</span><h2>Bienvenido a Stanton Hub</h2><p>Un espacio para organizar informacion util de Star Citizen: rutas, guias, catalogo de naves, avisos de comunidad y publicaciones creadas por usuarios. La web empieza limpia y crece con el contenido que aporte cada piloto.</p></div><div className="home-highlight-grid">{workflow.map(([title,text]) => <article className="home-highlight" key={title}><strong>{title}</strong><p>{text}</p></article>)}</div><section className="home-sections" aria-label="Apartados principales">{cards.map(([path,label,title,text]) => <a key={path} className="section-card" href={path} onClick={(event) => routeClick(event, path, navigate)}><span>{label}</span><strong>{title}</strong><p>{text}</p></a>)}</section></section></main>;
+}

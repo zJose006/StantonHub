@@ -130,10 +130,68 @@ body::after {
   gap: 1.2rem;
 }
 
+.header-nav-panel {
+  display: contents;
+}
+
+.mobile-nav-toggle {
+  display: none;
+  width: 42px;
+  height: 42px;
+  place-items: center;
+  border: 1px solid rgba(91, 218, 255, 0.24);
+  border-radius: var(--radius);
+  background: rgba(3, 11, 20, 0.54);
+  color: var(--ink);
+  cursor: pointer;
+}
+
+.mobile-nav-toggle span {
+  display: block;
+  width: 18px;
+  height: 2px;
+  border-radius: 999px;
+  background: currentColor;
+}
+
 .auth-nav-links {
   display: flex;
   align-items: center;
   gap: 1rem;
+}
+
+.discord-login-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  min-height: 42px;
+  padding: 0.55rem 0.9rem;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: var(--radius);
+  background: #5865f2;
+  color: #ffffff;
+  box-shadow: 0 12px 28px rgba(88, 101, 242, 0.24);
+  font-size: 0.82rem;
+  font-weight: 950;
+  letter-spacing: 0.06em;
+  text-decoration: none;
+  text-transform: uppercase;
+  transition: filter 0.18s ease, box-shadow 0.18s ease, transform 0.18s ease;
+}
+
+.discord-login-link:hover {
+  filter: brightness(1.08);
+  box-shadow: 0 16px 36px rgba(88, 101, 242, 0.36);
+  transform: translateY(-1px);
+}
+
+.discord-icon {
+  width: 1.35em;
+  height: 1em;
+  display: block;
+  flex: 0 0 auto;
+  object-fit: contain;
 }
 
 .nav-group {
@@ -260,11 +318,10 @@ body::after {
 .home-button:hover,
 .page-btn:hover,
 .nav-trigger:hover,
-.profile-link:hover {
+.profile-link:hover,
+.discord-login-link:hover {
   color: #ffffff;
-  background: transparent;
   border-color: transparent;
-  transform: none;
 }
 
 .home-button.active,
@@ -746,10 +803,6 @@ body::after {
   line-height: 1.55;
 }
 
-.profile-test-toggle {
-  margin-top: 0;
-}
-
 .ships-toolbar {
   display: grid;
   gap: 1rem;
@@ -809,12 +862,16 @@ body::after {
 
 .ships-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(min(100%, 290px), 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 310px), 1fr));
   gap: 0.9rem;
+  align-items: stretch;
 }
 
 .ship-card {
+  display: flex;
+  min-height: 100%;
   min-width: 0;
+  flex-direction: column;
   overflow: hidden;
   border: 1px solid var(--border);
   border-radius: var(--radius);
@@ -826,8 +883,8 @@ body::after {
 
 .ship-image {
   display: grid;
-  height: clamp(168px, 16vw, 220px);
   aspect-ratio: 16 / 9;
+  min-height: 178px;
   place-items: center;
   overflow: hidden;
   border-bottom: 1px solid rgba(91, 218, 255, 0.16);
@@ -837,11 +894,13 @@ body::after {
 }
 
 .ship-image img {
-  width: 100%;
-  height: 100%;
+  width: calc(100% - 1.2rem);
+  height: calc(100% - 1.2rem);
+  max-width: 100%;
+  max-height: 100%;
   display: block;
   object-fit: contain;
-  padding: 0.8rem;
+  object-position: center;
 }
 
 .ship-image-placeholder {
@@ -855,6 +914,7 @@ body::after {
   display: grid;
   gap: 0.8rem;
   padding: 1rem;
+  flex: 1;
 }
 
 .ship-title-row {
@@ -992,29 +1052,52 @@ body::after {
   color: #031019;
 }
 
-.test-toggle {
-  display: grid;
-  grid-template-columns: 18px minmax(0, 1fr);
-  gap: 0.7rem;
-  align-items: start;
-  margin: 1rem 0 0;
-  padding: 0.85rem;
-  border: 1px solid rgba(255, 181, 71, 0.32);
-  border-radius: var(--radius);
-  background: rgba(255, 181, 71, 0.08);
-  color: rgba(238, 248, 255, 0.82);
-  font-size: 0.82rem;
-  font-weight: 750;
-  line-height: 1.45;
-  text-transform: none;
-  letter-spacing: 0;
+.admin-shell {
+  grid-template-columns: minmax(0, 1fr);
 }
 
-.test-toggle input {
-  width: 18px;
-  height: 18px;
-  margin: 0.1rem 0 0;
-  accent-color: var(--accent);
+.admin-panel {
+  display: grid;
+  gap: 1rem;
+  padding: clamp(1rem, 3vw, 1.35rem);
+}
+
+.admin-panel h3 {
+  margin: 0;
+  color: #f7fcff;
+  font-size: 1.15rem;
+}
+
+.admin-list {
+  display: grid;
+  gap: 0.65rem;
+}
+
+.admin-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(150px, auto);
+  gap: 0.75rem;
+  align-items: center;
+  padding: 0.85rem;
+  border: 1px solid rgba(91, 218, 255, 0.14);
+  border-radius: var(--radius);
+  background: rgba(3, 11, 20, 0.36);
+}
+
+.admin-row strong,
+.admin-row span {
+  display: block;
+}
+
+.admin-row strong {
+  color: #f7fcff;
+}
+
+.admin-row span {
+  margin-top: 0.25rem;
+  color: var(--muted);
+  line-height: 1.45;
+  overflow-wrap: anywhere;
 }
 
 .profile-metrics {
@@ -1417,34 +1500,94 @@ select:focus {
   gap: 1rem;
 }
 
-.auth-form {
-  display: grid;
-  gap: 0.8rem;
-}
-
 .discord-action {
+  display: inline-flex;
+  gap: 0.65rem;
   width: 100%;
-  margin: 1rem 0 0.75rem;
+  margin: 1rem 0;
+  background: #5865f2;
+  border-color: rgba(255, 255, 255, 0.18);
+  color: #ffffff;
+  box-shadow: 0 18px 36px rgba(88, 101, 242, 0.28);
 }
 
-.auth-separator {
+.auth-shell {
+  grid-template-columns: minmax(0, 820px);
+  justify-content: center;
+}
+
+.auth-card {
   display: grid;
-  grid-template-columns: 1fr auto 1fr;
-  gap: 0.75rem;
-  align-items: center;
-  margin: 0 0 0.85rem;
-  color: var(--muted);
-  font-size: 0.76rem;
-  font-weight: 850;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
+  gap: 1rem;
+  padding: clamp(1.05rem, 4vw, 1.6rem);
 }
 
-.auth-separator::before,
-.auth-separator::after {
-  height: 1px;
-  background: rgba(91, 218, 255, 0.18);
-  content: "";
+.auth-card h2 {
+  margin: 0;
+  color: #f7fcff;
+  font-size: clamp(1.55rem, 4vw, 2.2rem);
+  line-height: 1.08;
+}
+
+.auth-lead {
+  display: grid;
+  grid-template-columns: 64px minmax(0, 1fr);
+  gap: 1rem;
+  align-items: center;
+  padding: 1rem;
+  border: 1px solid rgba(88, 101, 242, 0.32);
+  border-radius: var(--radius);
+  background: rgba(88, 101, 242, 0.1);
+}
+
+.auth-lead p {
+  margin: 0;
+  color: rgba(238, 248, 255, 0.82);
+  line-height: 1.6;
+}
+
+.discord-orb {
+  display: grid;
+  width: 64px;
+  aspect-ratio: 1;
+  place-items: center;
+  border-radius: 50%;
+  background: #5865f2;
+  color: #ffffff;
+  box-shadow: 0 16px 34px rgba(88, 101, 242, 0.28);
+}
+
+.discord-orb .discord-icon {
+  width: 38px;
+  height: 28px;
+}
+
+.auth-discord-notes {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.7rem;
+}
+
+.auth-discord-notes article {
+  padding: 0.85rem;
+  border: 1px solid rgba(91, 218, 255, 0.16);
+  border-radius: var(--radius);
+  background: rgba(3, 11, 20, 0.34);
+}
+
+.auth-discord-notes strong,
+.auth-discord-notes span {
+  display: block;
+}
+
+.auth-discord-notes strong {
+  color: #f7fcff;
+}
+
+.auth-discord-notes span {
+  margin-top: 0.3rem;
+  color: var(--muted);
+  line-height: 1.5;
 }
 
 .auth-link,
@@ -1642,7 +1785,7 @@ select:focus {
 
 @media (max-width: 720px) {
   .hero {
-    padding-bottom: 3.9rem;
+    padding: 1rem 0.75rem 3.9rem;
   }
 
   .hero::before {
@@ -1651,46 +1794,104 @@ select:focus {
     opacity: 0.22;
   }
 
-  .hero-topbar,
   .panel-header {
     align-items: stretch;
     flex-direction: column;
   }
 
   .hero-topbar {
-    margin-bottom: 3.2rem;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 42px;
+    align-items: center;
+    gap: 0.7rem;
+    margin-bottom: 2.8rem;
+  }
+
+  .mobile-nav-toggle {
+    display: grid;
+    gap: 4px;
+  }
+
+  .header-nav-panel {
+    grid-column: 1 / -1;
+    display: none;
+    gap: 0.7rem;
+    padding: 0.75rem;
+    border: 1px solid rgba(91, 218, 255, 0.18);
+    border-radius: var(--radius);
+    background:
+      linear-gradient(180deg, rgba(13, 29, 48, 0.98), rgba(5, 13, 24, 0.98)),
+      var(--surface-strong);
+    box-shadow: 0 20px 46px rgba(0, 0, 0, 0.32);
+  }
+
+  .header-nav-panel.is-open {
+    display: grid;
   }
 
   .site-nav {
     display: grid;
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: 1fr;
     width: 100%;
-    gap: 0.6rem 1rem;
+    gap: 0.3rem;
   }
 
   .auth-nav-links {
     display: grid;
-    grid-template-columns: 1fr 1fr;
     width: 100%;
-    gap: 0.6rem;
+    gap: 0.55rem;
   }
 
   .home-button,
   .page-btn,
   .nav-trigger,
-  .profile-link {
+  .profile-link,
+  .discord-login-link {
     width: 100%;
   }
 
+  .home-button {
+    justify-content: flex-start;
+    min-width: 0;
+  }
+
+  .page-btn,
+  .nav-trigger {
+    justify-content: space-between;
+    min-height: 40px;
+    padding: 0.35rem 0;
+    text-align: left;
+  }
+
+  .discord-login-link {
+    min-height: 44px;
+  }
+
+  .auth-shell {
+    grid-template-columns: 1fr;
+  }
+
+  .auth-lead {
+    grid-template-columns: 1fr;
+    justify-items: start;
+  }
+
+  .auth-discord-notes {
+    grid-template-columns: 1fr;
+  }
+
   .nav-menu {
-    left: 0;
-    width: min(100vw - 2rem, 360px);
-    transform: translateY(-6px);
+    position: static;
+    width: 100%;
+    margin-top: 0.35rem;
+    padding: 0.55rem;
+    transform: none;
+    box-shadow: none;
   }
 
   .nav-group.is-open .nav-menu,
   .nav-group:focus-within .nav-menu {
-    transform: translateY(0);
+    transform: none;
   }
 
   .container {
@@ -1744,8 +1945,17 @@ select:focus {
     flex-direction: column;
   }
 
+  .ships-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .ship-image {
+    min-height: 184px;
+  }
+
   .ships-controls,
-  .ship-specs {
+  .ship-specs,
+  .admin-row {
     grid-template-columns: 1fr;
   }
 

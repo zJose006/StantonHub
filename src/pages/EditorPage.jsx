@@ -1,0 +1,23 @@
+import React, { useRef, useState } from 'react';
+import { editorLabels, routes } from '../config/routes.js';
+import { loadState, requestJson } from '../services/api.js';
+import { readFileAsDataUrl, sanitizeEditorHtml } from '../utils/editor.js';
+
+/** Editor de publicaciones con texto enriquecido e imagenes embebidas. */
+export function EditorPage({ setState, navigate }) {
+  const params = new URLSearchParams(window.location.search);
+  const initialSection = ['forum', 'guides', 'news'].includes(params.get('type')) ? params.get('type') : 'forum';
+  const [section, setSection] = useState(initialSection);
+  const [title, setTitle] = useState('');
+  const [selectedImages, setSelectedImages] = useState([]);
+  const [textColor, setTextColor] = useState('#d8f6ff');
+  const [message, setMessage] = useState('');
+  const [isError, setIsError] = useState(false);
+  const richEditorRef = useRef(null);
+  const imageInputRef = useRef(null);
+  function runEditorCommand(command, value = null) { richEditorRef.current?.focus(); document.execCommand(command, false, value); }
+  async function addImages(files) { const remainingSlots = Math.max(0, 8 - selectedImages.length); const nextFiles = [...files].slice(0, remainingSlots); const images = await Promise.all(nextFiles.map(async (file) => ({ name: file.name, src: await readFileAsDataUrl(file) }))); setSelectedImages((current) => [...current, ...images].slice(0, 8)); if (imageInputRef.current) imageInputRef.current.value = ''; }
+  function removeImage(index) { setSelectedImages((current) => current.filter((_, currentIndex) => currentIndex !== index)); }
+  async function submit(event) { event.preventDefault(); const contentHtml = sanitizeEditorHtml(richEditorRef.current?.innerHTML || ''); const textContent = richEditorRef.current?.innerText.trim() || ''; if (!title.trim() || !textContent) { setMessage('Anade un titulo y contenido antes de publicar.'); setIsError(true); return; } try { await requestJson('/api/content', { method: 'POST', body: JSON.stringify({ section, title: title.trim(), content: textContent, contentHtml, images: selectedImages }) }); setState(await loadState()); navigate({ forum: routes.forum, guides: routes.guides, news: routes.news }[section]); } catch (error) { setMessage(error.message); setIsError(true); } }
+  return <main className="container editor-shell"><section className="editor-panel panel"><span className="section-label">Editor</span><h2>{section === 'guides' ? 'Nueva' : 'Nuevo'} {editorLabels[section]}</h2><form className="editor-form" onSubmit={submit}><div className="editor-field-section"><label>Seccion<select value={section} onChange={(event) => setSection(event.target.value)}><option value="forum">Foro</option><option value="guides">Guias</option><option value="news">Intel</option></select></label></div><label className="editor-field">Titulo<input value={title} onChange={(event) => setTitle(event.target.value)} required /></label><div className="editor-field"><span>Contenido</span><div className="editor-toolbar" aria-label="Herramientas de formato"><button type="button" onClick={() => runEditorCommand('bold')}>B</button><button type="button" onClick={() => runEditorCommand('italic')}>I</button><button type="button" onClick={() => runEditorCommand('underline')}>U</button><button type="button" onClick={() => runEditorCommand('insertUnorderedList')}>Lista</button><button type="button" onClick={() => runEditorCommand('formatBlock', 'H2')}>H2</button><button type="button" onClick={() => runEditorCommand('formatBlock', 'BLOCKQUOTE')}>Cita</button><button type="button" onClick={() => { const url = window.prompt('URL del enlace'); if (url) runEditorCommand('createLink', url); }}>Link</button><label className="color-tool">Color<input type="color" value={textColor} onChange={(event) => { setTextColor(event.target.value); runEditorCommand('foreColor', event.target.value); }} /></label></div><div className="rich-editor" ref={richEditorRef} contentEditable suppressContentEditableWarning /></div><div className="editor-field"><span>Imagenes</span><input ref={imageInputRef} type="file" accept="image/*" multiple onChange={(event) => addImages(event.target.files)} /><div className="image-preview">{selectedImages.map((image, index) => <figure className="preview-image" key={image.name + '-' + index}><img src={image.src} alt={image.name} /><figcaption>{image.name}</figcaption><button type="button" onClick={() => removeImage(index)}>Quitar</button></figure>)}</div></div><button className="action-btn primary-action" type="submit">Publicar</button></form>{message && <p className={`auth-message ${isError ? 'error' : ''}`}>{message}</p>}</section></main>;
+}

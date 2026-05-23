@@ -37,6 +37,57 @@ const appRoutes = {
   login: '/pages/login',
   profile: '/pages/perfil'
 };
+const sessionCookieName = 'stanton_session';
+const oauthStateCookieName = 'stanton_oauth_state';
+const sessionMaxAgeSeconds = 60 * 60 * 24 * 14;
+const oauthStateMaxAgeSeconds = 60 * 10;
+const roleDefinitions = [
+  {
+    key: 'recluta',
+    label: 'Recluta',
+    level: 10,
+    permissions: ['content.vote', 'content.comment']
+  },
+  {
+    key: 'piloto',
+    label: 'Piloto',
+    level: 20,
+    permissions: ['content.vote', 'content.comment', 'content.publish']
+  },
+  {
+    key: 'especialista',
+    label: 'Especialista',
+    level: 30,
+    permissions: ['content.vote', 'content.comment', 'content.publish', 'content.publish.guides', 'content.upload.images']
+  },
+  {
+    key: 'oficial',
+    label: 'Oficial',
+    level: 40,
+    permissions: ['content.vote', 'content.comment', 'content.publish', 'content.publish.guides', 'content.upload.images', 'content.moderate', 'images.delete']
+  },
+  {
+    key: 'comandante',
+    label: 'Comandante',
+    level: 50,
+    permissions: ['content.vote', 'content.comment', 'content.publish', 'content.publish.guides', 'content.upload.images', 'content.moderate', 'images.delete', 'users.manage']
+  },
+  {
+    key: 'administrador',
+    label: 'Administrador',
+    level: 60,
+    permissions: ['content.vote', 'content.comment', 'content.publish', 'content.publish.guides', 'content.upload.images', 'content.moderate', 'images.delete', 'users.manage', 'users.manage.admins', 'ships.sync', 'admin.access']
+  }
+];
+const roleByKey = new Map(roleDefinitions.map((role) => [role.key, role]));
+const roleAliases = new Map([
+  ['farmeo', 'piloto'],
+  ['combate', 'piloto'],
+  ['exploracion', 'piloto'],
+  ['comercio', 'piloto'],
+  ['discord', 'piloto'],
+  ['admin', 'administrador']
+]);
 const vehiclesCache = {
   loadedAt: 0,
   payload: null
@@ -102,8 +153,10 @@ async function initializeDatabase() {
       role VARCHAR(40) NOT NULL DEFAULT 'Farmeo',
       password_hash VARCHAR(255) NOT NULL,
       discord_id VARCHAR(32) NULL UNIQUE,
+      discord_avatar_hash VARCHAR(80) NULL,
       discord_avatar VARCHAR(160) NULL,
       auth_provider VARCHAR(32) NOT NULL DEFAULT 'local',
+      last_login_at DATETIME NULL,
       created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
       updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
       INDEX idx_users_username (username)
@@ -159,7 +212,7 @@ async function initializeDatabase() {
       id CHAR(36) PRIMARY KEY,
       content_id CHAR(36) NOT NULL,
       author_user_id CHAR(36) NULL,
-      author_name VARCHAR(80) NOT NULL DEFAULT 'Modo pruebas',
+      author_name VARCHAR(80) NOT NULL DEFAULT 'Stanton Hub',
       comment_text VARCHAR(500) NOT NULL,
       published_label VARCHAR(80) NULL,
       created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -176,6 +229,18 @@ async function initializeDatabase() {
       setting_key VARCHAR(80) PRIMARY KEY,
       setting_value VARCHAR(255) NOT NULL,
       updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+    ) ENGINE=InnoDB;
+
+    CREATE TABLE IF NOT EXISTS user_sessions (
+      token_hash CHAR(64) PRIMARY KEY,
+      user_id CHAR(36) NOT NULL,
+      expires_at DATETIME NOT NULL,
+      created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      CONSTRAINT fk_sessions_user
+        FOREIGN KEY (user_id) REFERENCES users(id)
+        ON DELETE CASCADE,
+      INDEX idx_sessions_user (user_id),
+      INDEX idx_sessions_expires (expires_at)
     ) ENGINE=InnoDB;
 
     CREATE TABLE IF NOT EXISTS uex_vehicle_cache (
@@ -201,15 +266,14 @@ async function initializeDatabase() {
     ) ENGINE=InnoDB;
 
     INSERT IGNORE INTO app_settings (setting_key, setting_value) VALUES
-      ('session_user_id', ''),
-      ('test_bypass', '0'),
-      ('discord_oauth_state', ''),
       ('vehicles_synced_at', '');
   `);
 
   await ensureColumn('users', 'discord_id', 'VARCHAR(32) NULL UNIQUE');
+  await ensureColumn('users', 'discord_avatar_hash', 'VARCHAR(80) NULL');
   await ensureColumn('users', 'discord_avatar', 'VARCHAR(160) NULL');
   await ensureColumn('users', 'auth_provider', "VARCHAR(32) NOT NULL DEFAULT 'local'");
+  await ensureColumn('users', 'last_login_at', 'DATETIME NULL');
 }
 
 async function ensureColumn(table, column, definition) {
@@ -311,6 +375,34 @@ function formatDate(value) {
   return new Intl.DateTimeFormat('es-ES', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(value));
 }
 
+function normalizeRoleKey(role) {
+  const raw = String(role || '').trim().toLowerCase();
+  const key = raw.normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/\s+/g, '-');
+  return roleByKey.has(key) ? key : roleAliases.get(key) || 'piloto';
+}
+
+function getRole(role) {
+  return roleByKey.get(normalizeRoleKey(role)) || roleByKey.get('piloto');
+}
+
+function userPermissions(user) {
+  return getRole(user?.role).permissions;
+}
+
+function hasPermission(user, permission) {
+  return userPermissions(user).includes(permission);
+}
+
+function publicRole(role) {
+  const definition = getRole(role);
+  return {
+    key: definition.key,
+    label: definition.label,
+    level: definition.level,
+    permissions: definition.permissions
+  };
+}
+
 async function readBody(request) {
   let body = '';
   for await (const chunk of request) {
@@ -319,19 +411,65 @@ async function readBody(request) {
   return body ? JSON.parse(body) : {};
 }
 
-function sendJson(response, status, payload) {
+function sendJson(response, status, payload, extraHeaders = {}) {
   response.writeHead(status, {
     'Content-Type': 'application/json; charset=utf-8',
     'Access-Control-Allow-Origin': 'http://127.0.0.1:4173',
-    'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-    'Access-Control-Allow-Headers': 'Content-Type'
+    'Access-Control-Allow-Methods': 'GET, POST, PATCH, DELETE, OPTIONS',
+    'Access-Control-Allow-Headers': 'Content-Type',
+    ...extraHeaders
   });
   response.end(JSON.stringify(payload));
 }
 
-function redirect(response, location) {
-  response.writeHead(302, { Location: location });
+function redirect(response, location, extraHeaders = {}) {
+  response.writeHead(302, { Location: location, ...extraHeaders });
   response.end();
+}
+
+function parseCookies(request) {
+  return Object.fromEntries(
+    String(request.headers.cookie || '')
+      .split(';')
+      .map((part) => part.trim())
+      .filter(Boolean)
+      .map((part) => {
+        const separator = part.indexOf('=');
+        const key = separator === -1 ? part : part.slice(0, separator);
+        const value = separator === -1 ? '' : part.slice(separator + 1);
+        return [key, decodeURIComponent(value)];
+      })
+  );
+}
+
+function cookieHeader(name, value, options = {}) {
+  const pieces = [`${name}=${encodeURIComponent(value)}`, 'Path=/', 'HttpOnly', 'SameSite=Lax'];
+  if (options.maxAge !== undefined) pieces.push(`Max-Age=${Number(options.maxAge)}`);
+  if (options.expires) pieces.push(`Expires=${options.expires.toUTCString()}`);
+  return pieces.join('; ');
+}
+
+function clearCookieHeader(name) {
+  return cookieHeader(name, '', { maxAge: 0, expires: new Date(0) });
+}
+
+function hashToken(token) {
+  return crypto.createHash('sha256').update(String(token)).digest('hex');
+}
+
+async function createUserSession(userId) {
+  const token = crypto.randomBytes(32).toString('hex');
+  const tokenHash = hashToken(token);
+  await runSql(`
+    INSERT INTO user_sessions (token_hash, user_id, expires_at)
+    VALUES (${sql(tokenHash)}, ${sql(userId)}, DATE_ADD(CURRENT_TIMESTAMP, INTERVAL ${sessionMaxAgeSeconds} SECOND))
+  `);
+  return token;
+}
+
+async function destroyUserSession(token) {
+  if (!token) return;
+  await runSql(`DELETE FROM user_sessions WHERE token_hash = ${sql(hashToken(token))}`);
 }
 
 function normalizeExternalUrl(value, fallbackOrigin = 'https://uexcorp.space') {
@@ -632,12 +770,35 @@ function normalizeVehicle(vehicle, pledgePrices, purchasePrices, rentalPrices) {
       locations: [...new Set(rentals.map((price) => price.terminal_name).filter(Boolean))].slice(0, 4)
     },
     flags: {
+      addon: Number(vehicle.is_addon || 0) === 1,
+      docking: Number(vehicle.is_docking || 0) === 1,
+      loadingDock: Number(vehicle.is_loading_dock || 0) === 1,
       concept: Number(vehicle.is_concept || 0) === 1,
       quantum: Number(vehicle.is_quantum_capable || 0) === 1,
       spaceship: Number(vehicle.is_spaceship || 0) === 1,
       ground: Number(vehicle.is_ground_vehicle || 0) === 1
     }
   };
+}
+
+function isDisplayableUexVehicle(vehicle) {
+  const isVehicle = Number(vehicle.is_spaceship || 0) === 1 || Number(vehicle.is_ground_vehicle || 0) === 1;
+  const isExcludedObject = [
+    vehicle.is_addon,
+    vehicle.is_docking,
+    vehicle.is_loading_dock
+  ].some((value) => Number(value || 0) === 1);
+  const hasPhysicalSize = Number(vehicle.length || 0) > 0 && Number(vehicle.width || 0) > 0;
+  return isVehicle && !isExcludedObject && hasPhysicalSize;
+}
+
+function isDisplayableCachedVehicle(vehicle) {
+  const raw = vehicle.raw || {};
+  if (Object.keys(raw).length) return isDisplayableUexVehicle(raw);
+
+  const isVehicle = Boolean(vehicle.flags?.spaceship || vehicle.flags?.ground);
+  const isExcludedObject = Boolean(vehicle.flags?.addon || vehicle.flags?.docking || vehicle.flags?.loadingDock);
+  return isVehicle && !isExcludedObject && Number(vehicle.length || 0) > 0;
 }
 
 async function buildVehiclesPayloadFromUex() {
@@ -661,7 +822,7 @@ async function buildVehiclesPayloadFromUex() {
     .map((result) => result.reason.message);
 
   const normalized = vehicles
-    .filter((vehicle) => Number(vehicle.is_addon || 0) !== 1)
+    .filter(isDisplayableUexVehicle)
     .map((vehicle) => normalizeVehicle(vehicle, pledgePrices, purchasePrices, rentalPrices))
     .sort((a, b) => a.name.localeCompare(b.name, 'es'));
 
@@ -768,7 +929,9 @@ async function readVehiclesFromDatabase() {
 
   if (!rows.length) return null;
 
-  const vehicles = rows.map((row) => JSON.parse(row.vehicle_json));
+  const vehicles = rows
+    .map((row) => JSON.parse(row.vehicle_json))
+    .filter(isDisplayableCachedVehicle);
   const loadedAt = rows[0]?.synced_at
     ? new Date(rows[0].synced_at.replace(' ', 'T')).toISOString()
     : new Date().toISOString();
@@ -844,34 +1007,54 @@ async function setSetting(key, value) {
   );
 }
 
-async function getCurrentUser() {
-  const sessionUserId = await getSetting('session_user_id');
-  if (!sessionUserId) return null;
+async function getCurrentUser(request) {
+  const sessionToken = parseCookies(request)[sessionCookieName];
+  if (!sessionToken) return null;
+
   const rows = await queryRows(`
-    SELECT id, username, email, role, password_hash, COALESCE(discord_id, '') AS discord_id,
-      COALESCE(discord_avatar, '') AS discord_avatar, COALESCE(auth_provider, 'local') AS auth_provider,
-      DATE_FORMAT(created_at, '%Y-%m-%d %H:%i:%s') AS created_at
-    FROM users
-    WHERE id = ${sql(sessionUserId)}
+    SELECT u.id, u.username, u.email, u.role, u.password_hash, COALESCE(u.discord_id, '') AS discord_id,
+      COALESCE(u.discord_avatar_hash, '') AS discord_avatar_hash, COALESCE(u.discord_avatar, '') AS discord_avatar,
+      COALESCE(u.auth_provider, 'local') AS auth_provider,
+      DATE_FORMAT(u.last_login_at, '%Y-%m-%d %H:%i:%s') AS last_login_at,
+      DATE_FORMAT(u.created_at, '%Y-%m-%d %H:%i:%s') AS created_at
+    FROM user_sessions s
+    INNER JOIN users u ON u.id = s.user_id
+    WHERE s.token_hash = ${sql(hashToken(sessionToken))}
+      AND s.expires_at > CURRENT_TIMESTAMP
+    LIMIT 1
   `);
   return rows[0] || null;
 }
 
 function serializeUser(user) {
+  const role = publicRole(user.role);
   return {
     id: user.id,
     username: user.username,
     email: user.email,
-    role: user.role,
+    role: role.label,
+    roleKey: role.key,
+    roleLevel: role.level,
+    permissions: role.permissions,
     provider: user.auth_provider || 'local',
-    discordAvatar: user.discord_avatar || '',
+    discordAvatar: discordAvatarUrl(user),
+    lastLoginAt: user.last_login_at ? formatDate(user.last_login_at.replace(' ', 'T')) : '',
     createdAt: user.created_at ? formatDate(user.created_at.replace(' ', 'T')) : ''
   };
 }
 
 function discordAvatarUrl(user) {
-  if (!user.avatar) return '';
-  return `https://cdn.discordapp.com/avatars/${user.id}/${user.avatar}.png?size=128`;
+  const discordId = String(user.discord_id || user.id || '');
+  const avatarHash = String(user.avatar || user.discord_avatar_hash || extractDiscordAvatarHash(user.discord_avatar) || '');
+  if (!discordId || !avatarHash) return user.discord_avatar || '';
+
+  const extension = avatarHash.startsWith('a_') ? 'gif' : 'png';
+  return `https://cdn.discordapp.com/avatars/${discordId}/${avatarHash}.${extension}?size=128`;
+}
+
+function extractDiscordAvatarHash(url) {
+  const match = String(url || '').match(/\/avatars\/\d+\/([^.?/]+)/);
+  return match?.[1] || '';
 }
 
 async function fetchDiscordToken(code) {
@@ -919,6 +1102,7 @@ async function loginWithDiscordUser(discordUser) {
   const discordId = String(discordUser.id || '');
   const email = String(discordUser.email || `${discordId}@discord.local`).trim().toLowerCase();
   const username = String(discordUser.global_name || discordUser.username || `Discord ${discordId.slice(-4)}`).trim().slice(0, 32);
+  const avatarHash = String(discordUser.avatar || '');
   const avatar = discordAvatarUrl(discordUser);
   const rows = await queryRows(`
     SELECT id
@@ -933,24 +1117,24 @@ async function loginWithDiscordUser(discordUser) {
       SET username = ${sql(username)},
           email = ${sql(email)},
           discord_id = ${sql(discordId)},
+          discord_avatar_hash = ${sql(avatarHash)},
           discord_avatar = ${sql(avatar)},
-          auth_provider = 'discord'
+          auth_provider = 'discord',
+          last_login_at = CURRENT_TIMESTAMP
       WHERE id = ${sql(rows[0].id)}
     `);
-    await setSetting('session_user_id', rows[0].id);
     return rows[0].id;
   }
 
   const id = crypto.randomUUID();
   await runSql(`
-    INSERT INTO users (id, username, email, role, password_hash, discord_id, discord_avatar, auth_provider)
-    VALUES (${sql(id)}, ${sql(username)}, ${sql(email)}, 'Discord', 'discord-oauth', ${sql(discordId)}, ${sql(avatar)}, 'discord')
+    INSERT INTO users (id, username, email, role, password_hash, discord_id, discord_avatar_hash, discord_avatar, auth_provider, last_login_at)
+    VALUES (${sql(id)}, ${sql(username)}, ${sql(email)}, 'Piloto', 'discord-oauth', ${sql(discordId)}, ${sql(avatarHash)}, ${sql(avatar)}, 'discord', CURRENT_TIMESTAMP)
   `);
-  await setSetting('session_user_id', id);
   return id;
 }
 
-async function readState() {
+async function readState(request) {
   const contentRows = await queryRows(`
     SELECT id, section, title, content, COALESCE(content_html, '') AS content_html, author_user_id, author_name, published_label,
       DATE_FORMAT(created_at, '%Y-%m-%d %H:%i:%s') AS created_at
@@ -974,9 +1158,7 @@ async function readState() {
     FROM comments
     ORDER BY created_at ASC
   `);
-  const sessionUserId = await getSetting('session_user_id');
-  const currentUser = sessionUserId ? await getCurrentUser() : null;
-  const testBypass = (await getSetting('test_bypass')) === '1';
+  const currentUser = await getCurrentUser(request);
 
   const imagesByContent = imageRows.reduce((groups, image) => {
     groups[image.content_id] ||= [];
@@ -1018,10 +1200,72 @@ async function readState() {
 
   return {
     users: currentUser ? [serializeUser(currentUser)] : [],
-    sessionUserId: sessionUserId || null,
-    testBypass,
+    sessionUserId: currentUser?.id || null,
+    roles: roleDefinitions.map(({ key, label, level, permissions }) => ({ key, label, level, permissions })),
     content,
     interactions: { votes, comments }
+  };
+}
+
+async function requireUser(request, response) {
+  const currentUser = await getCurrentUser(request);
+  if (!currentUser) {
+    sendJson(response, 401, { error: 'Necesitas iniciar sesion para hacer esto.' });
+    return null;
+  }
+  return currentUser;
+}
+
+async function requirePermission(request, response, permission) {
+  const currentUser = await requireUser(request, response);
+  if (!currentUser) return null;
+
+  if (!hasPermission(currentUser, permission)) {
+    sendJson(response, 403, { error: 'No tienes permisos para realizar esta accion.' });
+    return null;
+  }
+
+  return currentUser;
+}
+
+async function readAdminState() {
+  const users = await queryRows(`
+    SELECT id, username, email, role, COALESCE(discord_id, '') AS discord_id,
+      COALESCE(discord_avatar_hash, '') AS discord_avatar_hash, COALESCE(discord_avatar, '') AS discord_avatar,
+      COALESCE(auth_provider, 'local') AS auth_provider,
+      DATE_FORMAT(last_login_at, '%Y-%m-%d %H:%i:%s') AS last_login_at,
+      DATE_FORMAT(created_at, '%Y-%m-%d %H:%i:%s') AS created_at
+    FROM users
+    ORDER BY created_at DESC
+  `);
+  const content = await queryRows(`
+    SELECT id, section, title, author_name, DATE_FORMAT(created_at, '%Y-%m-%d %H:%i:%s') AS created_at
+    FROM content_items
+    ORDER BY created_at DESC
+  `);
+  const images = await queryRows(`
+    SELECT ci.id, ci.content_id, ci.image_name, c.title
+    FROM content_images ci
+    INNER JOIN content_items c ON c.id = ci.content_id
+    ORDER BY ci.created_at DESC, ci.id DESC
+  `);
+
+  return {
+    roles: roleDefinitions.map(({ key, label, level, permissions }) => ({ key, label, level, permissions })),
+    users: users.map(serializeUser),
+    content: content.map((item) => ({
+      id: item.id,
+      section: item.section,
+      title: item.title,
+      author: item.author_name,
+      createdAt: item.created_at ? formatDate(item.created_at.replace(' ', 'T')) : ''
+    })),
+    images: images.map((image) => ({
+      id: Number(image.id),
+      contentId: image.content_id,
+      name: image.image_name,
+      title: image.title
+    }))
   };
 }
 
@@ -1033,7 +1277,6 @@ async function handleApi(request, response, pathname) {
     }
 
     const state = crypto.randomBytes(18).toString('hex');
-    await setSetting('discord_oauth_state', state);
     const url = new URL('https://discord.com/oauth2/authorize');
     url.search = new URLSearchParams({
       client_id: discordClientId,
@@ -1042,7 +1285,9 @@ async function handleApi(request, response, pathname) {
       scope: 'identify email',
       state
     }).toString();
-    redirect(response, url.toString());
+    redirect(response, url.toString(), {
+      'Set-Cookie': cookieHeader(oauthStateCookieName, state, { maxAge: oauthStateMaxAgeSeconds })
+    });
     return;
   }
 
@@ -1050,22 +1295,31 @@ async function handleApi(request, response, pathname) {
     const requestUrl = new URL(request.url, `http://${request.headers.host}`);
     const code = String(requestUrl.searchParams.get('code') || '');
     const state = String(requestUrl.searchParams.get('state') || '');
-    const expectedState = await getSetting('discord_oauth_state');
-    await setSetting('discord_oauth_state', '');
+    const expectedState = parseCookies(request)[oauthStateCookieName] || '';
 
     if (!code || !state || state !== expectedState) {
-      redirect(response, `${appRoutes.login}?error=discord_state`);
+      redirect(response, `${appRoutes.login}?error=discord_state`, {
+        'Set-Cookie': clearCookieHeader(oauthStateCookieName)
+      });
       return;
     }
 
     try {
       const token = await fetchDiscordToken(code);
       const discordUser = await fetchDiscordUser(token.access_token);
-      await loginWithDiscordUser(discordUser);
-      redirect(response, appRoutes.profile);
+      const userId = await loginWithDiscordUser(discordUser);
+      const sessionToken = await createUserSession(userId);
+      redirect(response, appRoutes.profile, {
+        'Set-Cookie': [
+          cookieHeader(sessionCookieName, sessionToken, { maxAge: sessionMaxAgeSeconds }),
+          clearCookieHeader(oauthStateCookieName)
+        ]
+      });
     } catch (error) {
       console.warn(`Login Discord fallido: ${error.message}`);
-      redirect(response, `${appRoutes.login}?error=discord_login`);
+      redirect(response, `${appRoutes.login}?error=discord_login`, {
+        'Set-Cookie': clearCookieHeader(oauthStateCookieName)
+      });
     }
     return;
   }
@@ -1076,72 +1330,80 @@ async function handleApi(request, response, pathname) {
   }
 
   if (request.method === 'POST' && pathname === '/api/vehicles/sync') {
+    const currentUser = await requirePermission(request, response, 'ships.sync');
+    if (!currentUser) return;
     sendJson(response, 200, await readVehicles({ forceSync: true }));
     return;
   }
 
   if (request.method === 'GET' && pathname === '/api/state') {
-    sendJson(response, 200, await readState());
+    sendJson(response, 200, await readState(request));
+    return;
+  }
+
+  if (request.method === 'GET' && pathname === '/api/admin/state') {
+    const currentUser = await requirePermission(request, response, 'admin.access');
+    if (!currentUser) return;
+    sendJson(response, 200, await readAdminState());
+    return;
+  }
+
+  if (request.method === 'PATCH' && pathname.startsWith('/api/admin/users/') && pathname.endsWith('/role')) {
+    const currentUser = await requirePermission(request, response, 'users.manage');
+    if (!currentUser) return;
+    const userId = decodeURIComponent(pathname.split('/')[4] || '');
+    const body = await readBody(request);
+    const targetRole = getRole(body.role);
+    const currentRole = getRole(currentUser.role);
+
+    if (targetRole.key === 'administrador' && !hasPermission(currentUser, 'users.manage.admins')) {
+      sendJson(response, 403, { error: 'Solo un Administrador puede asignar el rol Administrador.' });
+      return;
+    }
+
+    if (targetRole.level >= currentRole.level && !hasPermission(currentUser, 'users.manage.admins')) {
+      sendJson(response, 403, { error: 'No puedes asignar un rol igual o superior al tuyo.' });
+      return;
+    }
+
+    await runSql(`UPDATE users SET role = ${sql(targetRole.label)} WHERE id = ${sql(userId)}`);
+    sendJson(response, 200, await readAdminState());
+    return;
+  }
+
+  if (request.method === 'DELETE' && pathname.startsWith('/api/admin/content/')) {
+    const currentUser = await requirePermission(request, response, 'content.moderate');
+    if (!currentUser) return;
+    const contentId = decodeURIComponent(pathname.split('/')[4] || '');
+    await runSql(`DELETE FROM content_items WHERE id = ${sql(contentId)}`);
+    sendJson(response, 200, await readAdminState());
+    return;
+  }
+
+  if (request.method === 'DELETE' && pathname.startsWith('/api/admin/images/')) {
+    const currentUser = await requirePermission(request, response, 'images.delete');
+    if (!currentUser) return;
+    const imageId = Number(pathname.split('/')[4] || 0);
+    await runSql(`DELETE FROM content_images WHERE id = ${Number.isFinite(imageId) ? imageId : 0}`);
+    sendJson(response, 200, await readAdminState());
     return;
   }
 
   if (request.method === 'POST' && pathname === '/api/register') {
-    const body = await readBody(request);
-    const id = crypto.randomUUID();
-    const email = String(body.email || '').trim().toLowerCase();
-    const username = String(body.username || '').trim();
-    const role = String(body.role || 'Farmeo').trim();
-    const password = String(body.password || '');
-
-    if (!email || !username || !password) {
-      sendJson(response, 400, { error: 'Email, username y contraseña son obligatorios.' });
-      return;
-    }
-
-    try {
-      await runSql(
-        `INSERT INTO users (id, username, email, role, password_hash)
-         VALUES (${sql(id)}, ${sql(username)}, ${sql(email)}, ${sql(role)}, ${sql(password)})`
-      );
-    } catch (error) {
-      if (error.code === 'ER_DUP_ENTRY') {
-        sendJson(response, 409, { error: 'Ese email ya está registrado.' });
-        return;
-      }
-      throw error;
-    }
-
-    await setSetting('session_user_id', id);
-    sendJson(response, 201, await readState());
+    sendJson(response, 410, { error: 'El registro local esta desactivado. Usa Discord para acceder.' });
     return;
   }
 
   if (request.method === 'POST' && pathname === '/api/login') {
-    const body = await readBody(request);
-    const email = String(body.email || '').trim().toLowerCase();
-    const password = String(body.password || '');
-    const rows = await queryRows(`SELECT id FROM users WHERE email = ${sql(email)} AND password_hash = ${sql(password)}`);
-
-    if (!rows[0]) {
-      sendJson(response, 401, { error: 'No se encontró una cuenta con esos datos.' });
-      return;
-    }
-
-    await setSetting('session_user_id', rows[0].id);
-    sendJson(response, 200, await readState());
+    sendJson(response, 410, { error: 'El inicio local esta desactivado. Usa Discord para acceder.' });
     return;
   }
 
   if (request.method === 'POST' && pathname === '/api/logout') {
-    await setSetting('session_user_id', '');
-    sendJson(response, 200, await readState());
-    return;
-  }
-
-  if (request.method === 'POST' && pathname === '/api/bypass') {
-    const body = await readBody(request);
-    await setSetting('test_bypass', body.enabled ? '1' : '0');
-    sendJson(response, 200, await readState());
+    await destroyUserSession(parseCookies(request)[sessionCookieName]);
+    sendJson(response, 200, await readState(request), {
+      'Set-Cookie': clearCookieHeader(sessionCookieName)
+    });
     return;
   }
 
@@ -1152,28 +1414,42 @@ async function handleApi(request, response, pathname) {
     const content = String(body.content || '').trim();
     const contentHtml = String(body.contentHtml || '').trim();
     const images = Array.isArray(body.images) ? body.images.slice(0, 8) : [];
-    const currentUser = await getCurrentUser();
-    const testBypass = (await getSetting('test_bypass')) === '1';
+    const currentUser = await getCurrentUser(request);
 
     if (!['forum', 'guides', 'news'].includes(section) || !title || (!content && !contentHtml)) {
       sendJson(response, 400, { error: 'Contenido incompleto.' });
       return;
     }
 
-    if (!currentUser && !testBypass) {
+    if (!currentUser) {
       sendJson(response, 403, { error: 'Necesitas iniciar sesión para publicar.' });
+      return;
+    }
+
+    if (!hasPermission(currentUser, 'content.publish')) {
+      sendJson(response, 403, { error: 'Tu rol no permite publicar contenido.' });
+      return;
+    }
+
+    if (section === 'guides' && !hasPermission(currentUser, 'content.publish.guides')) {
+      sendJson(response, 403, { error: 'Tu rol no permite publicar guias.' });
+      return;
+    }
+
+    if (images.length && !hasPermission(currentUser, 'content.upload.images')) {
+      sendJson(response, 403, { error: 'Tu rol no permite subir capturas.' });
       return;
     }
 
     const id = crypto.randomUUID();
     const cleanContent = content || contentHtml.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
-    const authorName = currentUser ? currentUser.username : 'Modo pruebas';
+    const authorName = currentUser.username;
     const publishedLabel = formatDate(new Date());
 
     await runSql(
       `INSERT INTO content_items
        (id, section, title, content, content_html, author_user_id, author_name, published_label)
-       VALUES (${sql(id)}, ${sql(section)}, ${sql(title)}, ${sql(cleanContent)}, ${sql(contentHtml)}, ${sql(currentUser?.id || null)}, ${sql(authorName)}, ${sql(publishedLabel)})`
+       VALUES (${sql(id)}, ${sql(section)}, ${sql(title)}, ${sql(cleanContent)}, ${sql(contentHtml)}, ${sql(currentUser.id)}, ${sql(authorName)}, ${sql(publishedLabel)})`
     );
 
     for (const [index, image] of images.entries()) {
@@ -1183,7 +1459,7 @@ async function handleApi(request, response, pathname) {
       );
     }
 
-    sendJson(response, 201, await readState());
+    sendJson(response, 201, await readState(request));
     return;
   }
 
@@ -1191,20 +1467,24 @@ async function handleApi(request, response, pathname) {
     const body = await readBody(request);
     const postId = String(body.postId || '');
     const vote = Number(body.vote);
-    const currentUser = await getCurrentUser();
-    const testBypass = (await getSetting('test_bypass')) === '1';
+    const currentUser = await getCurrentUser(request);
 
     if (!postId || ![-1, 1].includes(vote)) {
       sendJson(response, 400, { error: 'Voto invalido.' });
       return;
     }
 
-    if (!currentUser && !testBypass) {
+    if (!currentUser) {
       sendJson(response, 403, { error: 'Necesitas iniciar sesion para votar.' });
       return;
     }
 
-    const voterKey = currentUser ? currentUser.id : 'test-bypass';
+    if (!hasPermission(currentUser, 'content.vote')) {
+      sendJson(response, 403, { error: 'Tu rol no permite votar.' });
+      return;
+    }
+
+    const voterKey = currentUser.id;
     const existing = await queryRows(`SELECT vote_value FROM votes WHERE content_id = ${sql(postId)} AND voter_key = ${sql(voterKey)}`);
 
     if (Number(existing[0]?.vote_value) === vote) {
@@ -1217,7 +1497,7 @@ async function handleApi(request, response, pathname) {
       );
     }
 
-    sendJson(response, 200, await readState());
+    sendJson(response, 200, await readState(request));
     return;
   }
 
@@ -1225,26 +1505,30 @@ async function handleApi(request, response, pathname) {
     const body = await readBody(request);
     const postId = String(body.postId || '');
     const text = String(body.text || '').trim();
-    const currentUser = await getCurrentUser();
-    const testBypass = (await getSetting('test_bypass')) === '1';
+    const currentUser = await getCurrentUser(request);
 
     if (!postId || !text) {
       sendJson(response, 400, { error: 'Comentario incompleto.' });
       return;
     }
 
-    if (!currentUser && !testBypass) {
+    if (!currentUser) {
       sendJson(response, 403, { error: 'Necesitas iniciar sesion para comentar.' });
+      return;
+    }
+
+    if (!hasPermission(currentUser, 'content.comment')) {
+      sendJson(response, 403, { error: 'Tu rol no permite comentar.' });
       return;
     }
 
     await runSql(
       `INSERT INTO comments
        (id, content_id, author_user_id, author_name, comment_text, published_label)
-       VALUES (${sql(crypto.randomUUID())}, ${sql(postId)}, ${sql(currentUser?.id || null)}, ${sql(currentUser ? currentUser.username : 'Modo pruebas')}, ${sql(text)}, ${sql(formatDate(new Date()))})`
+       VALUES (${sql(crypto.randomUUID())}, ${sql(postId)}, ${sql(currentUser.id)}, ${sql(currentUser.username)}, ${sql(text)}, ${sql(formatDate(new Date()))})`
     );
 
-    sendJson(response, 201, await readState());
+    sendJson(response, 201, await readState(request));
     return;
   }
 
@@ -1303,7 +1587,7 @@ const server = http.createServer(async (request, response) => {
     if (request.method === 'OPTIONS') {
       response.writeHead(204, {
         'Access-Control-Allow-Origin': 'http://127.0.0.1:4173',
-        'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+        'Access-Control-Allow-Methods': 'GET, POST, PATCH, DELETE, OPTIONS',
         'Access-Control-Allow-Headers': 'Content-Type'
       });
       response.end();

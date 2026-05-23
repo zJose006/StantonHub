@@ -1,0 +1,17 @@
+import React from 'react';
+import { routes } from '../config/routes.js';
+import { requestJson } from '../services/api.js';
+import { initials } from '../utils/format.js';
+import { routeClick } from '../utils/navigation.js';
+
+/** Pagina de perfil: muestra identidad, rol y resumen de actividad del usuario. */
+export function ProfilePage({ state, setState, currentUser, navigate, stateError }) {
+  const userGuides = currentUser ? state.content.guides.filter((item) => item.author === currentUser.username).length : 0;
+  const userIntel = currentUser ? state.content.news.filter((item) => item.author === currentUser.username).length : 0;
+  const userPosts = currentUser ? Object.values(state.content).flat().filter((item) => item.author === currentUser.username).length : 0;
+  async function logout() { setState(await requestJson('/api/logout', { method: 'POST' })); }
+  return <main className="container profile-shell">{stateError && <section className="ships-status">{stateError}</section>}<section className="profile-identity-panel"><div className="profile-identity-main"><div className="profile-avatar profile-avatar-command">{currentUser?.discordAvatar ? <img src={currentUser.discordAvatar} alt={currentUser.username} /> : currentUser ? initials(currentUser.username) : 'SC'}</div><div><span className="section-label">{currentUser?.role || 'Piloto sin identificar'}</span><h2>{currentUser?.username || 'Invitado'}</h2><p>{currentUser ? 'Publicacion habilitada segun tu rol dentro de Stanton Hub.' : 'Inicia sesion con Discord para publicar guias, rutas y ayudas.'}</p></div></div><dl className="profile-dossier"><div><dt>Email</dt><dd>{currentUser?.email || 'No disponible'}</dd></div><div><dt>Alta</dt><dd>{currentUser?.createdAt || 'Sin registro'}</dd></div><div><dt>Acceso</dt><dd>{currentUser ? 'Sesion iniciada' : 'Lectura'}</dd></div></dl><div className="profile-actions profile-command-actions">{currentUser ? <><a className="action-btn primary-action" href={routes.editor + '?type=forum'} onClick={(event) => routeClick(event, routes.editor + '?type=forum', navigate)}>Publicar</a><button className="action-btn" type="button" onClick={logout}>Cerrar sesion</button></> : <a className="action-btn primary-action" href={routes.login} onClick={(event) => routeClick(event, routes.login, navigate)}>Iniciar sesion</a>}</div></section><section className="profile-ops-panel"><div className="profile-section-header"><span className="section-label">Actividad</span><h2>Resumen operativo</h2></div><section className={`profile-metrics ${currentUser ? '' : 'empty-metrics'}`}>{currentUser ? <><Metric value={currentUser.role} label="Rol" /><Metric value={userGuides} label="Mis guias" /><Metric value={userIntel} label="Mi intel" /><Metric value={userPosts} label="Aportes" /></> : <div className="profile-note"><strong>Historial no disponible</strong><span>Inicia sesion con Discord para ver tus guias, intel y aportes publicados.</span></div>}</section><div className="profile-briefing-grid"><article className="profile-briefing"><span>Operaciones</span><strong>Rutas y consejos</strong><p>Publica rutas de farmeo, avisos y recomendaciones para otros pilotos.</p></article><article className="profile-briefing"><span>Biblioteca</span><strong>Guias</strong><p>Centraliza aprendizaje, mecanicas y preparacion de vuelo.</p></article></div></section></main>;
+}
+
+/** Metrica numerica o textual del perfil. */
+function Metric({ value, label }) { return <div className="metric"><span>{value}</span><strong>{label}</strong></div>; }
