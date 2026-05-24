@@ -47,7 +47,7 @@ export function Header({ page, navigate, currentUser }) {
   );
 
   return (
-    <header className="hero hero-compact">
+    <header className={`hero hero-compact hero-page-${page}`}>
       <div className={`hero-topbar ${mobileNavOpen ? 'mobile-drawer-active' : ''}`}>
         <button className={`mobile-nav-toggle ${mobileNavOpen ? 'is-open' : ''}`} type="button" aria-expanded={mobileNavOpen} aria-label="Abrir menu" onClick={(event) => { event.stopPropagation(); setOpenMenu(''); setMobileNavOpen((open) => !open); }}>
           <span className="mobile-nav-toggle-line" aria-hidden="true" />
@@ -81,7 +81,7 @@ export function Header({ page, navigate, currentUser }) {
         </div>
         <div className="header-account-slot">{accountNav}</div>
       </div>
-      <HeroContent page={page} />
+      <HeroContent page={page} navigate={navigate} />
     </header>
   );
 }
