@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { routes } from '../config/routes.js';
 import { requestJson } from '../services/api.js';
-import { money, meters } from '../utils/format.js';
+import { money, meters, textValue } from '../utils/format.js';
 import { routeClick } from '../utils/navigation.js';
 
 /** Ficha completa de una nave almacenada en MySQL, incluyendo UEX, Wiki y combate. */
@@ -20,16 +20,18 @@ export function ShipDetailPage({ identifier, navigate }) {
   }
 
   const { vehicle, raw, wiki, combat, prices, curiosity } = detail;
-  const image = vehicle.imageCandidates?.[0] || vehicle.photoProxy || vehicle.wikiImageProxy || vehicle.photo;
+  const image = [vehicle.imageCandidates?.[0], vehicle.photoProxy, vehicle.photo, vehicle.wikiImageProxy].find(Boolean);
+  const shipName = textValue(vehicle.name, 'Nave sin nombre');
+  const weaponGroups = combat?.weaponGroups?.length ? combat.weaponGroups : groupWeaponsByCategory(combat?.weapons || []);
   const metrics = [
-    ['Fabricante', vehicle.manufacturer],
-    ['Tamano de pad', vehicle.padType],
+    ['Fabricante', textValue(vehicle.manufacturer, 'Fabricante desconocido')],
+    ['Tamano de pad', textValue(vehicle.padType, 'N/D')],
     ['Longitud', meters(vehicle.length)],
     ['Anchura', meters(vehicle.width)],
     ['Altura', meters(vehicle.height)],
     ['Masa', vehicle.mass ? Number(vehicle.mass).toLocaleString('es-ES') + ' kg' : 'N/D'],
     ['Carga', vehicle.scu ? vehicle.scu + ' SCU' : 'N/D'],
-    ['Tripulacion', vehicle.crew],
+    ['Tripulacion', textValue(vehicle.crew, 'N/D')],
     ['Quantum', vehicle.flags?.quantum ? 'Si' : 'No'],
     ['Estado', vehicle.flags?.concept ? 'Concept' : 'Operativa / catalogada']
   ];
@@ -37,19 +39,19 @@ export function ShipDetailPage({ identifier, navigate }) {
   return (
     <main className="container ship-detail-shell">
       <section className="ship-detail-hero panel">
-        <div className="ship-detail-media">{image ? <img src={image} alt={vehicle.name} /> : <span>SC</span>}</div>
-        <div className="ship-detail-intro"><span className="section-label">{vehicle.manufacturer}</span><h2>{vehicle.name}</h2><p>{curiosity}</p><div className="ship-detail-actions"><BackLink navigate={navigate} />{vehicle.storeUrl && <a className="action-btn" href={vehicle.storeUrl} target="_blank" rel="noreferrer">RSI Store</a>}</div></div>
+        <div className="ship-detail-media">{image ? <img src={image} alt={shipName} /> : <span>SC</span>}</div>
+        <div className="ship-detail-intro"><span className="section-label">{textValue(vehicle.manufacturer, 'Fabricante desconocido')}</span><h2>{shipName}</h2><p>{textValue(curiosity)}</p><div className="ship-detail-actions"><BackLink navigate={navigate} />{vehicle.storeUrl && <a className="action-btn" href={vehicle.storeUrl} target="_blank" rel="noreferrer">RSI Store</a>}</div></div>
       </section>
 
       <section className="ship-detail-grid">
         <DetailCard title="Resumen UEX" items={metrics} />
         <DetailCard title="Precios" items={[
-          ['Pledge', money(vehicle.pledge?.price, vehicle.pledge?.currency || 'USD')],
-          ['Warbond', money(vehicle.pledge?.warbond, vehicle.pledge?.currency || 'USD')],
+          ['Pledge', money(vehicle.pledge?.price, textValue(vehicle.pledge?.currency, 'USD'))],
+          ['Warbond', money(vehicle.pledge?.warbond, textValue(vehicle.pledge?.currency, 'USD'))],
           ['Compra in-game', money(vehicle.purchase?.price)],
           ['Alquiler', money(vehicle.rental?.price)],
-          ['Terminales compra', vehicle.purchase?.locations?.join(', ') || 'Sin terminal conocido'],
-          ['Terminales alquiler', vehicle.rental?.locations?.join(', ') || 'Sin terminal conocido']
+          ['Terminales compra', vehicle.purchase?.locations?.map((item) => textValue(item)).join(', ') || 'Sin terminal conocido'],
+          ['Terminales alquiler', vehicle.rental?.locations?.map((item) => textValue(item)).join(', ') || 'Sin terminal conocido']
         ]} />
         <DetailCard title="Durabilidad Wiki" items={[
           ['Health', vehicle.wiki?.health || wiki?.health || 'N/D'],
@@ -70,7 +72,7 @@ export function ShipDetailPage({ identifier, navigate }) {
 
       <section className="panel ship-weapons-panel">
         <div className="panel-header"><div><span className="section-label">Hardpoints</span><h2>Armas y dano</h2></div></div>
-        {combat?.weapons?.length ? <div className="ship-weapons-list">{combat.weapons.map((weapon, index) => <article className="ship-weapon-row" key={weapon.name + index}><div><strong>{weapon.name}</strong><span>{weapon.mount || weapon.className || 'Montura detectada'} · S{weapon.size || 'N/D'}</span></div><dl><div><dt>Alpha</dt><dd>{numberOrMissing(weapon.damage?.alphaTotal)}</dd></div><div><dt>60s</dt><dd>{numberOrMissing(weapon.damage?.sustained60s)}</dd></div><div><dt>RPM</dt><dd>{weapon.rpm || 'N/D'}</dd></div><div><dt>Rango</dt><dd>{weapon.range ? meters(weapon.range) : 'N/D'}</dd></div></dl></article>)}</div> : <p className="auth-message">No hay armas de hardpoint disponibles para esta nave en la cache local.</p>}
+        {weaponGroups.length ? <div className="ship-weapons-list">{weaponGroups.map((group) => <WeaponCategoryRow key={String(group.category)} group={group} />)}</div> : <p className="auth-message">No hay armas de hardpoint disponibles para esta nave en la cache local.</p>}
       </section>
 
       <section className="ship-raw-grid">
@@ -87,8 +89,26 @@ function BackLink({ navigate }) {
   return <a className="action-btn primary-action" href={routes.ships} onClick={(event) => routeClick(event, routes.ships, navigate)}>Volver a naves</a>;
 }
 
+function WeaponCategoryRow({ group }) {
+  const examples = group.examples?.length ? group.examples.map((item) => textValue(item)).join(', ') : 'Loadout agrupado';
+  return (
+    <article className="ship-weapon-row">
+      <div>
+        <strong>{textValue(group.label, 'Categoria N/D')}</strong>
+        <span>{group.count} armas - {examples}</span>
+      </div>
+      <dl>
+        <div><dt>Dano/arma</dt><dd>{numberOrMissing(group.damagePerWeapon?.alphaTotal)}</dd></div>
+        <div><dt>Total alpha</dt><dd>{numberOrMissing(group.damageTotal?.alphaTotal)}</dd></div>
+        <div><dt>60s/arma</dt><dd>{numberOrMissing(group.damagePerWeapon?.sustained60s)}</dd></div>
+        <div><dt>60s total</dt><dd>{numberOrMissing(group.damageTotal?.sustained60s)}</dd></div>
+      </dl>
+    </article>
+  );
+}
+
 function DetailCard({ title, items }) {
-  return <section className="panel ship-detail-card"><h3>{title}</h3><dl>{items.map(([label, value]) => <div key={label}><dt>{label}</dt><dd>{value || 'N/D'}</dd></div>)}</dl></section>;
+  return <section className="panel ship-detail-card"><h3>{title}</h3><dl>{items.map(([label, value]) => <div key={label}><dt>{label}</dt><dd>{textValue(value, 'N/D') || 'N/D'}</dd></div>)}</dl></section>;
 }
 
 function RawCard({ title, data }) {
@@ -98,4 +118,23 @@ function RawCard({ title, data }) {
 function numberOrMissing(value) {
   const number = Number(value || 0);
   return number ? Math.round(number).toLocaleString('es-ES') : 'N/D';
+}
+
+function groupWeaponsByCategory(weapons) {
+  const groups = new Map();
+  for (const weapon of weapons) {
+    const category = Number(weapon?.size || 0) || 'N/D';
+    const key = String(category);
+    if (!groups.has(key)) groups.set(key, { category, label: category === 'N/D' ? 'Categoria N/D' : `Categoria ${category}`, count: 0, examples: [], damagePerWeapon: { alphaTotal: 0, sustained60s: 0 }, damageTotal: { alphaTotal: 0, sustained60s: 0 } });
+    const group = groups.get(key);
+    group.count += Number(weapon.countOverride || 1);
+    if (group.examples.length < 3) group.examples.push(textValue(weapon.name, 'Arma sin nombre'));
+    const alpha = Number(weapon?.damage?.alphaTotal || 0);
+    const sustained = Number(weapon?.damage?.sustained60s || 0);
+    group.damageTotal.alphaTotal += alpha;
+    group.damageTotal.sustained60s += sustained;
+    group.damagePerWeapon.alphaTotal = Math.max(group.damagePerWeapon.alphaTotal, alpha);
+    group.damagePerWeapon.sustained60s = Math.max(group.damagePerWeapon.sustained60s, sustained);
+  }
+  return [...groups.values()].sort((a, b) => (a.category === 'N/D' ? 1 : b.category === 'N/D' ? -1 : Number(a.category) - Number(b.category)));
 }

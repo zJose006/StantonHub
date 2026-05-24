@@ -83,6 +83,7 @@ body::after {
 
 .hero {
   position: relative;
+  z-index: 20;
   overflow: visible;
   isolation: isolate;
   min-height: clamp(410px, 42vw, 500px);
@@ -112,7 +113,7 @@ body::after {
 
 .hero-topbar {
   position: relative;
-  z-index: 30;
+  z-index: 80;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -129,7 +130,7 @@ body::after {
 }
 
 .hero-topbar:has(.header-nav-panel.is-open) {
-  z-index: 90;
+  z-index: 140;
 }
 
 .home-button,
@@ -178,7 +179,6 @@ body::after {
 }
 
 .brand-copy strong {
-  color: var(--accent);
   font-size: 1.05rem;
   letter-spacing: 0.16em;
 }
@@ -345,7 +345,7 @@ body::after {
 
 .nav-group.is-open > .nav-trigger::after,
 .nav-trigger[aria-expanded="true"]::after {
-  animation: nav-arrow-float 2.2s cubic-bezier(0.45, 0, 0.2, 1) infinite;
+  animation: nav-arrow-float 2.8s cubic-bezier(0.42, 0, 0.18, 1) infinite;
   color: var(--primary);
   transform: translateY(0) rotate(-135deg);
 }
@@ -383,6 +383,7 @@ body::after {
   opacity: 0;
   pointer-events: none;
   transform: rotate(0deg);
+  animation: avatar-border-flow 3.2s linear infinite;
   transition: opacity 0.18s ease;
   -webkit-mask:
     linear-gradient(#000 0 0) content-box,
@@ -412,7 +413,6 @@ body::after {
 .account-nav .nav-trigger:hover .user-badge-avatar::before,
 .account-nav .nav-trigger.active .user-badge-avatar::before,
 .account-nav.is-open .user-badge-avatar::before {
-  animation: avatar-border-flow 1.6s linear infinite;
   opacity: 1;
 }
 
@@ -564,11 +564,14 @@ body::after {
   left: 0;
   height: 1px;
   content: "";
-  background: linear-gradient(90deg, var(--primary), var(--accent), var(--primary));
-  background-size: 220% 100%;
+  background: linear-gradient(90deg, var(--primary), var(--accent), var(--primary), var(--accent), var(--primary));
+  background-size: 300% 100%;
+  animation: gradient-flow 4.8s linear infinite;
   opacity: 0;
-  transform: scaleX(0.4);
-  transition: opacity 0.18s ease, transform 0.18s ease;
+  transform: scaleX(0.72);
+  transform-origin: center;
+  transition: opacity 0.24s ease, transform 0.34s cubic-bezier(0.2, 0.8, 0.2, 1);
+  will-change: opacity, transform;
 }
 
 .page-btn:hover::before,
@@ -579,18 +582,46 @@ body::after {
 .profile-link.active::before,
 .nav-group.is-open > .nav-trigger::before,
 .nav-trigger[aria-expanded="true"]::before {
-  animation: nav-underline-flow 1.35s linear infinite;
   opacity: 1;
   transform: scaleX(1);
 }
 
-@keyframes nav-underline-flow {
+/* Reusable gradient utilities for links, labels and future text accents. */
+.flow-underline,
+.flow-text {
+  --flow-duration: 4.8s;
+  background: linear-gradient(90deg, var(--primary), var(--accent), var(--primary), var(--accent), var(--primary));
+  background-size: 300% 100%;
+  animation: gradient-flow var(--flow-duration) linear infinite;
+}
+
+.flow-text {
+  color: transparent;
+  -webkit-background-clip: text;
+  background-clip: text;
+}
+
+.flow-underline {
+  position: relative;
+}
+
+.flow-underline::after {
+  position: absolute;
+  right: 0;
+  bottom: -0.15rem;
+  left: 0;
+  height: 1px;
+  content: "";
+  background: inherit;
+}
+
+@keyframes gradient-flow {
   from {
     background-position: 0% 50%;
   }
 
   to {
-    background-position: 220% 50%;
+    background-position: 300% 50%;
   }
 }
 
@@ -622,6 +653,13 @@ body::after {
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .page-btn::before,
+  .nav-trigger::before,
+  .profile-link::before,
+  .user-badge-avatar::before,
+  .flow-underline,
+  .flow-underline::after,
+  .flow-text,
   .page-btn:hover::before,
   .nav-trigger:hover::before,
   .profile-link:hover::before,
@@ -683,14 +721,14 @@ body::after {
 
 .container {
   position: relative;
-  z-index: 2;
+  z-index: 5;
   display: grid;
   grid-template-columns: minmax(0, 1fr);
   gap: 1rem;
   align-items: start;
   width: min(1120px, calc(100% - 2rem));
   min-height: 62vh;
-  margin: -2.9rem auto 3rem;
+  margin: 1rem auto 3rem;
 }
 
 .single-column {
@@ -1140,7 +1178,7 @@ body::after {
 
 .ships-controls {
   display: grid;
-  grid-template-columns: minmax(180px, 1.4fr) repeat(4, minmax(130px, 1fr));
+  grid-template-columns: minmax(180px, 1.4fr) repeat(5, minmax(120px, 1fr));
   gap: 0.75rem;
   align-items: end;
 }
@@ -1161,6 +1199,71 @@ body::after {
   gap: 0.9rem;
   align-items: stretch;
   min-height: 520px;
+}
+
+.ships-pagination {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 0.55rem;
+  min-height: 58px;
+  padding: 0.75rem;
+  border: 1px solid rgba(91, 218, 255, 0.16);
+  border-radius: var(--radius);
+  background: rgba(3, 11, 20, 0.42);
+}
+
+.ships-page-numbers {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.35rem;
+}
+
+.ships-pagination button {
+  min-height: 38px;
+  min-width: 38px;
+  padding: 0.55rem 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: rgba(7, 17, 30, 0.72);
+  color: rgba(238, 248, 255, 0.86);
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.76rem;
+  font-weight: 900;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.ships-pagination button:not(:disabled):hover {
+  border-color: var(--border-strong);
+  color: #ffffff;
+}
+
+.ships-pagination button.is-active {
+  border-color: var(--primary);
+  background: rgba(0, 217, 255, 0.14);
+  color: #ffffff;
+  box-shadow: 0 0 22px rgba(0, 217, 255, 0.12);
+}
+
+.ships-pagination button:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+
+.ships-page-ellipsis {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 32px;
+  color: var(--muted);
+  font-size: 0.82rem;
+  font-weight: 850;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
 }
 
 .ship-card {
@@ -1198,12 +1301,12 @@ body::after {
 }
 
 .ship-image img {
-  width: calc(100% - 1.2rem);
-  height: calc(100% - 1.2rem);
+  width: 100%;
+  height: 100%;
   max-width: 100%;
   max-height: 100%;
   display: block;
-  object-fit: contain;
+  object-fit: cover;
   object-position: center;
 }
 
@@ -1380,6 +1483,11 @@ body::after {
   padding: clamp(1rem, 3vw, 1.25rem);
 }
 
+.ship-weapons-panel {
+  display: grid;
+  gap: 1rem;
+}
+
 .ship-detail-card h3,
 .ship-raw-card h3 {
   margin: 0 0 0.85rem;
@@ -1422,15 +1530,15 @@ body::after {
 
 .ship-weapons-list {
   display: grid;
-  gap: 0.75rem;
+  gap: 1rem;
 }
 
 .ship-weapon-row {
   display: grid;
   grid-template-columns: minmax(180px, 0.8fr) minmax(0, 1.2fr);
-  gap: 0.75rem;
+  gap: 1rem;
   align-items: start;
-  padding: 0.85rem;
+  padding: 1rem;
   border: 1px solid rgba(91, 218, 255, 0.14);
   border-radius: var(--radius);
   background: rgba(3, 11, 20, 0.34);
@@ -2268,7 +2376,7 @@ select:focus {
 @media (max-width: 900px) {
   .hero {
     min-height: 350px;
-    padding: 0.8rem 0.75rem 3.9rem;
+    padding: 0 0 2.4rem;
   }
 
   .hero::before {
@@ -2282,13 +2390,18 @@ select:focus {
   }
 
   .hero-topbar {
+    position: relative;
     display: grid;
     grid-template-columns: 46px minmax(0, 1fr) auto;
     align-items: center;
     gap: 0.7rem;
+    width: 100%;
     min-height: 76px;
     margin-bottom: 2.8rem;
     padding: 0.7rem 0.9rem;
+    border-right: 0;
+    border-left: 0;
+    border-radius: 0;
     background:
       linear-gradient(90deg, rgba(8, 28, 45, 0.76), rgba(4, 10, 18, 0.96)),
       rgba(3, 11, 20, 0.82);
@@ -2300,6 +2413,7 @@ select:focus {
   }
 
   .hero-content {
+    width: min(1120px, calc(100% - 1.5rem));
     min-height: 142px;
   }
 
@@ -2314,7 +2428,7 @@ select:focus {
     justify-content: stretch;
     justify-items: stretch;
     gap: 0.8rem;
-    width: min(390px, calc(100vw - 0.35rem));
+    width: 100vw;
     min-height: 100dvh;
     max-height: 100dvh;
     overflow-y: auto;
@@ -2360,7 +2474,7 @@ select:focus {
   .mobile-drawer-head {
     display: flex;
     align-items: center;
-    justify-content: space-between;
+    justify-content: flex-start;
     gap: 0.55rem;
     padding: 0 0 0.85rem;
     border-bottom: 1px solid rgba(0, 217, 255, 0.3);
@@ -2370,6 +2484,7 @@ select:focus {
     display: inline-flex;
     align-items: center;
     min-width: 0;
+    flex: 1 1 auto;
     gap: 0;
     color: rgba(238, 248, 255, 0.9);
     text-decoration: none;
@@ -2381,7 +2496,6 @@ select:focus {
   }
 
   .mobile-drawer-brand .brand-copy strong {
-    color: var(--accent);
     font-size: 1.05rem;
     letter-spacing: 0.16em;
     text-transform: uppercase;
@@ -2453,9 +2567,17 @@ select:focus {
   }
 
   .brand-copy strong {
-    color: var(--accent);
     font-size: 1.02rem;
     letter-spacing: 0.2em;
+  }
+
+  .brand-copy strong.flow-text {
+    color: transparent;
+    background: linear-gradient(90deg, var(--primary), var(--accent), var(--primary), var(--accent), var(--primary));
+    background-size: 300% 100%;
+    animation: gradient-flow var(--flow-duration) linear infinite;
+    -webkit-background-clip: text;
+    background-clip: text;
   }
 
   .brand-copy small {
@@ -2543,7 +2665,15 @@ select:focus {
   }
 
   .header-account-slot {
+    position: relative;
+    z-index: 150;
     justify-self: end;
+  }
+
+  .hero-topbar.mobile-drawer-active > .header-account-slot {
+    z-index: 40;
+    opacity: 0.24;
+    pointer-events: none;
   }
 
   .header-account-slot .account-nav .nav-trigger {
@@ -2556,23 +2686,34 @@ select:focus {
   }
 
   .header-account-slot .account-nav .nav-menu {
-    position: absolute;
-    top: calc(100% + 0.45rem);
-    right: 0;
+    position: fixed;
+    top: 0;
+    right: max(0.75rem, calc((100vw - min(1120px, 100%)) / 2));
     z-index: 130;
-    width: min(320px, calc(100vw - 1.5rem));
+    width: min(260px, calc(100vw - 1.5rem));
+    max-height: min(420px, calc(100dvh - 6.5rem));
+    overflow-y: auto;
+    padding: 0.7rem;
     background:
       linear-gradient(180deg, #0d1d30, #050d18),
       var(--surface-strong);
     box-shadow: 0 26px 70px rgba(0, 0, 0, 0.48), 0 0 34px rgba(0, 217, 255, 0.12);
-    transform: translateY(-6px);
+    transform: translateY(84px);
+  }
+
+  .header-account-slot .account-nav .nav-menu-intro {
+    padding: 0.65rem 0.7rem 0.75rem;
+  }
+
+  .header-account-slot .account-nav .nav-menu-item {
+    padding: 0.75rem;
   }
 
   .container {
     grid-template-columns: 1fr;
-    width: min(100% - 1rem, 1120px);
+    width: min(100% - 1.5rem, 1120px);
     min-height: 64vh;
-    margin-top: -2.25rem;
+    margin-top: 1rem;
   }
 
   .home-sections {
@@ -2644,5 +2785,57 @@ select:focus {
 
   .comment-form {
     grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 640px) {
+  .hero {
+    padding-inline: 0;
+  }
+
+  .hero-topbar {
+    gap: 0.55rem;
+    grid-template-columns: 46px minmax(0, 1fr) 50px;
+    padding: 0.65rem;
+  }
+
+  .home-button {
+    padding-right: 0;
+  }
+
+  .brand-copy strong {
+    font-size: clamp(0.82rem, 4.4vw, 0.98rem);
+    letter-spacing: 0.14em;
+  }
+
+  .brand-copy small {
+    font-size: clamp(0.48rem, 2.3vw, 0.54rem);
+    letter-spacing: 0.22em;
+  }
+
+  .header-account-slot .auth-nav-links {
+    width: auto;
+  }
+
+  .header-account-slot .discord-login-link {
+    width: 50px;
+    min-width: 50px;
+    min-height: 50px;
+    padding: 0;
+    border-radius: 10px;
+  }
+
+  .header-account-slot .discord-login-link span {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+  }
+
+  .header-account-slot .discord-login-link .discord-icon {
+    width: 1.55rem;
+    height: 1.18rem;
   }
 }

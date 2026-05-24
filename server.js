@@ -5,6 +5,7 @@ import { readFileSync } from 'node:fs';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import crypto from 'node:crypto';
+import zlib from 'node:zlib';
 import { execFile, spawn } from 'node:child_process';
 import { promisify } from 'node:util';
 import { fileURLToPath } from 'node:url';
@@ -31,6 +32,7 @@ const uexToken = env.UEX_TOKEN || globalThis.UEX_TOKEN || '';
 const uexClientVersion = env.UEX_CLIENT_VERSION || globalThis.UEX_CLIENT_VERSION || '';
 const uexApiHosts = ['https://api.uexcorp.uk/2.0', 'https://api.uexcorp.space/2.0'];
 const starCitizenWikiApiBase = 'https://api.star-citizen.wiki/api';
+const eurExchangeRateApiBase = 'https://api.frankfurter.dev/v1/latest';
 const discordClientId = env.DISCORD_CLIENT_ID || '';
 const discordClientSecret = env.DISCORD_CLIENT_SECRET || '';
 const discordRedirectUri = env.DISCORD_REDIRECT_URI || `http://127.0.0.1:${port}/api/auth/discord/callback`;
@@ -95,6 +97,10 @@ const vehiclesCache = {
 };
 let databaseReady = false;
 let databaseStartupError = null;
+const eurRateCache = {
+  loadedAt: 0,
+  rates: new Map([['EUR', 1]])
+};
 
 const mimeTypes = {
   '.html': 'text/html; charset=utf-8',
@@ -269,6 +275,45 @@ async function initializeDatabase() {
       INDEX idx_uex_vehicle_manufacturer (manufacturer)
     ) ENGINE=InnoDB;
 
+    CREATE TABLE IF NOT EXISTS api_sync_runs (
+      id BIGINT UNSIGNED PRIMARY KEY AUTO_INCREMENT,
+      source VARCHAR(80) NOT NULL,
+      status VARCHAR(24) NOT NULL,
+      message VARCHAR(500) NULL,
+      started_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      finished_at DATETIME NULL,
+      INDEX idx_api_sync_source_started (source, started_at)
+    ) ENGINE=InnoDB;
+
+    CREATE TABLE IF NOT EXISTS uex_api_cache (
+      resource VARCHAR(80) NOT NULL,
+      resource_row_id VARCHAR(80) NOT NULL,
+      vehicle_id INT UNSIGNED NULL,
+      payload_json LONGTEXT NOT NULL,
+      synced_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      PRIMARY KEY (resource, resource_row_id),
+      INDEX idx_uex_api_cache_vehicle (vehicle_id),
+      INDEX idx_uex_api_cache_synced (synced_at)
+    ) ENGINE=InnoDB;
+
+    CREATE TABLE IF NOT EXISTS star_citizen_wiki_vehicle_cache (
+      vehicle_id INT UNSIGNED PRIMARY KEY,
+      wiki_uuid VARCHAR(80) NULL,
+      name VARCHAR(180) NOT NULL,
+      status VARCHAR(24) NOT NULL DEFAULT 'missing',
+      error_message VARCHAR(500) NULL,
+      payload_json LONGTEXT NULL,
+      synced_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      INDEX idx_wiki_vehicle_uuid (wiki_uuid),
+      INDEX idx_wiki_vehicle_name (name)
+    ) ENGINE=InnoDB;
+
+    CREATE TABLE IF NOT EXISTS vehicle_combat_cache (
+      vehicle_id INT UNSIGNED PRIMARY KEY,
+      payload_json LONGTEXT NOT NULL,
+      synced_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+    ) ENGINE=InnoDB;
+
     INSERT IGNORE INTO app_settings (setting_key, setting_value) VALUES
       ('vehicles_synced_at', '');
   `);
@@ -300,6 +345,25 @@ async function ensureColumn(table, column, definition) {
 function sql(value) {
   if (value === null || value === undefined) return 'NULL';
   return `'${String(value).replace(/\\/g, '\\\\').replace(/'/g, "''")}'`;
+}
+
+function encodeDbJson(value) {
+  const json = JSON.stringify(value ?? {});
+  const compressed = zlib.gzipSync(json).toString('base64');
+  return JSON.stringify({ encoding: 'gzip+base64', data: compressed });
+}
+
+function decodeDbJson(value, fallback) {
+  const parsed = safeJson(value, null);
+  if (parsed?.encoding === 'gzip+base64' && parsed.data) {
+    try {
+      return JSON.parse(zlib.gunzipSync(Buffer.from(parsed.data, 'base64')).toString('utf8'));
+    } catch {
+      return fallback;
+    }
+  }
+
+  return parsed ?? fallback;
 }
 
 async function runSql(statement, database = databaseName) {
@@ -600,7 +664,7 @@ async function proxyShipImage(request, response) {
   const imageResponse = await fetch(targetUrl, {
     headers: {
       Accept: 'image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8',
-      Referer: 'https://robertsspaceindustries.com/',
+      Referer: new URL(targetUrl).origin + '/',
       'User-Agent': 'Mozilla/5.0 StantonHub/1.0'
     }
   });
@@ -611,13 +675,26 @@ async function proxyShipImage(request, response) {
     return;
   }
 
-  const contentType = imageResponse.headers.get('content-type') || 'image/jpeg';
+  const contentType = normalizeImageContentType(targetUrl, imageResponse.headers.get('content-type'));
   const buffer = Buffer.from(await imageResponse.arrayBuffer());
   response.writeHead(200, {
     'Content-Type': contentType,
+    'Content-Disposition': 'inline',
+    'X-Content-Type-Options': 'nosniff',
     'Cache-Control': 'public, max-age=86400'
   });
   response.end(buffer);
+}
+
+function normalizeImageContentType(url, contentType = '') {
+  const lowerType = String(contentType || '').toLowerCase();
+  if (lowerType.startsWith('image/')) return contentType.split(';')[0];
+  const pathname = new URL(url).pathname.toLowerCase();
+  if (pathname.endsWith('.png')) return 'image/png';
+  if (pathname.endsWith('.webp')) return 'image/webp';
+  if (pathname.endsWith('.gif')) return 'image/gif';
+  if (pathname.endsWith('.svg')) return 'image/svg+xml';
+  return 'image/jpeg';
 }
 
 async function proxyWikiShipImage(request, response) {
@@ -730,6 +807,23 @@ async function fetchStarCitizenWikiJson(pathname, params = {}) {
   return response.json();
 }
 
+async function fetchStarCitizenWikiHtml(pathname) {
+  const url = new URL(`https://api.star-citizen.wiki${pathname}`);
+  const response = await fetch(url, {
+    headers: {
+      Accept: 'text/html,application/xhtml+xml',
+      'User-Agent': 'Mozilla/5.0 StantonHub/1.0'
+    }
+  });
+
+  if (!response.ok) {
+    const text = await response.text().catch(() => '');
+    throw new Error(`Star Citizen Wiki HTML respondio ${response.status}${text ? `: ${text.slice(0, 120)}` : ''}`);
+  }
+
+  return response.text();
+}
+
 function wikiData(payload) {
   return payload?.data ?? payload;
 }
@@ -738,7 +832,32 @@ function asArray(value) {
   return Array.isArray(value) ? value : value ? [value] : [];
 }
 
-async function fetchWikiVehicleDetail(vehicle) {
+function wikiVehicleSlug(wikiVehicle) {
+  const className = textValue(wikiVehicle?.class_name || wikiVehicle?.className);
+  if (className) return className.toLowerCase().replace(/_/g, '-').replace(/[^a-z0-9-]+/g, '-').replace(/^-+|-+$/g, '');
+  return textValue(wikiVehicle?.slug || wikiVehicle?.name)
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '');
+}
+
+async function fetchWikiVehiclesList() {
+  return asArray(wikiData(await fetchStarCitizenWikiJson('/vehicles')));
+}
+
+async function fetchWikiVehicleDetail(vehicle, wikiVehicles = []) {
+  const normalizedNames = [vehicle.name, vehicle.shortName].filter(Boolean).map(normalizeComparableName);
+  const listMatch = wikiVehicles.find((item) => {
+    const itemName = normalizeComparableName(textValue(item.name || item.name_full));
+    return normalizedNames.includes(itemName);
+  });
+  if (listMatch) {
+    const detail = await fetchWikiVehicleDetailByKnownIds(listMatch);
+    return mergeWikiVehicleData(listMatch, detail);
+  }
+
   const rawUuid = String(vehicle.raw?.uuid || '').trim();
   const normalizedUuid = String(vehicle.uuid || '').trim();
   const candidates = [
@@ -763,7 +882,7 @@ async function fetchWikiVehicleDetail(vehicle) {
       const searchPayload = await fetchStarCitizenWikiJson('/vehicles', { 'filter[name]': name });
       const matches = asArray(wikiData(searchPayload));
       const normalizedName = normalizeComparableName(name);
-      const match = matches.find((item) => normalizeComparableName(item.name) === normalizedName) || matches[0];
+      const match = matches.find((item) => normalizeComparableName(textValue(item.name)) === normalizedName) || matches[0];
       if (!match) continue;
       const uuid = match.uuid || match.id;
       if (!uuid) return match;
@@ -776,13 +895,110 @@ async function fetchWikiVehicleDetail(vehicle) {
   return null;
 }
 
+async function fetchWikiVehicleDetailByKnownIds(wikiVehicle) {
+  const candidates = [
+    textValue(wikiVehicle?.uuid),
+    textValue(wikiVehicle?.id),
+    textValue(wikiVehicle?.class_name)
+  ].filter(Boolean);
+
+  for (const candidate of candidates) {
+    try {
+      return wikiData(await fetchStarCitizenWikiJson(`/vehicles/${encodeURIComponent(candidate)}`));
+    } catch {
+      // Keep the /vehicles list row as the fallback source when detail lookups fail.
+    }
+  }
+
+  return null;
+}
+
+function mergeWikiVehicleData(listVehicle, detailVehicle) {
+  if (!detailVehicle || typeof detailVehicle !== 'object') return listVehicle;
+  return {
+    ...listVehicle,
+    ...detailVehicle,
+    weaponry: detailVehicle.weaponry || listVehicle?.weaponry,
+    loadout: detailVehicle.loadout || listVehicle?.loadout,
+    hardpoints: detailVehicle.hardpoints || listVehicle?.hardpoints,
+    parts: detailVehicle.parts || listVehicle?.parts,
+    components: detailVehicle.components || listVehicle?.components
+  };
+}
+
 function normalizeComparableName(value) {
-  return String(value || '')
+  return textValue(value)
     .toLowerCase()
     .normalize('NFD')
     .replace(/[\u0300-\u036f]/g, '')
     .replace(/[^a-z0-9]+/g, ' ')
     .trim();
+}
+
+function textValue(value, fallback = '') {
+  if (value === null || value === undefined) return fallback;
+  if (typeof value === 'string') return value;
+  if (typeof value === 'number' || typeof value === 'boolean') return String(value);
+  if (Array.isArray(value)) return textValue(value.find(Boolean), fallback);
+  if (typeof value === 'object') {
+    return textValue(
+      value.en_EN ?? value.en_US ?? value.en ?? value.name ?? value.label ?? value.value ?? Object.values(value).find((item) => typeof item === 'string'),
+      fallback
+    );
+  }
+  return fallback;
+}
+
+function normalizeCurrency(value) {
+  return textValue(value, 'EUR').trim().toUpperCase() || 'EUR';
+}
+
+async function getCurrencyRateToEur(currency) {
+  const normalized = normalizeCurrency(currency);
+  if (normalized === 'EUR') return 1;
+  if (eurRateCache.rates.has(normalized) && Date.now() - eurRateCache.loadedAt < 1000 * 60 * 60 * 6) {
+    return eurRateCache.rates.get(normalized);
+  }
+
+  const url = new URL(eurExchangeRateApiBase);
+  url.search = new URLSearchParams({ base: normalized, symbols: 'EUR' }).toString();
+  const response = await fetch(url, {
+    headers: {
+      Accept: 'application/json',
+      'User-Agent': 'Mozilla/5.0 StantonHub/1.0'
+    }
+  });
+
+  if (!response.ok) {
+    throw new Error(`No se pudo convertir ${normalized} a EUR (${response.status})`);
+  }
+
+  const payload = await response.json();
+  const rate = Number(payload?.rates?.EUR || 0);
+  if (!rate) throw new Error(`No hay tasa EUR disponible para ${normalized}`);
+  eurRateCache.loadedAt = Date.now();
+  eurRateCache.rates.set(normalized, rate);
+  return rate;
+}
+
+async function buildCurrencyRatesToEur(currencies) {
+  const rates = new Map([['EUR', 1]]);
+  for (const currency of [...new Set(currencies.map(normalizeCurrency))]) {
+    try {
+      rates.set(currency, await getCurrencyRateToEur(currency));
+    } catch {
+      rates.set(currency, currency === 'USD' ? 0.92 : 1);
+    }
+  }
+  return rates;
+}
+
+function convertMoneyToEur(value, currency, rates = new Map([['EUR', 1]])) {
+  const amount = Number(value || 0);
+  if (!amount) return null;
+  const normalized = normalizeCurrency(currency);
+  const rate = rates.get(normalized) || (normalized === 'EUR' ? 1 : 1);
+  return Math.round(amount * rate);
 }
 
 function collectVehicleWeapons(node, weapons = [], pathLabel = '') {
@@ -825,8 +1041,7 @@ function collectVehicleWeapons(node, weapons = [], pathLabel = '') {
   return weapons;
 }
 
-function buildCombatSummary(wikiVehicle) {
-  const weapons = collectVehicleWeapons(wikiVehicle);
+function combatSummaryFromWeapons(weapons, source = 'Star Citizen Wiki API') {
   const totals = weapons.reduce((summary, weapon) => ({
     sustained60s: summary.sustained60s + weapon.damage.sustained60s,
     burst: summary.burst + weapon.damage.burst,
@@ -838,36 +1053,448 @@ function buildCombatSummary(wikiVehicle) {
   }), { sustained60s: 0, burst: 0, alphaTotal: 0, maximum: 0, physicalAlpha: 0, energyAlpha: 0, distortionAlpha: 0 });
 
   return {
-    source: 'Star Citizen Wiki API',
+    source,
     available: weapons.length > 0,
     weaponCount: weapons.length,
     totals,
-    weapons
+    weapons,
+    weaponGroups: groupWeaponsByCategory(weapons)
   };
 }
 
-async function enrichVehiclesWithWikiData(vehicles) {
+function buildCombatSummary(wikiVehicle) {
+  const weaponryWeapons = collectWikiWeaponry(wikiVehicle);
+  if (weaponryWeapons.length) {
+    return combatSummaryFromWeapons(weaponryWeapons);
+  }
+
+  const weapons = collectVehicleWeapons(wikiVehicle);
+  return combatSummaryFromWeapons(weapons);
+}
+
+function collectWikiWeaponry(wikiVehicle) {
+  const weaponry = wikiVehicle?.weaponry;
+  if (!weaponry || typeof weaponry !== 'object') return [];
+
+  const defaultGunSize = Number(wikiVehicle?.power_pools?.WeaponGun?.size || 0) || null;
+  const weapons = [];
+  const pushWeapon = (weapon, index, sourceLabel, fallbackSize = defaultGunSize) => {
+    if (!weapon || typeof weapon !== 'object') return;
+    const alpha = Number(weapon.alpha || weapon.alpha_total || weapon.damage?.alpha_total || weapon.damage?.total || 0);
+    const sustained = Number(weapon.sustained_dps || weapon.sustained_60s || weapon.damage?.sustained_60s || 0);
+    const dps = Number(weapon.dps || weapon.damage?.dps || 0);
+    if (!alpha && !sustained && !dps) return;
+    weapons.push({
+      name: textValue(weapon.name, `${sourceLabel} ${index + 1}`),
+      size: Number(weapon.size || weapon.category || fallbackSize || 0) || null,
+      type: textValue(weapon.type, sourceLabel),
+      className: textValue(weapon.class_name),
+      mount: sourceLabel,
+      damage: {
+        sustained60s: sustained || dps,
+        burst: dps,
+        alphaTotal: alpha,
+        maximum: Math.max(alpha, sustained, dps),
+        alpha: {
+          physical: Number(weapon.damage?.physical || 0),
+          energy: Number(weapon.damage?.energy || 0),
+          distortion: Number(weapon.damage?.distortion || 0)
+        }
+      },
+      rpm: Number(weapon.rpm || 0) || null,
+      range: Number(weapon.range || 0) || null
+    });
+  };
+
+  for (const sectionKey of ['fixed_weapons', 'turrets', 'remote_turrets', 'manned_turrets']) {
+    const section = weaponry[sectionKey];
+    const sectionWeapons = asArray(section?.weapons);
+    sectionWeapons.forEach((weapon, index) => pushWeapon(weapon, index, textValue(section?.label, sectionKey.replace(/_/g, ' ')), section?.size || defaultGunSize));
+  }
+
+  if (weaponry.missiles?.count) {
+    const totalDamage = Number(weaponry.missiles.damage?.total || weaponry.total_missile_damage || 0);
+    weapons.push({
+      name: 'Misiles',
+      size: Number(weaponry.missiles.size || 0) || null,
+      type: 'Missile',
+      className: 'Missile',
+      mount: 'Misiles',
+      damage: {
+        sustained60s: 0,
+        burst: totalDamage,
+        alphaTotal: totalDamage,
+        maximum: totalDamage,
+        alpha: {
+          physical: Number(weaponry.missiles.damage?.physical || 0),
+          energy: Number(weaponry.missiles.damage?.energy || 0),
+          distortion: Number(weaponry.missiles.damage?.distortion || 0)
+        }
+      },
+      rpm: null,
+      range: null,
+      countOverride: Number(weaponry.missiles.count || 0)
+    });
+  }
+
+  return weapons;
+}
+
+function decodeHtmlEntities(value) {
+  return String(value || '')
+    .replace(/&nbsp;|&#160;/gi, ' ')
+    .replace(/&amp;/gi, '&')
+    .replace(/&quot;/gi, '"')
+    .replace(/&#39;|&apos;/gi, "'")
+    .replace(/&alpha;/gi, 'α')
+    .replace(/&lt;/gi, '<')
+    .replace(/&gt;/gi, '>')
+    .replace(/&#(\d+);/g, (_, code) => String.fromCharCode(Number(code)));
+}
+
+function htmlToTextLines(html) {
+  return decodeHtmlEntities(html)
+    .replace(/<script[\s\S]*?<\/script>/gi, '\n')
+    .replace(/<style[\s\S]*?<\/style>/gi, '\n')
+    .replace(/<br\s*\/?>/gi, '\n')
+    .replace(/<\/(h[1-6]|p|div|li|tr|td|th|section|article|button|a)>/gi, '\n')
+    .replace(/<[^>]+>/g, '\n')
+    .split(/\r?\n/)
+    .map((line) => line.replace(/\s+/g, ' ').trim())
+    .filter(Boolean);
+}
+
+function parseCompactNumber(value) {
+  let raw = String(value || '').replace(/\u00a0/g, ' ').trim();
+  if (!raw) return 0;
+
+  const multiplier = /[kK]\s*$/.test(raw) ? 1000 : /[mM]\s*$/.test(raw) ? 1000000 : 1;
+  raw = raw.replace(/[kKmM]\s*$/, '').replace(/\s+/g, '');
+  if (raw.includes('.') && raw.includes(',')) raw = raw.replace(/,/g, '');
+  if (!raw.includes('.') && raw.includes(',')) raw = raw.replace(',', '.');
+  raw = raw.replace(/[^0-9.-]/g, '');
+
+  const number = Number(raw);
+  return Number.isFinite(number) ? number * multiplier : 0;
+}
+
+function parseNumberBeforeUnit(line, unitPattern) {
+  const matches = [...String(line || '').matchAll(new RegExp(`([0-9][0-9\\s.,]*\\s*[kKmM]?)\\s*(?:${unitPattern})`, 'gi'))];
+  if (!matches.length) return 0;
+  return parseCompactNumber(matches[matches.length - 1][1]);
+}
+
+function isDetailedWeaponSection(label) {
+  return /^(Weapons|Manned Turrets|Remote Turrets|PDC Turrets)$/i.test(label);
+}
+
+function isIgnoredWeaponLine(line) {
+  return /^(DPS|Sustained DPS|Alpha|Item Size Info Stat|No matching items found|Loading.|Loading...|View all|Results are a work in progress|Equippable|Find on|MSRP|Count|Total Damage)$/i.test(line)
+    || /^Equippable /i.test(line)
+    || /^Results are /i.test(line)
+    || /^[0-9]+(?:[.,][0-9]+)?$/.test(line);
+}
+
+function parseWikiVehiclePageCombat(html, slug = '') {
+  const lines = htmlToTextLines(html);
+  const weapons = [];
+  let section = '';
+  let currentSize = null;
+  let pending = null;
+
+  const finalizePending = () => {
+    if (!pending) return;
+    const hasDamage = pending.damage.sustained60s || pending.damage.burst || pending.damage.alphaTotal || pending.damage.maximum;
+    if (hasDamage) weapons.push(pending);
+    pending = null;
+  };
+
+  const startPending = (name) => {
+    if (!currentSize || !isDetailedWeaponSection(section)) return;
+    finalizePending();
+    pending = {
+      name: textValue(name, `${section} S${currentSize}`),
+      size: currentSize,
+      type: section.includes('Turret') ? 'Turret weapon' : 'WeaponGun',
+      className: '',
+      mount: section,
+      damage: {
+        sustained60s: 0,
+        burst: 0,
+        alphaTotal: 0,
+        maximum: 0,
+        alpha: {
+          physical: 0,
+          energy: 0,
+          distortion: 0
+        }
+      },
+      rpm: null,
+      range: null
+    };
+  };
+
+  for (const line of lines) {
+    const sectionMatch = line.match(/^(Pilot Weapons|Turrets|Missiles|Weapons|Manned Turrets|Remote Turrets|PDC Turrets)\s*(\d+)?$/i);
+    if (sectionMatch) {
+      finalizePending();
+      section = sectionMatch[1];
+      currentSize = null;
+      continue;
+    }
+
+    const sizeMatch = line.match(/^S\s*(\d+)$/i);
+    if (sizeMatch) {
+      currentSize = Number(sizeMatch[1]);
+      continue;
+    }
+
+    if (!isDetailedWeaponSection(section)) continue;
+
+    const dps = parseNumberBeforeUnit(line, 'DPS');
+    if (dps) {
+      if (!pending) startPending(`${section} S${currentSize || 'N/D'}`);
+      if (pending) {
+        pending.damage.sustained60s = dps;
+        pending.damage.burst = dps;
+        pending.damage.maximum = Math.max(pending.damage.maximum, dps);
+      }
+      continue;
+    }
+
+    const alpha = parseNumberBeforeUnit(line, 'α|alpha');
+    if (alpha) {
+      if (!pending) startPending(`${section} S${currentSize || 'N/D'}`);
+      if (pending) {
+        pending.damage.alphaTotal = alpha;
+        pending.damage.alpha.energy = alpha;
+        pending.damage.maximum = Math.max(pending.damage.maximum, alpha);
+        finalizePending();
+      }
+      continue;
+    }
+
+    if (currentSize && !isIgnoredWeaponLine(line) && !line.startsWith('S ')) {
+      startPending(line.replace(/\s+View all$/i, ''));
+    }
+  }
+
+  finalizePending();
+
+  const uniqueWeapons = [];
+  const seen = new Set();
+  for (const weapon of weapons) {
+    const key = [weapon.mount, weapon.size, weapon.name, weapon.damage.sustained60s, weapon.damage.alphaTotal].join('|');
+    if (seen.has(key)) continue;
+    seen.add(key);
+    uniqueWeapons.push(weapon);
+  }
+
+  return combatSummaryFromWeapons(uniqueWeapons, slug ? `Star Citizen Wiki detalle (${slug})` : 'Star Citizen Wiki detalle');
+}
+
+async function fetchWikiVehicleDetailedCombat(wikiVehicle) {
+  const slug = wikiVehicleSlug(wikiVehicle);
+  if (!slug) return null;
+  const html = await fetchStarCitizenWikiHtml(`/vehicles/${encodeURIComponent(slug)}`);
+  const combat = parseWikiVehiclePageCombat(html, slug);
+  return combat.weaponCount ? combat : null;
+}
+
+function collectVehicleModules(node, modules = [], pathLabel = '') {
+  if (!node || typeof node !== 'object') return modules;
+
+  const item = node.item && typeof node.item === 'object' ? node.item : node;
+  const name = textValue(item.name || node.name);
+  const type = textValue(item.type || node.type || item.class_name || node.class_name);
+  const className = textValue(item.class_name || node.class_name);
+  const moduleSignal = [type, className, pathLabel].join(' ');
+  const isModule = /(PowerPlant|Cooler|Shield|ShieldGenerator|QuantumDrive|JumpDrive|Fuel|Radar|Scanner|Computer|Avionic|LifeSupport|Battery|Capacitor|Thruster|MissileRack|Utility|Turret|Weapon|Module)/i.test(moduleSignal);
+
+  if (name && isModule) {
+    modules.push({
+      name,
+      type: type || className || 'Modulo',
+      className,
+      size: Number(item.size || node.size || item.item_size || node.item_size || 0) || null,
+      grade: textValue(item.grade || node.grade),
+      mount: textValue(node.name || pathLabel),
+      category: normalizeModuleCategory(type || className || pathLabel)
+    });
+  }
+
+  for (const [key, value] of Object.entries(node)) {
+    if (key === 'item') continue;
+    if (Array.isArray(value)) {
+      for (const child of value) collectVehicleModules(child, modules, node.name || key || pathLabel);
+    } else if (value && typeof value === 'object') {
+      collectVehicleModules(value, modules, node.name || key || pathLabel);
+    }
+  }
+
+  return modules;
+}
+
+function normalizeModuleCategory(value) {
+  const raw = textValue(value, 'Modulo');
+  if (/shield/i.test(raw)) return 'Escudos';
+  if (/power/i.test(raw)) return 'Plantas de energia';
+  if (/cooler/i.test(raw)) return 'Refrigeracion';
+  if (/quantum|jump/i.test(raw)) return 'Quantum';
+  if (/radar|scanner/i.test(raw)) return 'Sensores';
+  if (/fuel/i.test(raw)) return 'Combustible';
+  if (/computer|avionic/i.test(raw)) return 'Computadores';
+  if (/thruster/i.test(raw)) return 'Propulsion';
+  if (/missile/i.test(raw)) return 'Misiles';
+  if (/turret/i.test(raw)) return 'Torretas';
+  if (/weapon/i.test(raw)) return 'Armas';
+  return raw.replace(/([a-z])([A-Z])/g, '$1 $2');
+}
+
+function buildModulesSummary(wikiVehicle) {
+  const modules = collectVehicleModules(wikiVehicle);
+  const groups = new Map();
+
+  for (const module of modules) {
+    const key = `${module.category}|${module.size || 'N/D'}`;
+    if (!groups.has(key)) {
+      groups.set(key, {
+        category: module.category,
+        size: module.size || 'N/D',
+        count: 0,
+        examples: []
+      });
+    }
+
+    const group = groups.get(key);
+    group.count += 1;
+    if (group.examples.length < 4) group.examples.push(module.name);
+  }
+
+  return {
+    source: 'Star Citizen Wiki API /vehicles',
+    total: modules.length,
+    groups: [...groups.values()].sort((a, b) => `${a.category}${a.size}`.localeCompare(`${b.category}${b.size}`, 'es')),
+    items: modules
+  };
+}
+
+function weaponCategory(weapon) {
+  return Number(weapon?.size || 0) || null;
+}
+
+function weaponDamageValue(weapon, field) {
+  return Number(weapon?.damage?.[field] || 0);
+}
+
+function groupWeaponsByCategory(weapons) {
+  const groups = new Map();
+
+  for (const weapon of weapons) {
+    const category = weaponCategory(weapon) || 'N/D';
+    const key = String(category);
+    if (!groups.has(key)) {
+      groups.set(key, {
+        category,
+        label: category === 'N/D' ? 'Categoria N/D' : `Categoria ${category}`,
+        count: 0,
+        examples: [],
+        damagePerWeapon: { sustained60s: 0, burst: 0, alphaTotal: 0, maximum: 0 },
+        damageTotal: { sustained60s: 0, burst: 0, alphaTotal: 0, maximum: 0 }
+      });
+    }
+
+    const group = groups.get(key);
+    group.count += Number(weapon.countOverride || 1);
+    if (group.examples.length < 3) group.examples.push(textValue(weapon.name, 'Arma sin nombre'));
+    for (const field of Object.keys(group.damageTotal)) {
+      const damage = weaponDamageValue(weapon, field);
+      group.damageTotal[field] += damage;
+      group.damagePerWeapon[field] = Math.max(group.damagePerWeapon[field], damage);
+    }
+  }
+
+  return [...groups.values()].sort((a, b) => {
+    if (a.category === 'N/D') return 1;
+    if (b.category === 'N/D') return -1;
+    return Number(a.category) - Number(b.category);
+  });
+}
+
+function compactWikiVehicle(wikiVehicle) {
+  if (!wikiVehicle || typeof wikiVehicle !== 'object') return {};
+  return {
+    uuid: textValue(wikiVehicle.uuid),
+    name: textValue(wikiVehicle.name),
+    className: textValue(wikiVehicle.class_name),
+    gameVersion: textValue(wikiVehicle.game_version || wikiVehicle.version),
+    health: Number(wikiVehicle.health || 0) || null,
+    armor: Number(wikiVehicle.armor?.health || 0) || null,
+    shieldHp: Number(wikiVehicle.shield?.hp || 0) || null,
+    manufacturer: textValue(wikiVehicle.manufacturer?.name || wikiVehicle.manufacturer)
+  };
+}
+
+function collectImageUrls(node, urls = []) {
+  if (!node || typeof node !== 'object') return urls;
+
+  for (const [key, value] of Object.entries(node)) {
+    if (typeof value === 'string') {
+      const isImageKey = /image|photo|thumbnail|media|picture|url/i.test(key);
+      const isImageUrl = /^https?:\/\/.+\.(png|jpe?g|webp)(\?.*)?$/i.test(value);
+      if (isImageKey && isImageUrl) urls.push(value);
+    } else if (Array.isArray(value)) {
+      for (const child of value) collectImageUrls(child, urls);
+    } else if (value && typeof value === 'object') {
+      collectImageUrls(value, urls);
+    }
+  }
+
+  return [...new Set(urls)];
+}
+
+function proxiedImageUrl(url) {
+  return url ? `/api/ship-image?url=${encodeURIComponent(url)}` : '';
+}
+
+async function enrichVehiclesWithWikiData(vehicles, wikiVehicles = []) {
   const warnings = [];
   const enriched = [];
 
   for (const vehicle of vehicles) {
     try {
-      const wikiVehicle = await fetchWikiVehicleDetail(vehicle);
-      const combat = wikiVehicle
+      const wikiVehicle = await fetchWikiVehicleDetail(vehicle, wikiVehicles);
+      let combat = wikiVehicle
         ? buildCombatSummary(wikiVehicle)
         : { source: 'Star Citizen Wiki API', available: false, weaponCount: 0, totals: {}, weapons: [] };
+      if (wikiVehicle && (combat.weaponCount <= 2 || (!combat.totals?.alphaTotal && !combat.totals?.sustained60s))) {
+        try {
+          const detailedCombat = await fetchWikiVehicleDetailedCombat(wikiVehicle);
+          if (detailedCombat && detailedCombat.weaponCount > combat.weaponCount) {
+            combat = detailedCombat;
+          }
+        } catch (error) {
+          warnings.push(`${vehicle.name} detalle Wiki: ${error.message}`);
+        }
+      }
+      const wikiImages = collectImageUrls(wikiVehicle);
       enriched.push({
         vehicle: {
           ...vehicle,
           wiki: {
-            uuid: wikiVehicle?.uuid || '',
-            apiUrl: wikiVehicle?.uuid ? `${starCitizenWikiApiBase}/vehicles/${wikiVehicle.uuid}` : '',
-            gameVersion: wikiVehicle?.game_version || wikiVehicle?.version || '',
+    uuid: textValue(wikiVehicle?.uuid),
+    apiUrl: textValue(wikiVehicle?.uuid) ? `${starCitizenWikiApiBase}/vehicles/${encodeURIComponent(textValue(wikiVehicle.uuid))}` : '',
+    gameVersion: textValue(wikiVehicle?.game_version || wikiVehicle?.version),
             health: Number(wikiVehicle?.health || 0) || null,
             armor: Number(wikiVehicle?.armor?.health || 0) || null,
             shieldHp: Number(wikiVehicle?.shield?.hp || 0) || null
           },
-          combat
+          combat,
+          wikiImageProxy: wikiImages[0] || vehicle.wikiImageProxy || '',
+          imageCandidates: [
+            ...(vehicle.photo ? [proxiedImageUrl(vehicle.photo), vehicle.photo] : []),
+            ...wikiImages.flatMap((url) => [proxiedImageUrl(url), url])
+          ].filter(Boolean)
         },
         wikiVehicle,
         combat
@@ -882,6 +1509,96 @@ async function enrichVehiclesWithWikiData(vehicles) {
   return { vehicles: enriched.map((entry) => entry.vehicle), details: enriched, warnings };
 }
 
+function stableWikiVehicleId(wikiVehicle) {
+  const seed = textValue(wikiVehicle.uuid || wikiVehicle.id || wikiVehicle.name, crypto.randomUUID());
+  const hash = crypto.createHash('sha1').update(seed).digest();
+  return 900000000 + (hash.readUInt32BE(0) % 99999999);
+}
+
+function firstNumber(...values) {
+  for (const value of values) {
+    const number = Number(value);
+    if (Number.isFinite(number) && number > 0) return number;
+  }
+  return 0;
+}
+
+function wikiManufacturerName(wikiVehicle) {
+  const manufacturer = wikiVehicle.manufacturer || wikiVehicle.company || wikiVehicle.manufacturers?.[0];
+  return textValue(manufacturer?.name || manufacturer, 'Fabricante desconocido');
+}
+
+function wikiCrewLabel(wikiVehicle) {
+  const crew = wikiVehicle.crew || {};
+  const min = firstNumber(crew.min, crew.minimum, wikiVehicle.crew_min);
+  const max = firstNumber(crew.max, crew.maximum, wikiVehicle.crew_max);
+  if (min && max && min !== max) return `${min}-${max}`;
+  return textValue(min || max || wikiVehicle.crew, 'N/D');
+}
+
+function isDisplayableWikiVehicle(wikiVehicle) {
+  const name = textValue(wikiVehicle?.name || wikiVehicle?.name_full).trim();
+  if (!name) return false;
+  const text = [wikiVehicle.type, wikiVehicle.class_name, wikiVehicle.size, wikiVehicle.production_status].map((value) => textValue(value)).join(' ').toLowerCase();
+  const hasVehicleSignal = /ship|vehicle|snub|capital|large|medium|small|ground|spaceship/i.test(text)
+    || wikiVehicle.is_spaceship === true
+    || wikiVehicle.is_vehicle === true;
+  const length = firstNumber(wikiVehicle.length, wikiVehicle.dimensions?.length, wikiVehicle.dimension?.length);
+  return hasVehicleSignal && length > 0;
+}
+
+function normalizeWikiVehicle(wikiVehicle) {
+  const imageUrls = collectImageUrls(wikiVehicle);
+  const length = firstNumber(wikiVehicle.length, wikiVehicle.dimensions?.length, wikiVehicle.dimension?.length);
+  const width = firstNumber(wikiVehicle.width, wikiVehicle.beam, wikiVehicle.dimensions?.beam, wikiVehicle.dimensions?.width, wikiVehicle.dimension?.width);
+  const height = firstNumber(wikiVehicle.height, wikiVehicle.dimensions?.height, wikiVehicle.dimension?.height);
+  const combat = buildCombatSummary(wikiVehicle);
+
+  return {
+    id: stableWikiVehicleId(wikiVehicle),
+    uuid: textValue(wikiVehicle.uuid || wikiVehicle.id),
+    name: textValue(wikiVehicle.name || wikiVehicle.name_full, 'Nave sin nombre'),
+    shortName: textValue(wikiVehicle.name || wikiVehicle.name_full, 'Nave sin nombre'),
+    manufacturer: wikiManufacturerName(wikiVehicle),
+    crew: wikiCrewLabel(wikiVehicle),
+    scu: firstNumber(wikiVehicle.cargo_capacity, wikiVehicle.cargo, wikiVehicle.scu),
+    mass: firstNumber(wikiVehicle.mass, wikiVehicle.mass_kg),
+    width,
+    height,
+    length,
+    padType: textValue(wikiVehicle.size || wikiVehicle.pad_type, 'N/D'),
+    gameVersion: textValue(wikiVehicle.game_version || wikiVehicle.version),
+    photo: imageUrls[0] || '',
+    photoProxy: proxiedImageUrl(imageUrls[0]),
+    wikiImageProxy: imageUrls[0] || '',
+    imageCandidates: imageUrls.flatMap((url) => [proxiedImageUrl(url), url]).filter(Boolean),
+    storeUrl: '',
+    tags: ['Nave', 'Wiki'].filter(Boolean),
+    pledge: { price: null, warbond: null, currency: 'USD', onSale: false },
+    purchase: { price: null, locations: [] },
+    rental: { price: null, locations: [] },
+    wiki: {
+      uuid: textValue(wikiVehicle.uuid || wikiVehicle.id),
+      apiUrl: textValue(wikiVehicle.uuid) ? `${starCitizenWikiApiBase}/vehicles/${encodeURIComponent(textValue(wikiVehicle.uuid))}` : '',
+      gameVersion: textValue(wikiVehicle.game_version || wikiVehicle.version),
+      health: Number(wikiVehicle.health || 0) || null,
+      armor: Number(wikiVehicle.armor?.health || 0) || null,
+      shieldHp: Number(wikiVehicle.shield?.hp || 0) || null
+    },
+    combat,
+    flags: {
+      addon: false,
+      docking: false,
+      loadingDock: false,
+      concept: /concept/i.test(textValue(wikiVehicle.production_status || wikiVehicle.status)),
+      quantum: true,
+      spaceship: true,
+      ground: /ground|vehicle/i.test(textValue(wikiVehicle.type || wikiVehicle.class_name)) && !/ship|spaceship/i.test(textValue(wikiVehicle.type || wikiVehicle.class_name)),
+      wikiSupplement: true
+    }
+  };
+}
+
 function lowestPrice(rows, field) {
   return rows
     .map((row) => Number(row[field] || 0))
@@ -894,9 +1611,6 @@ function normalizeVehicle(vehicle, pledgePrices, purchasePrices, rentalPrices) {
   const photo = normalizeExternalUrl(vehicle.url_photo);
   const storeUrl = normalizeExternalUrl(vehicle.url_store, 'https://robertsspaceindustries.com');
   const name = vehicle.name_full || vehicle.name;
-  const wikiImageCandidates = [...new Set([name, vehicle.name].filter(Boolean))]
-    .map((title) => `/api/wiki-ship-image?title=${encodeURIComponent(title)}`);
-  const wikiImageProxy = wikiImageCandidates[0] || '';
   const pledge = pledgePrices.find((price) => Number(price.id_vehicle) === id) || {};
   const purchases = purchasePrices.filter((price) => Number(price.id_vehicle) === id);
   const rentals = rentalPrices.filter((price) => Number(price.id_vehicle) === id);
@@ -929,9 +1643,9 @@ function normalizeVehicle(vehicle, pledgePrices, purchasePrices, rentalPrices) {
     padType: vehicle.pad_type || 'N/D',
     gameVersion: vehicle.game_version || '',
     photo,
-    photoProxy: photo ? `/api/ship-image?url=${encodeURIComponent(photo)}` : '',
-    wikiImageProxy,
-    imageCandidates: [...wikiImageCandidates, photo ? `/api/ship-image?url=${encodeURIComponent(photo)}` : '', photo].filter(Boolean),
+    photoProxy: proxiedImageUrl(photo),
+    wikiImageProxy: '',
+    imageCandidates: [proxiedImageUrl(photo), photo].filter(Boolean),
     storeUrl,
     tags,
     pledge: {
@@ -999,6 +1713,15 @@ async function buildVehiclesPayloadFromUex({ enrichDetails = true } = {}) {
   const warnings = [pledgeResult, purchaseResult, rentalResult]
     .filter((result) => result.status === 'rejected')
     .map((result) => result.reason.message);
+  let wikiVehicles = [];
+
+  if (enrichDetails) {
+    try {
+      wikiVehicles = await fetchWikiVehiclesList();
+    } catch (error) {
+      warnings.push(`Star Citizen Wiki: ${error.message}`);
+    }
+  }
 
   let normalized = vehicles
     .filter(isDisplayableUexVehicle)
@@ -1007,9 +1730,23 @@ async function buildVehiclesPayloadFromUex({ enrichDetails = true } = {}) {
 
   const rawById = new Map(vehicles.map((vehicle) => [Number(vehicle.id), vehicle]));
   const enrichment = enrichDetails
-    ? await enrichVehiclesWithWikiData(normalized)
+    ? await enrichVehiclesWithWikiData(normalized, wikiVehicles)
     : { vehicles: normalized, details: normalized.map((vehicle) => ({ vehicle, wikiVehicle: null, combat: vehicle.combat || {} })), warnings: [] };
   normalized = enrichment.vehicles;
+  const existingNames = new Set(normalized.flatMap((vehicle) => [vehicle.name, vehicle.shortName].filter(Boolean).map(normalizeComparableName)));
+  const supplementalDetails = [];
+
+  for (const wikiVehicle of wikiVehicles) {
+    const wikiName = normalizeComparableName(textValue(wikiVehicle.name || wikiVehicle.name_full));
+    if (!wikiName || existingNames.has(wikiName) || !isDisplayableWikiVehicle(wikiVehicle)) continue;
+    const vehicle = normalizeWikiVehicle(wikiVehicle);
+    normalized.push(vehicle);
+    existingNames.add(wikiName);
+    supplementalDetails.push({ vehicle, wikiVehicle, combat: vehicle.combat || {} });
+  }
+
+  normalized.sort((a, b) => a.name.localeCompare(b.name, 'es'));
+  const allDetails = [...enrichment.details, ...supplementalDetails];
 
   const pledgeById = new Map(pledgePrices.map((price) => [Number(price.id_vehicle), price]));
   const purchasesById = groupByVehicleId(purchasePrices);
@@ -1022,9 +1759,14 @@ async function buildVehiclesPayloadFromUex({ enrichDetails = true } = {}) {
     warnings: [...warnings, ...enrichment.warnings],
     vehicles: normalized,
     raw: {
-      vehicles: rawById,
-      wikiVehicles: new Map(enrichment.details.map((entry) => [Number(entry.vehicle.id), entry.wikiVehicle || {}])),
-      combat: new Map(enrichment.details.map((entry) => [Number(entry.vehicle.id), entry.combat || {}])),
+      vehiclesRows: vehicles,
+      pledgePricesRows: pledgePrices,
+      purchasePricesRows: purchasePrices,
+      rentalPricesRows: rentalPrices,
+      wikiVehiclesRows: wikiVehicles,
+      vehicles: new Map([...rawById, ...supplementalDetails.map((entry) => [Number(entry.vehicle.id), {}])]),
+      wikiVehicles: new Map(allDetails.map((entry) => [Number(entry.vehicle.id), entry.wikiVehicle || {}])),
+      combat: new Map(allDetails.map((entry) => [Number(entry.vehicle.id), entry.combat || {}])),
       pledgePrices: pledgeById,
       purchasePrices: purchasesById,
       rentalPrices: rentalsById
@@ -1040,6 +1782,95 @@ function groupByVehicleId(rows) {
     groups.get(id).push(row);
     return groups;
   }, new Map());
+}
+
+async function recordApiSyncRun(source, status, message = '') {
+  await runSql(`
+    INSERT INTO api_sync_runs (source, status, message, finished_at)
+    VALUES (${sql(source)}, ${sql(status)}, ${sql(String(message || '').slice(0, 500))}, CURRENT_TIMESTAMP)
+  `);
+}
+
+function uexRowIdentifier(row, fallbackIndex) {
+  if (row?.id || row?.uuid || row?.id_vehicle_terminal) {
+    return String(row.id || row.uuid || row.id_vehicle_terminal);
+  }
+
+  return crypto
+    .createHash('sha1')
+    .update(JSON.stringify(row || {}) || String(fallbackIndex))
+    .digest('hex');
+}
+
+function uexVehicleIdForResource(resource, row) {
+  if (resource === 'vehicles') return Number(row?.id || 0) || null;
+  return Number(row?.id_vehicle || 0) || null;
+}
+
+async function saveUexResourceRows(resource, rows, syncedAt) {
+  if (!Array.isArray(rows)) return;
+  await runSql(`DELETE FROM uex_api_cache WHERE resource = ${sql(resource)}`);
+
+  if (!rows.length) {
+    return;
+  }
+
+  for (const [index, row] of rows.entries()) {
+    await runSql(`
+      INSERT INTO uex_api_cache (resource, resource_row_id, vehicle_id, payload_json, synced_at)
+      VALUES (
+        ${sql(resource)},
+        ${sql(uexRowIdentifier(row, index))},
+        ${uexVehicleIdForResource(resource, row) || 'NULL'},
+        ${sql(encodeDbJson(row || {}))},
+        ${sql(syncedAt)}
+      )
+      ON DUPLICATE KEY UPDATE
+        vehicle_id = VALUES(vehicle_id),
+        payload_json = VALUES(payload_json),
+        synced_at = VALUES(synced_at)
+    `);
+  }
+}
+
+async function saveExternalApiCaches(payload, syncedAt) {
+  const raw = payload.raw || {};
+  await saveUexResourceRows('vehicles', raw.vehiclesRows || [], syncedAt);
+  await saveUexResourceRows('vehicles_prices', raw.pledgePricesRows || [], syncedAt);
+  await saveUexResourceRows('vehicles_purchases_prices_all', raw.purchasePricesRows || [], syncedAt);
+  await saveUexResourceRows('vehicles_rentals_prices_all', raw.rentalPricesRows || [], syncedAt);
+  await saveUexResourceRows('star_citizen_wiki_vehicles', raw.wikiVehiclesRows || [], syncedAt);
+
+  for (const vehicle of payload.vehicles) {
+    const id = Number(vehicle.id);
+    const wikiPayload = raw.wikiVehicles?.get(id) || {};
+    const combatPayload = raw.combat?.get(id) || vehicle.combat || {};
+    const hasWikiPayload = wikiPayload && Object.keys(wikiPayload).length > 0;
+
+    await runSql(`
+      INSERT INTO star_citizen_wiki_vehicle_cache
+        (vehicle_id, wiki_uuid, name, status, error_message, payload_json, synced_at)
+      VALUES
+        (${id}, ${sql(wikiPayload.uuid || vehicle.wiki?.uuid || '')}, ${sql(vehicle.name)},
+         ${sql(hasWikiPayload ? 'ok' : 'missing')}, NULL,
+         ${hasWikiPayload ? sql(encodeDbJson(wikiPayload)) : 'NULL'}, ${sql(syncedAt)})
+      ON DUPLICATE KEY UPDATE
+        wiki_uuid = VALUES(wiki_uuid),
+        name = VALUES(name),
+        status = VALUES(status),
+        error_message = VALUES(error_message),
+        payload_json = VALUES(payload_json),
+        synced_at = VALUES(synced_at)
+    `);
+
+    await runSql(`
+      INSERT INTO vehicle_combat_cache (vehicle_id, payload_json, synced_at)
+      VALUES (${id}, ${sql(encodeDbJson(combatPayload || {}))}, ${sql(syncedAt)})
+      ON DUPLICATE KEY UPDATE
+        payload_json = VALUES(payload_json),
+        synced_at = VALUES(synced_at)
+    `);
+  }
 }
 
 async function saveVehiclesToDatabase(payload) {
@@ -1058,20 +1889,20 @@ async function saveVehiclesToDatabase(payload) {
       vehicle.purchase?.price ? Number(vehicle.purchase.price) : 'NULL',
       vehicle.rental?.price ? Number(vehicle.rental.price) : 'NULL',
       vehicle.flags?.concept ? 1 : 0,
-      sql(JSON.stringify(vehicle)),
-      sql(JSON.stringify(payload.raw.vehicles.get(id) || {})),
-      sql(JSON.stringify(payload.raw.wikiVehicles.get(id) || {})),
-      sql(JSON.stringify(payload.raw.combat.get(id) || vehicle.combat || {})),
-      sql(JSON.stringify(payload.raw.pledgePrices.get(id) || {})),
-      sql(JSON.stringify(payload.raw.purchasePrices.get(id) || [])),
-      sql(JSON.stringify(payload.raw.rentalPrices.get(id) || [])),
+      sql(encodeDbJson(vehicle)),
+      sql(encodeDbJson(payload.raw.vehicles.get(id) || {})),
+      sql(encodeDbJson(compactWikiVehicle(payload.raw.wikiVehicles.get(id)))),
+      sql(encodeDbJson(payload.raw.combat.get(id) || vehicle.combat || {})),
+      sql(encodeDbJson(payload.raw.pledgePrices.get(id) || {})),
+      sql(encodeDbJson(payload.raw.purchasePrices.get(id) || [])),
+      sql(encodeDbJson(payload.raw.rentalPrices.get(id) || [])),
       sql(vehicle.combat ? syncedAt : null),
       sql(syncedAt)
     ];
   });
 
-  for (let index = 0; index < rows.length; index += 25) {
-    chunks.push(rows.slice(index, index + 25));
+  for (let index = 0; index < rows.length; index += 1) {
+    chunks.push(rows.slice(index, index + 1));
   }
 
   for (const chunk of chunks) {
@@ -1109,6 +1940,8 @@ async function saveVehiclesToDatabase(payload) {
   }
 
   await setSetting('vehicles_synced_at', syncedAt);
+  await saveExternalApiCaches(payload, syncedAt);
+  await recordApiSyncRun('vehicles', 'ok', `Sincronizadas ${payload.vehicles.length} naves desde UEX y Wiki.`);
   vehiclesCache.loadedAt = 0;
   vehiclesCache.payload = null;
 }
@@ -1123,7 +1956,7 @@ async function readVehiclesFromDatabase() {
   if (!rows.length) return null;
 
   const vehicles = rows
-    .map((row) => JSON.parse(row.vehicle_json))
+    .map((row) => decodeDbJson(row.vehicle_json, {}))
     .filter(isDisplayableCachedVehicle);
   const loadedAt = rows[0]?.synced_at
     ? new Date(rows[0].synced_at.replace(' ', 'T')).toISOString()
@@ -1147,22 +1980,44 @@ async function readVehicleDetailFromDatabase(identifier) {
     ? `id = ${numericId}`
     : `LOWER(REPLACE(REPLACE(REPLACE(name, ' ', '-'), '/', '-'), '.', '')) = ${sql(nameMatch.replace(/\s+/g, '-'))}`;
   let rows = await queryRows(`
-    SELECT vehicle_json, raw_vehicle_json, wiki_vehicle_json, combat_json,
-           pledge_json, purchase_json, rental_json,
-           DATE_FORMAT(synced_at, '%Y-%m-%d %H:%i:%s') AS synced_at,
-           DATE_FORMAT(details_synced_at, '%Y-%m-%d %H:%i:%s') AS details_synced_at
-    FROM uex_vehicle_cache
-    WHERE ${where}
+    SELECT c.id, c.name, c.vehicle_json, c.raw_vehicle_json, c.wiki_vehicle_json, c.combat_json,
+           c.pledge_json, c.purchase_json, c.rental_json,
+           u.payload_json AS uex_vehicle_api_json,
+           wp.payload_json AS wiki_api_json,
+           vc.payload_json AS combat_cache_json,
+           DATE_FORMAT(c.synced_at, '%Y-%m-%d %H:%i:%s') AS synced_at,
+           DATE_FORMAT(c.details_synced_at, '%Y-%m-%d %H:%i:%s') AS details_synced_at,
+           DATE_FORMAT(wp.synced_at, '%Y-%m-%d %H:%i:%s') AS wiki_synced_at,
+           DATE_FORMAT(vc.synced_at, '%Y-%m-%d %H:%i:%s') AS combat_synced_at
+    FROM uex_vehicle_cache c
+    LEFT JOIN uex_api_cache u
+      ON u.resource = 'vehicles' AND u.vehicle_id = c.id
+    LEFT JOIN star_citizen_wiki_vehicle_cache wp
+      ON wp.vehicle_id = c.id
+    LEFT JOIN vehicle_combat_cache vc
+      ON vc.vehicle_id = c.id
+    WHERE ${where.replace(/\bid\b/g, 'c.id').replace(/\bname\b/g, 'c.name')}
     LIMIT 1
   `);
 
   if (!rows.length && !Number.isFinite(numericId)) {
     const allRows = await queryRows(`
-      SELECT id, name, vehicle_json, raw_vehicle_json, wiki_vehicle_json, combat_json,
-             pledge_json, purchase_json, rental_json,
-             DATE_FORMAT(synced_at, '%Y-%m-%d %H:%i:%s') AS synced_at,
-             DATE_FORMAT(details_synced_at, '%Y-%m-%d %H:%i:%s') AS details_synced_at
-      FROM uex_vehicle_cache
+      SELECT c.id, c.name, c.vehicle_json, c.raw_vehicle_json, c.wiki_vehicle_json, c.combat_json,
+             c.pledge_json, c.purchase_json, c.rental_json,
+             u.payload_json AS uex_vehicle_api_json,
+             wp.payload_json AS wiki_api_json,
+             vc.payload_json AS combat_cache_json,
+             DATE_FORMAT(c.synced_at, '%Y-%m-%d %H:%i:%s') AS synced_at,
+             DATE_FORMAT(c.details_synced_at, '%Y-%m-%d %H:%i:%s') AS details_synced_at,
+             DATE_FORMAT(wp.synced_at, '%Y-%m-%d %H:%i:%s') AS wiki_synced_at,
+             DATE_FORMAT(vc.synced_at, '%Y-%m-%d %H:%i:%s') AS combat_synced_at
+      FROM uex_vehicle_cache c
+      LEFT JOIN uex_api_cache u
+        ON u.resource = 'vehicles' AND u.vehicle_id = c.id
+      LEFT JOIN star_citizen_wiki_vehicle_cache wp
+        ON wp.vehicle_id = c.id
+      LEFT JOIN vehicle_combat_cache vc
+        ON vc.vehicle_id = c.id
     `);
     rows = allRows.filter((row) => normalizeComparableName(row.name) === nameMatch).slice(0, 1);
   }
@@ -1170,21 +2025,24 @@ async function readVehicleDetailFromDatabase(identifier) {
   if (!rows.length) return null;
 
   const row = rows[0];
-  const vehicle = JSON.parse(row.vehicle_json || '{}');
+  const vehicle = decodeDbJson(row.vehicle_json, {});
+  const rawVehicle = decodeDbJson(row.uex_vehicle_api_json, decodeDbJson(row.raw_vehicle_json, {}));
+  const wiki = decodeDbJson(row.wiki_api_json, decodeDbJson(row.wiki_vehicle_json, {}));
+  const combat = decodeDbJson(row.combat_cache_json, decodeDbJson(row.combat_json, vehicle.combat || {}));
   return {
     source: 'Base de datos local',
     syncedAt: row.synced_at || '',
-    detailsSyncedAt: row.details_synced_at || '',
+    detailsSyncedAt: row.details_synced_at || row.wiki_synced_at || row.combat_synced_at || '',
     vehicle,
-    raw: safeJson(row.raw_vehicle_json, {}),
-    wiki: safeJson(row.wiki_vehicle_json, {}),
-    combat: safeJson(row.combat_json, vehicle.combat || {}),
+    raw: rawVehicle,
+    wiki,
+    combat,
     prices: {
-      pledge: safeJson(row.pledge_json, {}),
-      purchase: safeJson(row.purchase_json, []),
-      rental: safeJson(row.rental_json, [])
+      pledge: decodeDbJson(row.pledge_json, {}),
+      purchase: decodeDbJson(row.purchase_json, []),
+      rental: decodeDbJson(row.rental_json, [])
     },
-    curiosity: buildVehicleCuriosity(vehicle, safeJson(row.combat_json, vehicle.combat || {}))
+    curiosity: buildVehicleCuriosity(vehicle, combat)
   };
 }
 
@@ -1215,14 +2073,23 @@ async function countVehiclesInDatabase() {
 }
 
 async function syncVehiclesFromUex({ enrichDetails = true } = {}) {
-  const payload = await buildVehiclesPayloadFromUex({ enrichDetails });
-  await saveVehiclesToDatabase(payload);
-  const localPayload = await readVehiclesFromDatabase();
-  return {
-    ...localPayload,
-    source: 'Base de datos local, sincronizada desde UEX',
-    warnings: payload.warnings
-  };
+  try {
+    const payload = await buildVehiclesPayloadFromUex({ enrichDetails });
+    await saveVehiclesToDatabase(payload);
+    const localPayload = await readVehiclesFromDatabase();
+    return {
+      ...localPayload,
+      source: 'Base de datos local, sincronizada desde UEX',
+      warnings: payload.warnings
+    };
+  } catch (error) {
+    try {
+      await recordApiSyncRun('vehicles', 'error', error.message);
+    } catch {
+      // If MySQL logging fails, keep the original API/database error visible.
+    }
+    throw error;
+  }
 }
 
 async function readVehicles({ forceSync = false } = {}) {

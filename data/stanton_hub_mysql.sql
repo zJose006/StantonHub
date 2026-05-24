@@ -11,6 +11,10 @@ DROP TABLE IF EXISTS votes;
 DROP TABLE IF EXISTS content_images;
 DROP TABLE IF EXISTS content_items;
 DROP TABLE IF EXISTS user_sessions;
+DROP TABLE IF EXISTS vehicle_combat_cache;
+DROP TABLE IF EXISTS star_citizen_wiki_vehicle_cache;
+DROP TABLE IF EXISTS uex_api_cache;
+DROP TABLE IF EXISTS api_sync_runs;
 DROP TABLE IF EXISTS uex_vehicle_cache;
 DROP TABLE IF EXISTS users;
 DROP TABLE IF EXISTS app_settings;
@@ -137,6 +141,45 @@ CREATE TABLE uex_vehicle_cache (
   INDEX idx_uex_vehicle_name (name),
   INDEX idx_uex_vehicle_size (length_m, is_concept),
   INDEX idx_uex_vehicle_manufacturer (manufacturer)
+) ENGINE=InnoDB;
+
+CREATE TABLE api_sync_runs (
+  id BIGINT UNSIGNED PRIMARY KEY AUTO_INCREMENT,
+  source VARCHAR(80) NOT NULL,
+  status VARCHAR(24) NOT NULL,
+  message VARCHAR(500) NULL,
+  started_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  finished_at DATETIME NULL,
+  INDEX idx_api_sync_source_started (source, started_at)
+) ENGINE=InnoDB;
+
+CREATE TABLE uex_api_cache (
+  resource VARCHAR(80) NOT NULL,
+  resource_row_id VARCHAR(80) NOT NULL,
+  vehicle_id INT UNSIGNED NULL,
+  payload_json LONGTEXT NOT NULL,
+  synced_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (resource, resource_row_id),
+  INDEX idx_uex_api_cache_vehicle (vehicle_id),
+  INDEX idx_uex_api_cache_synced (synced_at)
+) ENGINE=InnoDB;
+
+CREATE TABLE star_citizen_wiki_vehicle_cache (
+  vehicle_id INT UNSIGNED PRIMARY KEY,
+  wiki_uuid VARCHAR(80) NULL,
+  name VARCHAR(180) NOT NULL,
+  status VARCHAR(24) NOT NULL DEFAULT 'missing',
+  error_message VARCHAR(500) NULL,
+  payload_json LONGTEXT NULL,
+  synced_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  INDEX idx_wiki_vehicle_uuid (wiki_uuid),
+  INDEX idx_wiki_vehicle_name (name)
+) ENGINE=InnoDB;
+
+CREATE TABLE vehicle_combat_cache (
+  vehicle_id INT UNSIGNED PRIMARY KEY,
+  payload_json LONGTEXT NOT NULL,
+  synced_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB;
 
 INSERT INTO app_settings (setting_key, setting_value) VALUES
