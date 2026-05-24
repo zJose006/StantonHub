@@ -15,6 +15,8 @@ dns.setDefaultResultOrder('ipv4first');
 loadLocalEnv();
 
 const clientDistDir = path.join(rootDir, 'dist');
+const dataDir = path.join(rootDir, 'data');
+const componentCatalogPath = path.join(dataDir, 'component-catalog.json');
 const port = Number(globalThis.STANTON_PORT || (typeof process !== 'undefined' ? process.env.PORT : 0)) || 4173;
 const env = typeof process !== 'undefined' ? process.env : {};
 const databaseName = env.DB_NAME || 'stanton_hub';
@@ -33,9 +35,9 @@ const uexClientVersion = env.UEX_CLIENT_VERSION || globalThis.UEX_CLIENT_VERSION
 const uexApiHosts = ['https://api.uexcorp.uk/2.0', 'https://api.uexcorp.space/2.0'];
 const starCitizenWikiApiBase = 'https://api.star-citizen.wiki/api';
 const eurExchangeRateApiBase = 'https://api.frankfurter.dev/v1/latest';
-const discordClientId = env.DISCORD_CLIENT_ID || '';
-const discordClientSecret = env.DISCORD_CLIENT_SECRET || '';
-const discordRedirectUri = env.DISCORD_REDIRECT_URI || `http://127.0.0.1:${port}/api/auth/discord/callback`;
+const discordClientId = env.DISCORD_CLIENT_ID || globalThis.DISCORD_CLIENT_ID || '';
+const discordClientSecret = env.DISCORD_CLIENT_SECRET || env.DISCORD_TOKEN || env.DISCORD_BOT_TOKEN || globalThis.DISCORD_CLIENT_SECRET || globalThis.DISCORD_TOKEN || '';
+const discordRedirectUri = env.DISCORD_REDIRECT_URI || globalThis.DISCORD_REDIRECT_URI || `http://127.0.0.1:${port}/api/auth/discord/callback`;
 const appRoutes = {
   login: '/pages/login',
   profile: '/pages/perfil'
@@ -1001,18 +1003,107 @@ function convertMoneyToEur(value, currency, rates = new Map([['EUR', 1]])) {
   return Math.round(amount * rate);
 }
 
+function normalizePledgeToEur(price, warbond, currency, rates) {
+  return {
+    price: convertMoneyToEur(price, currency, rates),
+    warbond: convertMoneyToEur(warbond, currency, rates),
+    currency: 'EUR',
+    original: {
+      price: Number(price || 0) || null,
+      warbond: Number(warbond || 0) || null,
+      currency: normalizeCurrency(currency)
+    }
+  };
+}
+
+function inferWeaponDamageType(item = {}, weapon = {}) {
+  const text = [
+    item.name,
+    item.type,
+    item.type_label,
+    item.sub_type,
+    item.sub_type_label,
+    item.class_name,
+    item.ammunition?.type,
+    item.ammunition?.name,
+    weapon.type,
+    weapon.damage_type
+  ].map((value) => textValue(value)).join(' ').toLowerCase();
+  if (/distortion|distorsion/.test(text) || Number(weapon.damage?.alpha?.distortion || item.damage?.alpha?.distortion || 0)) return 'Distorsion';
+  if (/ballistic|balistic|balistico|balistica|ammo|projectile/.test(text) || Number(weapon.damage?.alpha?.physical || item.damage?.alpha?.physical || 0)) return 'Balistico';
+  if (/laser|energy|energia|plasma|neutron|tachyon/.test(text) || Number(weapon.damage?.alpha?.energy || item.damage?.alpha?.energy || 0)) return 'Energia / laser';
+  if (/missile|rocket|torpedo|misil/.test(text)) return 'Misil';
+  return 'No especificado';
+}
+
+function collectBuyLocations(item = {}) {
+  const locations = new Set();
+  const visit = (value, depth = 0) => {
+    if (!value || depth > 4) return;
+    if (Array.isArray(value)) {
+      value.forEach((entry) => visit(entry, depth + 1));
+      return;
+    }
+    if (typeof value !== 'object') return;
+    const label = textValue(value.name || value.location || value.shop || value.terminal || value.store || value.city || value.station);
+    if (label) locations.add(label);
+    Object.entries(value).forEach(([key, child]) => {
+      if (/shop|store|location|terminal|vendor|purchase|buy|sell|inventory/i.test(key)) visit(child, depth + 1);
+    });
+  };
+  visit(item.shops || item.stores || item.locations || item.purchase || item.buy || item.vendors || item.inventory);
+  return [...locations].slice(0, 6);
+}
+
+function weaponMeta(item = {}, node = {}, weapon = {}) {
+  return {
+    manufacturer: textValue(item.manufacturer?.name || item.manufacturer || item.company?.name || item.company || item.manufacturer_name),
+    damageType: inferWeaponDamageType(item, weapon),
+    ammoType: textValue(item.ammunition?.type || item.ammunition?.name || item.ammo?.type || item.ammo?.name || item.ammo_type),
+    ammoCost: firstNumber(item.ammunition?.price, item.ammunition?.cost, item.ammo?.price, item.ammo?.cost),
+    buyLocations: collectBuyLocations(item),
+    price: firstNumber(item.price, item.msrp, item.purchase?.price, item.buy?.price, node.price),
+    projectileSpeed: firstNumber(item.ammunition?.speed, item.ammo?.speed, weapon.projectile_speed),
+    ammoCapacity: firstNumber(item.ammunition?.capacity, item.ammo?.capacity, weapon.ammo_capacity)
+  };
+}
+
+function moduleMeta(item = {}, node = {}) {
+  return {
+    manufacturer: textValue(item.manufacturer?.name || item.manufacturer || item.company?.name || item.company || item.manufacturer_name),
+    grade: textValue(item.grade || node.grade || item.item_grade || item.quality),
+    componentClass: textValue(item.class || node.class || item.item_class || item.component_class || item.class_name || node.class_name),
+    moduleType: textValue(item.type_label || node.type_label || item.sub_type_label || node.sub_type_label || item.type || node.type),
+    health: firstNumber(item.health, item.hp, item.hitpoints, node.health, node.hp),
+    powerDraw: firstNumber(item.power_draw, item.powerDraw, item.power?.draw, item.power?.request),
+    powerToEmp: firstNumber(item.power_to_emp, item.powerToEmp),
+    distortionShutdown: firstNumber(item.distortion_shutdown, item.distortionShutdown),
+    coolingRate: firstNumber(item.cooling_rate, item.coolingRate, item.heat?.cooling_rate),
+    em: firstNumber(item.em, item.signature?.em),
+    ir: firstNumber(item.ir, item.signature?.ir),
+    range: firstNumber(item.range, item.quantum?.range, item.fuel_range),
+    speed: firstNumber(item.speed, item.quantum?.speed),
+    fuelRate: firstNumber(item.fuel_rate, item.quantum?.fuel_rate, item.fuelRate),
+    spoolTime: firstNumber(item.spool_time, item.quantum?.spool_time, item.spoolTime)
+  };
+}
+
 function collectVehicleWeapons(node, weapons = [], pathLabel = '') {
   if (!node || typeof node !== 'object') return weapons;
 
   const item = node.item && typeof node.item === 'object' ? node.item : node;
   const weapon = item.vehicle_weapon;
+  const typeText = [item.type, item.type_label, item.sub_type, item.sub_type_label, item.class_name, node.type, node.type_label, node.sub_type, node.sub_type_label, node.class_name].map((value) => textValue(value)).join(' ');
+  const mount = textValue(node.name || pathLabel);
+  const mountKind = classifyWeaponMount([mount, typeText, item.name, node.name].join(' '));
   if (weapon?.damage && (item.type === 'WeaponGun' || weapon.damage.alpha_total || weapon.damage.sustained_60s)) {
     weapons.push({
       name: item.name || node.name || 'Arma sin nombre',
       size: Number(item.size || node.size || 0) || null,
       type: item.type || node.type || 'WeaponGun',
       className: item.class_name || node.class_name || '',
-      mount: node.name || pathLabel || '',
+      mount,
+      mountKind,
       damage: {
         sustained60s: Number(weapon.damage.sustained_60s || 0),
         burst: Number(weapon.damage.burst || 0),
@@ -1025,7 +1116,31 @@ function collectVehicleWeapons(node, weapons = [], pathLabel = '') {
         }
       },
       rpm: Number(weapon.rpm || 0) || null,
-      range: Number(item.ammunition?.range || 0) || null
+      range: Number(item.ammunition?.range || 0) || null,
+      meta: weaponMeta(item, node, weapon)
+    });
+  } else if (/WeaponGun|Gun|Missile|Rocket|Torpedo/i.test(typeText) && textValue(item.name || node.name) && !/Hardpoint|Controller|PLACEHOLDER/i.test(textValue(item.name || node.name))) {
+    weapons.push({
+      name: item.name || node.name || 'Arma sin nombre',
+      size: Number(item.size || node.size || item.item_size || node.item_size || 0) || null,
+      type: textValue(item.type || node.type || item.sub_type || node.sub_type, 'Weapon'),
+      className: textValue(item.class_name || node.class_name),
+      mount,
+      mountKind,
+      damage: {
+        sustained60s: Number(weapon?.damage?.sustained_60s || item.damage?.sustained_60s || item.damage?.dps || 0),
+        burst: Number(weapon?.damage?.burst || item.damage?.burst || 0),
+        alphaTotal: Number(weapon?.damage?.alpha_total || item.damage?.alpha_total || item.damage?.total || 0),
+        maximum: Number(weapon?.damage?.maximum || item.damage?.maximum || 0),
+        alpha: {
+          physical: Number(weapon?.damage?.alpha?.physical || item.damage?.alpha?.physical || 0),
+          energy: Number(weapon?.damage?.alpha?.energy || item.damage?.alpha?.energy || 0),
+          distortion: Number(weapon?.damage?.alpha?.distortion || item.damage?.alpha?.distortion || 0)
+        }
+      },
+      rpm: Number(weapon?.rpm || item.rpm || 0) || null,
+      range: Number(item.ammunition?.range || item.range || 0) || null,
+      meta: weaponMeta(item, node, weapon || {})
     });
   }
 
@@ -1039,6 +1154,17 @@ function collectVehicleWeapons(node, weapons = [], pathLabel = '') {
   }
 
   return weapons;
+}
+
+function classifyWeaponMount(value) {
+  const text = textValue(value).toLowerCase();
+  if (/pdc|point\s*defen[sc]e|pointdefense|defense cannon|defence cannon|plc/.test(text)) return 'PDC / PLC';
+  if (/remote.*turret|turret.*remote|remota/.test(text)) return 'Torreta remota';
+  if (/manned.*turret|turret.*manned|tripulada|mann?ed/.test(text)) return 'Torreta tripulada';
+  if (/turret|torreta/.test(text)) return 'Torreta';
+  if (/missile|rack|rocket|torpedo|misil/.test(text)) return 'Misiles';
+  if (/weapon|gun|arma|hardpoint/.test(text)) return 'Arma pilotada';
+  return 'Otro';
 }
 
 function combatSummaryFromWeapons(weapons, source = 'Star Citizen Wiki API') {
@@ -1090,6 +1216,7 @@ function collectWikiWeaponry(wikiVehicle) {
       type: textValue(weapon.type, sourceLabel),
       className: textValue(weapon.class_name),
       mount: sourceLabel,
+      mountKind: classifyWeaponMount(sourceLabel),
       damage: {
         sustained60s: sustained || dps,
         burst: dps,
@@ -1102,11 +1229,21 @@ function collectWikiWeaponry(wikiVehicle) {
         }
       },
       rpm: Number(weapon.rpm || 0) || null,
-      range: Number(weapon.range || 0) || null
+      range: Number(weapon.range || 0) || null,
+      meta: {
+        manufacturer: textValue(weapon.manufacturer?.name || weapon.manufacturer || weapon.company?.name || weapon.company),
+        damageType: inferWeaponDamageType(weapon, weapon),
+        ammoType: textValue(weapon.ammunition?.type || weapon.ammo?.type || weapon.ammo_type),
+        ammoCost: firstNumber(weapon.ammunition?.price, weapon.ammunition?.cost, weapon.ammo?.price, weapon.ammo?.cost),
+        buyLocations: collectBuyLocations(weapon),
+        price: firstNumber(weapon.price, weapon.msrp, weapon.purchase?.price, weapon.buy?.price),
+        projectileSpeed: firstNumber(weapon.ammunition?.speed, weapon.ammo?.speed, weapon.projectile_speed),
+        ammoCapacity: firstNumber(weapon.ammunition?.capacity, weapon.ammo?.capacity, weapon.ammo_capacity)
+      }
     });
   };
 
-  for (const sectionKey of ['fixed_weapons', 'turrets', 'remote_turrets', 'manned_turrets']) {
+  for (const sectionKey of ['fixed_weapons', 'turrets', 'remote_turrets', 'manned_turrets', 'pdc_turrets', 'point_defense', 'point_defense_turrets', 'missile_racks']) {
     const section = weaponry[sectionKey];
     const sectionWeapons = asArray(section?.weapons);
     sectionWeapons.forEach((weapon, index) => pushWeapon(weapon, index, textValue(section?.label, sectionKey.replace(/_/g, ' ')), section?.size || defaultGunSize));
@@ -1120,6 +1257,7 @@ function collectWikiWeaponry(wikiVehicle) {
       type: 'Missile',
       className: 'Missile',
       mount: 'Misiles',
+      mountKind: 'Misiles',
       damage: {
         sustained60s: 0,
         burst: totalDamage,
@@ -1133,7 +1271,17 @@ function collectWikiWeaponry(wikiVehicle) {
       },
       rpm: null,
       range: null,
-      countOverride: Number(weaponry.missiles.count || 0)
+      countOverride: Number(weaponry.missiles.count || 0),
+      meta: {
+        manufacturer: '',
+        damageType: 'Misil',
+        ammoType: textValue(weaponry.missiles.type || weaponry.missiles.name, 'Misil'),
+        ammoCost: firstNumber(weaponry.missiles.ammo_price, weaponry.missiles.price),
+        buyLocations: collectBuyLocations(weaponry.missiles),
+        price: firstNumber(weaponry.missiles.price),
+        projectileSpeed: firstNumber(weaponry.missiles.speed),
+        ammoCapacity: Number(weaponry.missiles.count || 0) || null
+      }
     });
   }
 
@@ -1306,20 +1454,26 @@ function collectVehicleModules(node, modules = [], pathLabel = '') {
 
   const item = node.item && typeof node.item === 'object' ? node.item : node;
   const name = textValue(item.name || node.name);
-  const type = textValue(item.type || node.type || item.class_name || node.class_name);
+  const type = textValue(item.type || node.type || item.type_label || node.type_label || item.class_name || node.class_name);
+  const subType = textValue(item.sub_type || node.sub_type || item.sub_type_label || node.sub_type_label);
   const className = textValue(item.class_name || node.class_name);
-  const moduleSignal = [type, className, pathLabel].join(' ');
-  const isModule = /(PowerPlant|Cooler|Shield|ShieldGenerator|QuantumDrive|JumpDrive|Fuel|Radar|Scanner|Computer|Avionic|LifeSupport|Battery|Capacitor|Thruster|MissileRack|Utility|Turret|Weapon|Module)/i.test(moduleSignal);
+  const moduleSignal = [type, subType, className, name, pathLabel].join(' ');
+  const isModule = /(PowerPlant|Power Plant|Cooler|Shield|ShieldGenerator|Shield Generator|QuantumDrive|Quantum Drive|JumpDrive|Jump Drive|Fuel|Radar|Scanner|Computer|Avionic|LifeSupport|Life Support|Battery|Capacitor|Thruster|MissileRack|Missile Rack|Countermeasure|Utility|Turret|Weapon|WeaponGun|Gun|Module|Controller|Blade|EMP|QED|Paint|Flair)/i.test(moduleSignal);
 
   if (name && isModule) {
+    const meta = moduleMeta(item, node);
     modules.push({
       name,
-      type: type || className || 'Modulo',
+      type: type || subType || className || 'Modulo',
+      subType,
       className,
       size: Number(item.size || node.size || item.item_size || node.item_size || 0) || null,
-      grade: textValue(item.grade || node.grade),
+      grade: meta.grade,
       mount: textValue(node.name || pathLabel),
-      category: normalizeModuleCategory(type || className || pathLabel)
+      ports: Number(item.ports?.length || node.ports?.length || item.turret?.mounts || node.turret?.mounts || 0) || null,
+      equippedSize: textValue(item.turret?.max_size || node.turret?.max_size || item.turret?.min_size || node.turret?.min_size || item.item_size || node.item_size),
+      category: normalizeModuleCategory(moduleSignal),
+      meta
     });
   }
 
@@ -1337,46 +1491,163 @@ function collectVehicleModules(node, modules = [], pathLabel = '') {
 
 function normalizeModuleCategory(value) {
   const raw = textValue(value, 'Modulo');
+  if (/pdc|point\s*defen[sc]e|pointdefense|plc/i.test(raw)) return 'PDC / PLC';
+  if (/countermeasure|decoy|noise|chaff|flare/i.test(raw)) return 'Contramedidas';
+  if (/weaponcontroller|controller_weapon|weapon controller/i.test(raw)) return 'Controladores';
+  if (/remote.*turret|turret.*remote|remota/i.test(raw)) return 'Torretas remotas';
+  if (/manned.*turret|turret.*manned|tripulada|mann?ed/i.test(raw)) return 'Torretas tripuladas';
   if (/shield/i.test(raw)) return 'Escudos';
+  if (/armor|armour|ship armor/i.test(raw)) return 'Blindaje';
   if (/power/i.test(raw)) return 'Plantas de energia';
   if (/cooler/i.test(raw)) return 'Refrigeracion';
   if (/quantum|jump/i.test(raw)) return 'Quantum';
   if (/radar|scanner/i.test(raw)) return 'Sensores';
   if (/fuel/i.test(raw)) return 'Combustible';
   if (/computer|avionic/i.test(raw)) return 'Computadores';
+  if (/life\s*support/i.test(raw)) return 'Soporte vital';
   if (/thruster/i.test(raw)) return 'Propulsion';
   if (/missile/i.test(raw)) return 'Misiles';
   if (/turret/i.test(raw)) return 'Torretas';
-  if (/weapon/i.test(raw)) return 'Armas';
+  if (/weapon|gun/i.test(raw)) return 'Armas';
+  if (/controller/i.test(raw)) return 'Controladores';
+  if (/blade/i.test(raw)) return 'Blades';
   return raw.replace(/([a-z])([A-Z])/g, '$1 $2');
 }
 
+function isUsefulModule(module) {
+  const name = textValue(module.name);
+  const signal = [name, module.type, module.subType, module.className, module.mount].map((value) => textValue(value)).join(' ');
+  const usefulCategories = new Set(['Armas', 'Torretas', 'Torretas remotas', 'Torretas tripuladas', 'Misiles', 'Contramedidas', 'Escudos', 'Blindaje', 'Plantas de energia', 'Refrigeracion', 'Quantum', 'Sensores', 'Computadores', 'Soporte vital', 'Combustible', 'Propulsion', 'Blades', 'PDC / PLC']);
+  if (!usefulCategories.has(textValue(module.category))) return false;
+  if (!name || /^unknown$/i.test(name) || /placeholder/i.test(name)) return false;
+  if (/^hardpoint_|^itemport_/i.test(name)) return false;
+  if (/controller/i.test(signal)) return false;
+  if (/weapon rack/i.test(name) || /weapon_rack/i.test(signal)) return false;
+  if (/^(weapons|shields|heat|power|comms|security|mec|pow|ven|bar\d*)$/i.test(name)) return false;
+  if (/^(fuel tank|quantum drive|jump module|quantum fuel tank|power plant|cooler|shield generator|radar|computer|paint)$/i.test(name) && !module.size && !module.grade) return false;
+  return true;
+}
+
+function componentCatalogKey(module) {
+  return [
+    normalizeComparableName(module.category),
+    normalizeComparableName(module.name),
+    normalizeComparableName(module.type),
+    normalizeComparableName(module.subType),
+    normalizeComparableName(module.meta?.componentClass || module.className),
+    module.size || '',
+    module.grade || ''
+  ].join('|');
+}
+
 function buildModulesSummary(wikiVehicle) {
-  const modules = collectVehicleModules(wikiVehicle);
+  const modules = collectVehicleModules(wikiVehicle).filter(isUsefulModule);
+  const uniqueModules = [];
+  const seen = new Set();
+  for (const module of modules) {
+    module.componentKey = componentCatalogKey(module);
+    const key = [module.componentKey, module.mount].join('|');
+    if (seen.has(key)) continue;
+    seen.add(key);
+    uniqueModules.push(module);
+  }
   const groups = new Map();
 
-  for (const module of modules) {
-    const key = `${module.category}|${module.size || 'N/D'}`;
+  for (const module of uniqueModules) {
+    const key = module.componentKey;
     if (!groups.has(key)) {
       groups.set(key, {
+        componentKey: module.componentKey,
         category: module.category,
+        name: module.name,
+        type: module.type,
+        subType: module.subType,
         size: module.size || 'N/D',
+        grade: module.grade,
+        meta: module.meta || {},
         count: 0,
-        examples: []
+        mounts: [],
+        examples: [],
+        items: []
       });
     }
 
     const group = groups.get(key);
     group.count += 1;
+    group.items.push(module);
+    if (module.mount && !group.mounts.includes(module.mount)) group.mounts.push(module.mount);
     if (group.examples.length < 4) group.examples.push(module.name);
   }
 
   return {
     source: 'Star Citizen Wiki API /vehicles',
-    total: modules.length,
+    total: uniqueModules.length,
     groups: [...groups.values()].sort((a, b) => `${a.category}${a.size}`.localeCompare(`${b.category}${b.size}`, 'es')),
-    items: modules
+    items: uniqueModules
   };
+}
+
+function buildComponentCatalogFromDetails(details = []) {
+  const components = new Map();
+
+  for (const entry of details) {
+    const vehicleName = textValue(entry.vehicle?.name || entry.wikiVehicle?.name || entry.wikiVehicle?.name_full, 'Nave');
+    const modules = buildModulesSummary(entry.wikiVehicle || {}).items || [];
+    for (const module of modules) {
+      const key = module.componentKey || componentCatalogKey(module);
+      if (!components.has(key)) {
+        components.set(key, {
+          key,
+          name: module.name,
+          category: module.category,
+          type: module.type,
+          subType: module.subType,
+          className: module.className,
+          size: module.size || null,
+          grade: module.grade || '',
+          componentClass: module.meta?.componentClass || '',
+          manufacturer: module.meta?.manufacturer || '',
+          moduleType: module.meta?.moduleType || '',
+          usedByCount: 0,
+          totalInstalled: 0,
+          examples: []
+        });
+      }
+      const component = components.get(key);
+      component.totalInstalled += 1;
+      if (!component.examples.some((item) => item.vehicle === vehicleName)) {
+        component.usedByCount += 1;
+        if (component.examples.length < 12) {
+          component.examples.push({
+            vehicle: vehicleName,
+            mount: module.mount || '',
+            count: 1
+          });
+        }
+      } else {
+        const example = component.examples.find((item) => item.vehicle === vehicleName);
+        if (example) example.count += 1;
+      }
+    }
+  }
+
+  const entries = [...components.values()].sort((a, b) => `${a.category}${a.name}`.localeCompare(`${b.category}${b.name}`, 'es'));
+  const categories = entries.reduce((summary, component) => {
+    summary[component.category] = (summary[component.category] || 0) + 1;
+    return summary;
+  }, {});
+
+  return {
+    generatedAt: new Date().toISOString(),
+    total: entries.length,
+    categories,
+    components: entries
+  };
+}
+
+async function writeComponentCatalog(catalog) {
+  await fs.mkdir(dataDir, { recursive: true });
+  await fs.writeFile(componentCatalogPath, JSON.stringify(catalog, null, 2), 'utf8');
 }
 
 function weaponCategory(weapon) {
@@ -1478,6 +1749,7 @@ async function enrichVehiclesWithWikiData(vehicles, wikiVehicles = []) {
         }
       }
       const wikiImages = collectImageUrls(wikiVehicle);
+      const modules = wikiVehicle ? buildModulesSummary(wikiVehicle) : { source: 'Star Citizen Wiki API /vehicles', total: 0, groups: [], items: [] };
       enriched.push({
         vehicle: {
           ...vehicle,
@@ -1490,6 +1762,7 @@ async function enrichVehiclesWithWikiData(vehicles, wikiVehicles = []) {
             shieldHp: Number(wikiVehicle?.shield?.hp || 0) || null
           },
           combat,
+          modules,
           wikiImageProxy: wikiImages[0] || vehicle.wikiImageProxy || '',
           imageCandidates: [
             ...(vehicle.photo ? [proxiedImageUrl(vehicle.photo), vehicle.photo] : []),
@@ -1553,6 +1826,10 @@ function normalizeWikiVehicle(wikiVehicle) {
   const width = firstNumber(wikiVehicle.width, wikiVehicle.beam, wikiVehicle.dimensions?.beam, wikiVehicle.dimensions?.width, wikiVehicle.dimension?.width);
   const height = firstNumber(wikiVehicle.height, wikiVehicle.dimensions?.height, wikiVehicle.dimension?.height);
   const combat = buildCombatSummary(wikiVehicle);
+  const modules = buildModulesSummary(wikiVehicle);
+  const msrp = firstNumber(wikiVehicle.msrp, wikiVehicle.pledge?.price, wikiVehicle.price);
+  const msrpCurrency = normalizeCurrency(wikiVehicle.currency || wikiVehicle.pledge?.currency || 'USD');
+  const usdFallbackRates = new Map([['EUR', 1], ['USD', 0.92]]);
 
   return {
     id: stableWikiVehicleId(wikiVehicle),
@@ -1574,7 +1851,7 @@ function normalizeWikiVehicle(wikiVehicle) {
     imageCandidates: imageUrls.flatMap((url) => [proxiedImageUrl(url), url]).filter(Boolean),
     storeUrl: '',
     tags: ['Nave', 'Wiki'].filter(Boolean),
-    pledge: { price: null, warbond: null, currency: 'USD', onSale: false },
+    pledge: { ...normalizePledgeToEur(msrp, null, msrpCurrency, usdFallbackRates), onSale: false },
     purchase: { price: null, locations: [] },
     rental: { price: null, locations: [] },
     wiki: {
@@ -1586,6 +1863,7 @@ function normalizeWikiVehicle(wikiVehicle) {
       shieldHp: Number(wikiVehicle.shield?.hp || 0) || null
     },
     combat,
+    modules,
     flags: {
       addon: false,
       docking: false,
@@ -1606,7 +1884,7 @@ function lowestPrice(rows, field) {
     .sort((a, b) => a - b)[0] || null;
 }
 
-function normalizeVehicle(vehicle, pledgePrices, purchasePrices, rentalPrices) {
+function normalizeVehicle(vehicle, pledgePrices, purchasePrices, rentalPrices, currencyRates = new Map([['EUR', 1]])) {
   const id = Number(vehicle.id);
   const photo = normalizeExternalUrl(vehicle.url_photo);
   const storeUrl = normalizeExternalUrl(vehicle.url_store, 'https://robertsspaceindustries.com');
@@ -1649,9 +1927,7 @@ function normalizeVehicle(vehicle, pledgePrices, purchasePrices, rentalPrices) {
     storeUrl,
     tags,
     pledge: {
-      price: Number(pledge.price || 0) || null,
-      warbond: Number(pledge.price_warbond || 0) || null,
-      currency: pledge.currency || 'USD',
+      ...normalizePledgeToEur(pledge.price, pledge.price_warbond, pledge.currency || 'USD', currencyRates),
       onSale: Number(pledge.on_sale || 0) === 1
     },
     purchase: {
@@ -1713,6 +1989,7 @@ async function buildVehiclesPayloadFromUex({ enrichDetails = true } = {}) {
   const warnings = [pledgeResult, purchaseResult, rentalResult]
     .filter((result) => result.status === 'rejected')
     .map((result) => result.reason.message);
+  const currencyRates = await buildCurrencyRatesToEur(pledgePrices.map((price) => price.currency || 'USD'));
   let wikiVehicles = [];
 
   if (enrichDetails) {
@@ -1725,7 +2002,7 @@ async function buildVehiclesPayloadFromUex({ enrichDetails = true } = {}) {
 
   let normalized = vehicles
     .filter(isDisplayableUexVehicle)
-    .map((vehicle) => normalizeVehicle(vehicle, pledgePrices, purchasePrices, rentalPrices))
+    .map((vehicle) => normalizeVehicle(vehicle, pledgePrices, purchasePrices, rentalPrices, currencyRates))
     .sort((a, b) => a.name.localeCompare(b.name, 'es'));
 
   const rawById = new Map(vehicles.map((vehicle) => [Number(vehicle.id), vehicle]));
@@ -1747,6 +2024,13 @@ async function buildVehiclesPayloadFromUex({ enrichDetails = true } = {}) {
 
   normalized.sort((a, b) => a.name.localeCompare(b.name, 'es'));
   const allDetails = [...enrichment.details, ...supplementalDetails];
+  if (enrichDetails) {
+    try {
+      await writeComponentCatalog(buildComponentCatalogFromDetails(allDetails));
+    } catch (error) {
+      warnings.push(`Catalogo de componentes: ${error.message}`);
+    }
+  }
 
   const pledgeById = new Map(pledgePrices.map((price) => [Number(price.id_vehicle), price]));
   const purchasesById = groupByVehicleId(purchasePrices);
@@ -1958,6 +2242,18 @@ async function readVehiclesFromDatabase() {
   const vehicles = rows
     .map((row) => decodeDbJson(row.vehicle_json, {}))
     .filter(isDisplayableCachedVehicle);
+  const currencies = vehicles.map((vehicle) => vehicle.pledge?.currency).filter((currency) => normalizeCurrency(currency) !== 'EUR');
+  const rates = await buildCurrencyRatesToEur(currencies);
+  for (const vehicle of vehicles) {
+    const pledgeCurrency = normalizeCurrency(vehicle.pledge?.currency || 'EUR');
+    if (vehicle.pledge?.price && pledgeCurrency !== 'EUR') {
+      vehicle.pledge = {
+        ...vehicle.pledge,
+        ...normalizePledgeToEur(vehicle.pledge.price, vehicle.pledge.warbond, pledgeCurrency, rates),
+        onSale: Boolean(vehicle.pledge.onSale)
+      };
+    }
+  }
   const loadedAt = rows[0]?.synced_at
     ? new Date(rows[0].synced_at.replace(' ', 'T')).toISOString()
     : new Date().toISOString();
@@ -2029,6 +2325,16 @@ async function readVehicleDetailFromDatabase(identifier) {
   const rawVehicle = decodeDbJson(row.uex_vehicle_api_json, decodeDbJson(row.raw_vehicle_json, {}));
   const wiki = decodeDbJson(row.wiki_api_json, decodeDbJson(row.wiki_vehicle_json, {}));
   const combat = decodeDbJson(row.combat_cache_json, decodeDbJson(row.combat_json, vehicle.combat || {}));
+  const modules = wiki && Object.keys(wiki).length ? buildModulesSummary(wiki) : (vehicle.modules || { source: 'Datos externos', total: 0, groups: [], items: [] });
+  const pledgeCurrency = normalizeCurrency(vehicle.pledge?.currency || 'EUR');
+  if (vehicle.pledge?.price && pledgeCurrency !== 'EUR') {
+    const rates = await buildCurrencyRatesToEur([pledgeCurrency]);
+    vehicle.pledge = {
+      ...vehicle.pledge,
+      ...normalizePledgeToEur(vehicle.pledge.price, vehicle.pledge.warbond, pledgeCurrency, rates),
+      onSale: Boolean(vehicle.pledge.onSale)
+    };
+  }
   return {
     source: 'Base de datos local',
     syncedAt: row.synced_at || '',
@@ -2037,6 +2343,7 @@ async function readVehicleDetailFromDatabase(identifier) {
     raw: rawVehicle,
     wiki,
     combat,
+    modules,
     prices: {
       pledge: decodeDbJson(row.pledge_json, {}),
       purchase: decodeDbJson(row.purchase_json, []),
@@ -2401,6 +2708,16 @@ async function readAdminState() {
 }
 
 async function handleApi(request, response, pathname) {
+  if (request.method === 'GET' && pathname === '/api/auth/discord/status') {
+    sendJson(response, 200, {
+      configured: Boolean(discordClientId && discordClientSecret),
+      clientId: discordClientId ? `${discordClientId.slice(0, 4)}...${discordClientId.slice(-4)}` : '',
+      hasClientSecret: Boolean(discordClientSecret),
+      redirectUri: discordRedirectUri
+    });
+    return;
+  }
+
   if (request.method === 'GET' && pathname === '/api/auth/discord') {
     if (!discordClientId || !discordClientSecret) {
       redirect(response, `${appRoutes.login}?error=discord_config`);
@@ -2457,6 +2774,15 @@ async function handleApi(request, response, pathname) {
 
   if (request.method === 'GET' && pathname === '/api/vehicles') {
     sendJson(response, 200, await readVehicles());
+    return;
+  }
+
+  if (request.method === 'GET' && pathname === '/api/components/catalog') {
+    try {
+      sendJson(response, 200, JSON.parse(await fs.readFile(componentCatalogPath, 'utf8')));
+    } catch {
+      sendJson(response, 200, { generatedAt: '', total: 0, categories: {}, components: [] });
+    }
     return;
   }
 
@@ -2768,6 +3094,7 @@ const server = http.createServer(async (request, response) => {
 
 server.listen(port, '127.0.0.1', () => {
   console.log(`Stanton Hub disponible en http://127.0.0.1:${port}/pages/index`);
+  console.log(`Discord OAuth: ${discordClientId && discordClientSecret ? 'configurado' : 'sin configurar'} (${discordRedirectUri})`);
   if (!databaseReady) {
     console.log('Aviso: la web esta abierta, pero MySQL debe estar encendido para login, perfil y publicaciones.');
   } else {

@@ -2,7 +2,14 @@
 export function initials(name) { return name.split(/\s+/).filter(Boolean).slice(0, 2).map((part) => part[0]).join('').toUpperCase() || 'SC'; }
 
 /** Formatea creditos o precios en moneda visible. */
-export function money(value, currency = 'aUEC') { if (!value) return 'N/D'; return new Intl.NumberFormat('es-ES').format(Math.round(value)) + ' ' + textValue(currency, 'aUEC'); }
+export function money(value, currency = 'aUEC') {
+  if (!value) return 'N/D';
+  const normalizedCurrency = textValue(currency, 'aUEC').toUpperCase();
+  if (normalizedCurrency === 'EUR') {
+    return new Intl.NumberFormat('es-ES', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 }).format(Math.round(value));
+  }
+  return new Intl.NumberFormat('es-ES').format(Math.round(value)) + ' ' + textValue(currency, 'aUEC');
+}
 
 /** Formatea medidas de longitud en metros. */
 export function meters(value) { if (!value) return 'N/D'; return Number(value).toLocaleString('es-ES') + ' m'; }

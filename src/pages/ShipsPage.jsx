@@ -32,11 +32,11 @@ export function ShipsPage({ currentUser, navigate }) {
 
   async function syncVehicles() {
     setSyncing(true);
-    setStatus('Sincronizando UEX y Star Citizen Wiki con la base de datos local...');
+    setStatus('Sincronizando precios y datos tecnicos con la base de datos local...');
     try {
       const payload = await requestJson('/api/vehicles/sync', { method: 'POST' });
       setShips((payload.vehicles || []).filter(isCatalogVehicle));
-      setStatus(payload.warnings?.length ? 'Base de datos actualizada. Algunas naves no tienen detalles Wiki completos.' : 'Base de datos actualizada con UEX y datos Wiki.');
+      setStatus(payload.warnings?.length ? 'Base de datos actualizada. Algunas naves no tienen detalles completos.' : 'Base de datos actualizada con precios y datos tecnicos.');
     } catch (error) {
       setStatus('No se pudo sincronizar el catalogo: ' + error.message);
     } finally {
@@ -76,7 +76,7 @@ export function ShipsPage({ currentUser, navigate }) {
       </section>
 
       <section className={`ships-status ${filteredShips.length ? 'hidden' : ''}`}>{filteredShips.length ? '' : status}</section>
-      <section className="ships-grid">{pagedShips.map((ship) => <ShipCard key={ship.id} ship={ship} navigate={navigate} />)}</section>
+      <section className={`ships-grid ${pagedShips.length <= 2 ? 'ships-grid-compact' : ''}`}>{pagedShips.map((ship) => <ShipCard key={ship.id} ship={ship} navigate={navigate} />)}</section>
       <Pagination page={safePage} totalPages={totalPages} setPage={setPage} totalItems={filteredShips.length} />
     </main>
   );

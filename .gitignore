@@ -1,4 +1,5 @@
 .env
+discord-env-backup.txt
 node_modules/
 dist/
 npm-debug.log*
