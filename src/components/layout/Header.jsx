@@ -31,26 +31,41 @@ export function Header({ page, navigate, currentUser }) {
       <span>{label}</span>
     </a>
   );
+  const accountNav = currentUser ? (
+    <NavGroup name="Cuenta" active={page === 'profile' || page === 'editor' || page === 'admin'} openMenu={openMenu} setOpenMenu={setOpenMenu} triggerContent={<UserBadge user={currentUser} />}>
+      <MenuItem path={routes.profile} title="Mi perfil" text="Identidad, acceso y actividad de tu cuenta." navigate={navigate} closeMobileNav={closeMobileNav} />
+      <MenuItem path={routes.editor + '?type=forum'} title="Crear publicacion" text="Publica consejos, guias o intel desde el editor." navigate={navigate} closeMobileNav={closeMobileNav} />
+      {can(currentUser, 'admin.access') && <MenuItem path={routes.admin} title="Administracion" text="Usuarios, roles, publicaciones, capturas y UEX." navigate={navigate} closeMobileNav={closeMobileNav} />}
+    </NavGroup>
+  ) : (
+    <div className="auth-nav-links">{link(routes.login, 'Iniciar sesion', 'discord-login-link')}</div>
+  );
 
   return (
     <header className="hero hero-compact">
       <div className="hero-topbar">
-        <a className="home-button" href={routes.home} onClick={(event) => routeClick(event, routes.home, navigate)} aria-label="Inicio">
-          <span className="home-icon" aria-hidden="true">SC</span>
-          Stanton Hub
-        </a>
-        <button className="mobile-nav-toggle" type="button" aria-expanded={mobileNavOpen} aria-label="Abrir menu" onClick={(event) => { event.stopPropagation(); setMobileNavOpen((open) => !open); }}>
-          <span />
-          <span />
-          <span />
+        <button className={`mobile-nav-toggle ${mobileNavOpen ? 'is-open' : ''}`} type="button" aria-expanded={mobileNavOpen} aria-label="Abrir menu" onClick={(event) => { event.stopPropagation(); setOpenMenu(''); setMobileNavOpen((open) => !open); }}>
+          <span className="mobile-nav-toggle-line" aria-hidden="true" />
+          <span className="mobile-nav-toggle-arrow" aria-hidden="true" />
         </button>
+        <a className="home-button" href={routes.home} onClick={(event) => { routeClick(event, routes.home, navigate); closeMobileNav(); }} aria-label="Inicio">
+          <span className="home-icon" aria-hidden="true">SC</span>
+          <span className="brand-copy"><strong>Stanton Hub</strong><small>Organizacion Star Citizen</small></span>
+        </a>
         <div className={`header-nav-panel ${mobileNavOpen ? 'is-open' : ''}`}>
+          <div className="mobile-drawer-head">
+            <a className="mobile-drawer-brand" href={routes.home} onClick={(event) => { routeClick(event, routes.home, navigate); closeMobileNav(); }}>
+              <span className="home-icon" aria-hidden="true">SC</span>
+              <span className="brand-copy"><strong>Stanton Hub</strong><small>Organizacion Star Citizen</small></span>
+            </a>
+            <button className="mobile-drawer-close" type="button" aria-label="Cerrar menu" onClick={closeMobileNav}>x</button>
+          </div>
+          <a className="mobile-home-link" href={routes.home} onClick={(event) => { routeClick(event, routes.home, navigate); closeMobileNav(); }}>Inicio</a>
           <nav className="site-nav" aria-label="Navegacion principal">
-            {link(routes.home, 'Inicio')}
             <NavGroup name="Operaciones" active={page === 'forum'} openMenu={openMenu} setOpenMenu={setOpenMenu}>
               <MenuItem path={routes.forum} title="Base de operaciones" text="Consejos destacados, rutas aUEC y actividad reciente." navigate={navigate} closeMobileNav={closeMobileNav} />
             </NavGroup>
-            <NavGroup name="Biblioteca" active={page === 'guides' || page === 'ships'} openMenu={openMenu} setOpenMenu={setOpenMenu}>
+            <NavGroup name="Biblioteca" active={page === 'guides' || page === 'ships' || page === 'ship-detail'} openMenu={openMenu} setOpenMenu={setOpenMenu}>
               <MenuItem path={routes.guides} title="Guias" text="Manuales, preparacion y mecanicas explicadas." navigate={navigate} closeMobileNav={closeMobileNav} />
               <MenuItem path={routes.ships} title="Naves" text="Catalogo con precios, filtros y detalles tecnicos." navigate={navigate} closeMobileNav={closeMobileNav} />
             </NavGroup>
@@ -58,16 +73,8 @@ export function Header({ page, navigate, currentUser }) {
               <MenuItem path={routes.news} title="Intel" text="Novedades, eventos y oportunidades del verso." navigate={navigate} closeMobileNav={closeMobileNav} />
             </NavGroup>
           </nav>
-          {currentUser ? (
-            <NavGroup name="Cuenta" active={page === 'profile' || page === 'editor' || page === 'admin'} openMenu={openMenu} setOpenMenu={setOpenMenu} triggerContent={<UserBadge user={currentUser} />}>
-              <MenuItem path={routes.profile} title="Mi perfil" text="Identidad, acceso y actividad de tu cuenta." navigate={navigate} closeMobileNav={closeMobileNav} />
-              <MenuItem path={routes.editor + '?type=forum'} title="Crear publicacion" text="Publica consejos, guias o intel desde el editor." navigate={navigate} closeMobileNav={closeMobileNav} />
-              {can(currentUser, 'admin.access') && <MenuItem path={routes.admin} title="Administracion" text="Usuarios, roles, publicaciones, capturas y UEX." navigate={navigate} closeMobileNav={closeMobileNav} />}
-            </NavGroup>
-          ) : (
-            <div className="auth-nav-links">{link(routes.login, 'Iniciar sesion', 'discord-login-link')}</div>
-          )}
         </div>
+        <div className="header-account-slot">{accountNav}</div>
       </div>
       <HeroContent page={page} />
     </header>
@@ -79,8 +86,8 @@ function NavGroup({ name, active, openMenu, setOpenMenu, triggerContent, childre
   const isOpen = openMenu === name;
   const introText = { Biblioteca: 'Guias y preparacion de vuelo', Operaciones: 'Rutas, farmeo y actividad del hub', Cuenta: 'Perfil, editor y acceso de piloto', Comunidad: 'Intel y actividad de la comunidad' }[name] || 'Secciones de Stanton Hub';
   return (
-    <div className={`nav-group ${isOpen ? 'is-open' : ''}`}>
-      <button className={`nav-trigger ${active ? 'active' : ''}`} type="button" aria-expanded={isOpen} onClick={(event) => { event.stopPropagation(); setOpenMenu(isOpen ? '' : name); }}>
+    <div className={`nav-group ${triggerContent ? 'account-nav' : ''} ${isOpen ? 'is-open' : ''}`}>
+      <button className={`nav-trigger ${active ? 'active' : ''}`} type="button" aria-expanded={isOpen} aria-label={triggerContent ? name : undefined} title={triggerContent ? name : undefined} onClick={(event) => { event.stopPropagation(); setOpenMenu(isOpen ? '' : name); }}>
         {triggerContent || name}
       </button>
       <div className="nav-menu" hidden={!isOpen}>
@@ -93,7 +100,7 @@ function NavGroup({ name, active, openMenu, setOpenMenu, triggerContent, childre
 
 /** Resumen visual del usuario dentro del menu de cuenta. */
 function UserBadge({ user }) {
-  return <span className="user-badge"><span className="user-badge-avatar">{user.discordAvatar ? <img src={user.discordAvatar} alt="" /> : initials(user.username)}</span><span>{user.username}</span></span>;
+  return <span className="user-badge"><span className="user-badge-avatar">{user.discordAvatar ? <img src={user.discordAvatar} width="34" height="34" alt="" /> : initials(user.username)}</span></span>;
 }
 
 /** Enlace enriquecido dentro de un desplegable. */

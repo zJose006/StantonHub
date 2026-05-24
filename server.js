@@ -30,6 +30,7 @@ const mysqlBinary = env.MYSQL_BIN || 'C:\\Program Files\\MySQL\\MySQL Workbench 
 const uexToken = env.UEX_TOKEN || globalThis.UEX_TOKEN || '';
 const uexClientVersion = env.UEX_CLIENT_VERSION || globalThis.UEX_CLIENT_VERSION || '';
 const uexApiHosts = ['https://api.uexcorp.uk/2.0', 'https://api.uexcorp.space/2.0'];
+const starCitizenWikiApiBase = 'https://api.star-citizen.wiki/api';
 const discordClientId = env.DISCORD_CLIENT_ID || '';
 const discordClientSecret = env.DISCORD_CLIENT_SECRET || '';
 const discordRedirectUri = env.DISCORD_REDIRECT_URI || `http://127.0.0.1:${port}/api/auth/discord/callback`;
@@ -256,10 +257,13 @@ async function initializeDatabase() {
       is_concept TINYINT(1) NOT NULL DEFAULT 0,
       vehicle_json MEDIUMTEXT NOT NULL,
       raw_vehicle_json MEDIUMTEXT NULL,
+      wiki_vehicle_json MEDIUMTEXT NULL,
+      combat_json MEDIUMTEXT NULL,
       pledge_json MEDIUMTEXT NULL,
       purchase_json MEDIUMTEXT NULL,
       rental_json MEDIUMTEXT NULL,
       synced_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      details_synced_at DATETIME NULL,
       INDEX idx_uex_vehicle_name (name),
       INDEX idx_uex_vehicle_size (length_m, is_concept),
       INDEX idx_uex_vehicle_manufacturer (manufacturer)
@@ -274,6 +278,9 @@ async function initializeDatabase() {
   await ensureColumn('users', 'discord_avatar', 'VARCHAR(160) NULL');
   await ensureColumn('users', 'auth_provider', "VARCHAR(32) NOT NULL DEFAULT 'local'");
   await ensureColumn('users', 'last_login_at', 'DATETIME NULL');
+  await ensureColumn('uex_vehicle_cache', 'wiki_vehicle_json', 'MEDIUMTEXT NULL');
+  await ensureColumn('uex_vehicle_cache', 'combat_json', 'MEDIUMTEXT NULL');
+  await ensureColumn('uex_vehicle_cache', 'details_synced_at', 'DATETIME NULL');
 }
 
 async function ensureColumn(table, column, definition) {
@@ -704,6 +711,177 @@ async function fetchWikiPageImage(title) {
   return pages.find((page) => page.thumbnail?.source)?.thumbnail?.source || '';
 }
 
+async function fetchStarCitizenWikiJson(pathname, params = {}) {
+  const url = new URL(`${starCitizenWikiApiBase}${pathname}`);
+  url.search = new URLSearchParams(params).toString();
+
+  const response = await fetch(url, {
+    headers: {
+      Accept: 'application/json',
+      'User-Agent': 'Mozilla/5.0 StantonHub/1.0'
+    }
+  });
+
+  if (!response.ok) {
+    const text = await response.text().catch(() => '');
+    throw new Error(`Star Citizen Wiki respondio ${response.status}${text ? `: ${text.slice(0, 140)}` : ''}`);
+  }
+
+  return response.json();
+}
+
+function wikiData(payload) {
+  return payload?.data ?? payload;
+}
+
+function asArray(value) {
+  return Array.isArray(value) ? value : value ? [value] : [];
+}
+
+async function fetchWikiVehicleDetail(vehicle) {
+  const rawUuid = String(vehicle.raw?.uuid || '').trim();
+  const normalizedUuid = String(vehicle.uuid || '').trim();
+  const candidates = [
+    rawUuid,
+    normalizedUuid,
+    vehicle.name,
+    vehicle.shortName
+  ].filter(Boolean);
+
+  for (const candidate of candidates) {
+    if (/^[0-9a-f-]{30,}$/i.test(candidate)) {
+      try {
+        return wikiData(await fetchStarCitizenWikiJson(`/vehicles/${encodeURIComponent(candidate)}`));
+      } catch {
+        // The public API sometimes lacks direct UUID matches for older records.
+      }
+    }
+  }
+
+  for (const name of [vehicle.name, vehicle.shortName].filter(Boolean)) {
+    try {
+      const searchPayload = await fetchStarCitizenWikiJson('/vehicles', { 'filter[name]': name });
+      const matches = asArray(wikiData(searchPayload));
+      const normalizedName = normalizeComparableName(name);
+      const match = matches.find((item) => normalizeComparableName(item.name) === normalizedName) || matches[0];
+      if (!match) continue;
+      const uuid = match.uuid || match.id;
+      if (!uuid) return match;
+      return wikiData(await fetchStarCitizenWikiJson(`/vehicles/${encodeURIComponent(uuid)}`));
+    } catch {
+      // Keep the UEX vehicle even when Wiki does not expose the matching record.
+    }
+  }
+
+  return null;
+}
+
+function normalizeComparableName(value) {
+  return String(value || '')
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9]+/g, ' ')
+    .trim();
+}
+
+function collectVehicleWeapons(node, weapons = [], pathLabel = '') {
+  if (!node || typeof node !== 'object') return weapons;
+
+  const item = node.item && typeof node.item === 'object' ? node.item : node;
+  const weapon = item.vehicle_weapon;
+  if (weapon?.damage && (item.type === 'WeaponGun' || weapon.damage.alpha_total || weapon.damage.sustained_60s)) {
+    weapons.push({
+      name: item.name || node.name || 'Arma sin nombre',
+      size: Number(item.size || node.size || 0) || null,
+      type: item.type || node.type || 'WeaponGun',
+      className: item.class_name || node.class_name || '',
+      mount: node.name || pathLabel || '',
+      damage: {
+        sustained60s: Number(weapon.damage.sustained_60s || 0),
+        burst: Number(weapon.damage.burst || 0),
+        alphaTotal: Number(weapon.damage.alpha_total || 0),
+        maximum: Number(weapon.damage.maximum || 0),
+        alpha: {
+          physical: Number(weapon.damage.alpha?.physical || 0),
+          energy: Number(weapon.damage.alpha?.energy || 0),
+          distortion: Number(weapon.damage.alpha?.distortion || 0)
+        }
+      },
+      rpm: Number(weapon.rpm || 0) || null,
+      range: Number(item.ammunition?.range || 0) || null
+    });
+  }
+
+  for (const [key, value] of Object.entries(node)) {
+    if (key === 'item') continue;
+    if (Array.isArray(value)) {
+      for (const child of value) collectVehicleWeapons(child, weapons, node.name || pathLabel);
+    } else if (value && typeof value === 'object') {
+      collectVehicleWeapons(value, weapons, node.name || pathLabel);
+    }
+  }
+
+  return weapons;
+}
+
+function buildCombatSummary(wikiVehicle) {
+  const weapons = collectVehicleWeapons(wikiVehicle);
+  const totals = weapons.reduce((summary, weapon) => ({
+    sustained60s: summary.sustained60s + weapon.damage.sustained60s,
+    burst: summary.burst + weapon.damage.burst,
+    alphaTotal: summary.alphaTotal + weapon.damage.alphaTotal,
+    maximum: summary.maximum + weapon.damage.maximum,
+    physicalAlpha: summary.physicalAlpha + weapon.damage.alpha.physical,
+    energyAlpha: summary.energyAlpha + weapon.damage.alpha.energy,
+    distortionAlpha: summary.distortionAlpha + weapon.damage.alpha.distortion
+  }), { sustained60s: 0, burst: 0, alphaTotal: 0, maximum: 0, physicalAlpha: 0, energyAlpha: 0, distortionAlpha: 0 });
+
+  return {
+    source: 'Star Citizen Wiki API',
+    available: weapons.length > 0,
+    weaponCount: weapons.length,
+    totals,
+    weapons
+  };
+}
+
+async function enrichVehiclesWithWikiData(vehicles) {
+  const warnings = [];
+  const enriched = [];
+
+  for (const vehicle of vehicles) {
+    try {
+      const wikiVehicle = await fetchWikiVehicleDetail(vehicle);
+      const combat = wikiVehicle
+        ? buildCombatSummary(wikiVehicle)
+        : { source: 'Star Citizen Wiki API', available: false, weaponCount: 0, totals: {}, weapons: [] };
+      enriched.push({
+        vehicle: {
+          ...vehicle,
+          wiki: {
+            uuid: wikiVehicle?.uuid || '',
+            apiUrl: wikiVehicle?.uuid ? `${starCitizenWikiApiBase}/vehicles/${wikiVehicle.uuid}` : '',
+            gameVersion: wikiVehicle?.game_version || wikiVehicle?.version || '',
+            health: Number(wikiVehicle?.health || 0) || null,
+            armor: Number(wikiVehicle?.armor?.health || 0) || null,
+            shieldHp: Number(wikiVehicle?.shield?.hp || 0) || null
+          },
+          combat
+        },
+        wikiVehicle,
+        combat
+      });
+    } catch (error) {
+      warnings.push(`${vehicle.name}: ${error.message}`);
+      const combat = { source: 'Star Citizen Wiki API', available: false, weaponCount: 0, totals: {}, weapons: [] };
+      enriched.push({ vehicle: { ...vehicle, combat }, wikiVehicle: null, combat });
+    }
+  }
+
+  return { vehicles: enriched.map((entry) => entry.vehicle), details: enriched, warnings };
+}
+
 function lowestPrice(rows, field) {
   return rows
     .map((row) => Number(row[field] || 0))
@@ -738,6 +916,7 @@ function normalizeVehicle(vehicle, pledgePrices, purchasePrices, rentalPrices) {
 
   return {
     id,
+    uuid: vehicle.uuid || '',
     name: vehicle.name_full || vehicle.name,
     shortName: vehicle.name,
     manufacturer: vehicle.company_name || 'Fabricante desconocido',
@@ -801,7 +980,7 @@ function isDisplayableCachedVehicle(vehicle) {
   return isVehicle && !isExcludedObject && Number(vehicle.length || 0) > 0;
 }
 
-async function buildVehiclesPayloadFromUex() {
+async function buildVehiclesPayloadFromUex({ enrichDetails = true } = {}) {
   const [vehiclesResult, pledgeResult, purchaseResult, rentalResult] = await Promise.allSettled([
     fetchUexResource('vehicles'),
     fetchUexResource('vehicles_prices'),
@@ -821,12 +1000,17 @@ async function buildVehiclesPayloadFromUex() {
     .filter((result) => result.status === 'rejected')
     .map((result) => result.reason.message);
 
-  const normalized = vehicles
+  let normalized = vehicles
     .filter(isDisplayableUexVehicle)
     .map((vehicle) => normalizeVehicle(vehicle, pledgePrices, purchasePrices, rentalPrices))
     .sort((a, b) => a.name.localeCompare(b.name, 'es'));
 
   const rawById = new Map(vehicles.map((vehicle) => [Number(vehicle.id), vehicle]));
+  const enrichment = enrichDetails
+    ? await enrichVehiclesWithWikiData(normalized)
+    : { vehicles: normalized, details: normalized.map((vehicle) => ({ vehicle, wikiVehicle: null, combat: vehicle.combat || {} })), warnings: [] };
+  normalized = enrichment.vehicles;
+
   const pledgeById = new Map(pledgePrices.map((price) => [Number(price.id_vehicle), price]));
   const purchasesById = groupByVehicleId(purchasePrices);
   const rentalsById = groupByVehicleId(rentalPrices);
@@ -835,10 +1019,12 @@ async function buildVehiclesPayloadFromUex() {
     source: 'UEX Corp API 2.0',
     loadedAt: new Date().toISOString(),
     count: normalized.length,
-    warnings,
+    warnings: [...warnings, ...enrichment.warnings],
     vehicles: normalized,
     raw: {
       vehicles: rawById,
+      wikiVehicles: new Map(enrichment.details.map((entry) => [Number(entry.vehicle.id), entry.wikiVehicle || {}])),
+      combat: new Map(enrichment.details.map((entry) => [Number(entry.vehicle.id), entry.combat || {}])),
       pledgePrices: pledgeById,
       purchasePrices: purchasesById,
       rentalPrices: rentalsById
@@ -874,9 +1060,12 @@ async function saveVehiclesToDatabase(payload) {
       vehicle.flags?.concept ? 1 : 0,
       sql(JSON.stringify(vehicle)),
       sql(JSON.stringify(payload.raw.vehicles.get(id) || {})),
+      sql(JSON.stringify(payload.raw.wikiVehicles.get(id) || {})),
+      sql(JSON.stringify(payload.raw.combat.get(id) || vehicle.combat || {})),
       sql(JSON.stringify(payload.raw.pledgePrices.get(id) || {})),
       sql(JSON.stringify(payload.raw.purchasePrices.get(id) || [])),
       sql(JSON.stringify(payload.raw.rentalPrices.get(id) || [])),
+      sql(vehicle.combat ? syncedAt : null),
       sql(syncedAt)
     ];
   });
@@ -889,7 +1078,8 @@ async function saveVehiclesToDatabase(payload) {
     await runSql(`
       INSERT INTO uex_vehicle_cache (
         id, name, manufacturer, pad_type, length_m, scu, pledge_price, purchase_price, rental_price,
-        is_concept, vehicle_json, raw_vehicle_json, pledge_json, purchase_json, rental_json, synced_at
+        is_concept, vehicle_json, raw_vehicle_json, wiki_vehicle_json, combat_json,
+        pledge_json, purchase_json, rental_json, details_synced_at, synced_at
       ) VALUES
         ${chunk.map((row) => `(${row.join(', ')})`).join(',\n        ')}
       ON DUPLICATE KEY UPDATE
@@ -904,9 +1094,12 @@ async function saveVehiclesToDatabase(payload) {
         is_concept = VALUES(is_concept),
         vehicle_json = VALUES(vehicle_json),
         raw_vehicle_json = VALUES(raw_vehicle_json),
+        wiki_vehicle_json = VALUES(wiki_vehicle_json),
+        combat_json = VALUES(combat_json),
         pledge_json = VALUES(pledge_json),
         purchase_json = VALUES(purchase_json),
         rental_json = VALUES(rental_json),
+        details_synced_at = VALUES(details_synced_at),
         synced_at = VALUES(synced_at)
     `);
   }
@@ -945,13 +1138,84 @@ async function readVehiclesFromDatabase() {
   };
 }
 
+async function readVehicleDetailFromDatabase(identifier) {
+  const decoded = decodeURIComponent(String(identifier || '')).trim();
+  if (!decoded) return null;
+  const numericId = Number(decoded.match(/^\d+/)?.[0] || decoded);
+  const nameMatch = normalizeComparableName(decoded);
+  const where = Number.isFinite(numericId) && numericId > 0
+    ? `id = ${numericId}`
+    : `LOWER(REPLACE(REPLACE(REPLACE(name, ' ', '-'), '/', '-'), '.', '')) = ${sql(nameMatch.replace(/\s+/g, '-'))}`;
+  let rows = await queryRows(`
+    SELECT vehicle_json, raw_vehicle_json, wiki_vehicle_json, combat_json,
+           pledge_json, purchase_json, rental_json,
+           DATE_FORMAT(synced_at, '%Y-%m-%d %H:%i:%s') AS synced_at,
+           DATE_FORMAT(details_synced_at, '%Y-%m-%d %H:%i:%s') AS details_synced_at
+    FROM uex_vehicle_cache
+    WHERE ${where}
+    LIMIT 1
+  `);
+
+  if (!rows.length && !Number.isFinite(numericId)) {
+    const allRows = await queryRows(`
+      SELECT id, name, vehicle_json, raw_vehicle_json, wiki_vehicle_json, combat_json,
+             pledge_json, purchase_json, rental_json,
+             DATE_FORMAT(synced_at, '%Y-%m-%d %H:%i:%s') AS synced_at,
+             DATE_FORMAT(details_synced_at, '%Y-%m-%d %H:%i:%s') AS details_synced_at
+      FROM uex_vehicle_cache
+    `);
+    rows = allRows.filter((row) => normalizeComparableName(row.name) === nameMatch).slice(0, 1);
+  }
+
+  if (!rows.length) return null;
+
+  const row = rows[0];
+  const vehicle = JSON.parse(row.vehicle_json || '{}');
+  return {
+    source: 'Base de datos local',
+    syncedAt: row.synced_at || '',
+    detailsSyncedAt: row.details_synced_at || '',
+    vehicle,
+    raw: safeJson(row.raw_vehicle_json, {}),
+    wiki: safeJson(row.wiki_vehicle_json, {}),
+    combat: safeJson(row.combat_json, vehicle.combat || {}),
+    prices: {
+      pledge: safeJson(row.pledge_json, {}),
+      purchase: safeJson(row.purchase_json, []),
+      rental: safeJson(row.rental_json, [])
+    },
+    curiosity: buildVehicleCuriosity(vehicle, safeJson(row.combat_json, vehicle.combat || {}))
+  };
+}
+
+function safeJson(value, fallback) {
+  try {
+    return value ? JSON.parse(value) : fallback;
+  } catch {
+    return fallback;
+  }
+}
+
+function buildVehicleCuriosity(vehicle, combat) {
+  const facts = [];
+  if (vehicle.length && vehicle.width) {
+    const footprint = Math.round(Number(vehicle.length) * Number(vehicle.width));
+    facts.push(`Su huella aproximada ocupa ${footprint.toLocaleString('es-ES')} m2 si proyectas largo por ancho.`);
+  }
+  if (vehicle.scu) facts.push(`Puede mover ${Number(vehicle.scu).toLocaleString('es-ES')} SCU, suficiente para convertir cada viaje en una pequena ruta comercial.`);
+  if (combat?.available && combat.weaponCount) facts.push(`Su loadout detectado suma ${combat.weaponCount} armas de hardpoint en los datos de Star Citizen Wiki.`);
+  if (vehicle.flags?.concept) facts.push('Figura como concept, asi que conviene tratar sus cifras como una promesa de diseno y no como rendimiento final.');
+  if (vehicle.flags?.ground) facts.push('Aunque aparece en el catalogo de vehiculos, su uso principal es terrestre, ideal para comparar por rol y no solo por tamano.');
+  return facts[0] || 'No destaca por una cifra extrema concreta, pero eso suele ser buena senal para una nave equilibrada.';
+}
+
 async function countVehiclesInDatabase() {
   const rows = await queryRows('SELECT COUNT(*) AS total FROM uex_vehicle_cache');
   return Number(rows[0]?.total || 0);
 }
 
-async function syncVehiclesFromUex() {
-  const payload = await buildVehiclesPayloadFromUex();
+async function syncVehiclesFromUex({ enrichDetails = true } = {}) {
+  const payload = await buildVehiclesPayloadFromUex({ enrichDetails });
   await saveVehiclesToDatabase(payload);
   const localPayload = await readVehiclesFromDatabase();
   return {
@@ -987,7 +1251,7 @@ async function primeVehiclesDatabase() {
     }
 
     console.log('Catalogo de naves vacio. Sincronizando UEX con MySQL...');
-    const payload = await syncVehiclesFromUex();
+    const payload = await syncVehiclesFromUex({ enrichDetails: false });
     console.log(`Catalogo de naves sincronizado en MySQL: ${payload.count} registros.`);
   } catch (error) {
     console.warn(`No se pudo sincronizar el catalogo de naves: ${error.message}`);
@@ -1326,6 +1590,17 @@ async function handleApi(request, response, pathname) {
 
   if (request.method === 'GET' && pathname === '/api/vehicles') {
     sendJson(response, 200, await readVehicles());
+    return;
+  }
+
+  if (request.method === 'GET' && pathname.startsWith('/api/vehicles/')) {
+    const identifier = pathname.slice('/api/vehicles/'.length);
+    const detail = await readVehicleDetailFromDatabase(identifier);
+    if (!detail) {
+      sendJson(response, 404, { error: 'Nave no encontrada en la base de datos local.' });
+      return;
+    }
+    sendJson(response, 200, detail);
     return;
   }
 

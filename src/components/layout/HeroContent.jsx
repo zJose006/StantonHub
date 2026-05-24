@@ -8,6 +8,7 @@ export function HeroContent({ page }) {
     guides: ['Guias de pilotos', 'Manuales y preparacion creados por la comunidad.'],
     news: ['Intel de comunidad', 'Avisos, eventos y novedades publicadas por usuarios.'],
     ships: ['Naves y vehiculos del verso', 'Catalogo UEX con precios, filtros, fabricantes y detalles tecnicos.'],
+    'ship-detail': ['Ficha tecnica de nave', 'Datos locales de UEX, Star Citizen Wiki, precios, hardpoints y combate.'],
     profile: ['Perfil de piloto', 'Identidad, acceso y actividad de tu cuenta.'],
     login: ['Acceso de piloto', 'Inicia sesion para publicar contenido.'],
     register: ['Acceso de piloto', 'Crea o recupera tu cuenta usando Discord.'],

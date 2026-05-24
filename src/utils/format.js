@@ -9,3 +9,6 @@ export function meters(value) { if (!value) return 'N/D'; return Number(value).t
 
 /** Elimina duplicados y ordena textos para selectores. */
 export function uniqueSorted(values) { return [...new Set(values)].sort((a, b) => a.localeCompare(b, 'es')); }
+
+/** Genera un slug estable para rutas legibles. */
+export function slugify(value) { return String(value || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '') || 'nave'; }

@@ -10,6 +10,8 @@ DROP TABLE IF EXISTS comments;
 DROP TABLE IF EXISTS votes;
 DROP TABLE IF EXISTS content_images;
 DROP TABLE IF EXISTS content_items;
+DROP TABLE IF EXISTS user_sessions;
+DROP TABLE IF EXISTS uex_vehicle_cache;
 DROP TABLE IF EXISTS users;
 DROP TABLE IF EXISTS app_settings;
 
@@ -21,6 +23,11 @@ CREATE TABLE users (
   email VARCHAR(120) NOT NULL UNIQUE,
   role VARCHAR(40) NOT NULL DEFAULT 'Farmeo',
   password_hash VARCHAR(255) NOT NULL,
+  discord_id VARCHAR(32) NULL UNIQUE,
+  discord_avatar_hash VARCHAR(80) NULL,
+  discord_avatar VARCHAR(160) NULL,
+  auth_provider VARCHAR(32) NOT NULL DEFAULT 'local',
+  last_login_at DATETIME NULL,
   created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   INDEX idx_users_username (username)
@@ -95,9 +102,45 @@ CREATE TABLE app_settings (
   updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 ) ENGINE=InnoDB;
 
+CREATE TABLE user_sessions (
+  token_hash CHAR(64) PRIMARY KEY,
+  user_id CHAR(36) NOT NULL,
+  expires_at DATETIME NOT NULL,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT fk_sessions_user
+    FOREIGN KEY (user_id) REFERENCES users(id)
+    ON DELETE CASCADE,
+  INDEX idx_sessions_user (user_id),
+  INDEX idx_sessions_expires (expires_at)
+) ENGINE=InnoDB;
+
+CREATE TABLE uex_vehicle_cache (
+  id INT UNSIGNED PRIMARY KEY,
+  name VARCHAR(180) NOT NULL,
+  manufacturer VARCHAR(120) NOT NULL,
+  pad_type VARCHAR(40) NULL,
+  length_m DECIMAL(10,2) NOT NULL DEFAULT 0,
+  scu INT UNSIGNED NOT NULL DEFAULT 0,
+  pledge_price INT UNSIGNED NULL,
+  purchase_price INT UNSIGNED NULL,
+  rental_price INT UNSIGNED NULL,
+  is_concept TINYINT(1) NOT NULL DEFAULT 0,
+  vehicle_json MEDIUMTEXT NOT NULL,
+  raw_vehicle_json MEDIUMTEXT NULL,
+  wiki_vehicle_json MEDIUMTEXT NULL,
+  combat_json MEDIUMTEXT NULL,
+  pledge_json MEDIUMTEXT NULL,
+  purchase_json MEDIUMTEXT NULL,
+  rental_json MEDIUMTEXT NULL,
+  synced_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  details_synced_at DATETIME NULL,
+  INDEX idx_uex_vehicle_name (name),
+  INDEX idx_uex_vehicle_size (length_m, is_concept),
+  INDEX idx_uex_vehicle_manufacturer (manufacturer)
+) ENGINE=InnoDB;
+
 INSERT INTO app_settings (setting_key, setting_value) VALUES
-  ('session_user_id', ''),
-  ('test_bypass', '0');
+  ('vehicles_synced_at', '');
 
 CREATE OR REPLACE VIEW content_with_stats AS
 SELECT
