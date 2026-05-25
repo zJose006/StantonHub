@@ -13,7 +13,7 @@
   --shadow: 0 24px 60px rgba(0, 0, 0, 0.38);
   --radius: 8px;
   --page-max: 1740px;
-  --page-gutter: clamp(1rem, 3.4vw, 4rem);
+  --page-gutter: clamp(1.25rem, 4.3vw, 5.1rem);
   --page-width: min(var(--page-max), calc(100vw - var(--page-gutter) - var(--page-gutter)));
 }
 
@@ -160,9 +160,9 @@ body::after {
 .home-icon {
   display: inline-grid;
   overflow: visible;
-  width: 58px;
+  width: 64px;
   height: 58px;
-  margin-right: 0.78rem;
+  margin-right: 0.86rem;
   place-items: center;
   border: 0;
   border-radius: 0;
@@ -175,8 +175,9 @@ body::after {
 
 .home-icon img {
   display: block;
-  width: 100%;
-  height: 100%;
+  width: 68px;
+  max-width: 100%;
+  height: 58px;
   object-fit: contain;
   filter: saturate(1.08) contrast(1.04) drop-shadow(0 0 10px rgba(0, 217, 255, 0.22));
 }
@@ -1181,7 +1182,7 @@ body::after {
 
 .home-shell {
   grid-template-columns: minmax(0, 1fr);
-  gap: clamp(1rem, 2vw, 1.35rem);
+  gap: clamp(1rem, 2vw, 1.45rem);
 }
 
 .content-shell {
@@ -1213,15 +1214,21 @@ body::after {
   gap: clamp(1rem, 2vw, 1.45rem);
   align-items: stretch;
   min-height: clamp(430px, 32vw, 560px);
-  padding-bottom: clamp(1rem, 2vw, 1.35rem);
+  padding: clamp(1rem, 2vw, 1.35rem);
   border-bottom: 1px solid rgba(91, 218, 255, 0.18);
+  border: 1px solid rgba(91, 218, 255, 0.18);
+  border-radius: var(--radius);
+  background:
+    linear-gradient(135deg, rgba(0, 217, 255, 0.08), transparent 38%),
+    linear-gradient(180deg, rgba(13, 29, 48, 0.72), rgba(4, 10, 18, 0.58));
+  box-shadow: var(--shadow);
 }
 
 .home-command-copy {
   display: grid;
   align-content: center;
   min-width: 0;
-  padding: clamp(0.25rem, 1.4vw, 1rem) 0;
+  padding: clamp(0.25rem, 1.4vw, 1rem);
 }
 
 .home-command-copy h2 {
@@ -1248,6 +1255,39 @@ body::after {
   margin-top: 1.35rem;
 }
 
+.home-status-strip {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.6rem;
+  margin: 1.25rem 0 0;
+}
+
+.home-status-strip div {
+  min-width: 0;
+  padding: 0.72rem 0.8rem;
+  border: 1px solid rgba(91, 218, 255, 0.14);
+  border-radius: var(--radius);
+  background: rgba(3, 11, 20, 0.36);
+}
+
+.home-status-strip dt {
+  margin: 0 0 0.3rem;
+  color: var(--accent);
+  font-size: 0.64rem;
+  font-weight: 950;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.home-status-strip dd {
+  margin: 0;
+  color: rgba(238, 248, 255, 0.88);
+  font-size: 0.88rem;
+  font-weight: 800;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+
 .home-carousel {
   position: relative;
   min-height: 100%;
@@ -1257,6 +1297,10 @@ body::after {
   background: rgba(3, 11, 20, 0.52);
   box-shadow: 0 28px 70px rgba(0, 0, 0, 0.32);
   isolation: isolate;
+}
+
+.home-carousel:hover .home-carousel-slide {
+  animation-play-state: paused;
 }
 
 .home-carousel::before,
@@ -3349,7 +3393,7 @@ body::after {
 
 @media (max-width: 1179px) {
   .container.ship-sheet {
-    width: min(100% - 1.5rem, 1120px);
+    width: var(--page-width);
     grid-template-columns: minmax(0, 1fr);
   }
 
@@ -4243,7 +4287,7 @@ select:focus {
   }
 
   .hero-content {
-    width: min(1120px, calc(100% - 1.5rem));
+    width: var(--page-width);
     min-height: 110px;
   }
 
@@ -4541,17 +4585,17 @@ select:focus {
 
   .container {
     grid-template-columns: 1fr;
-    width: min(100% - 1.5rem, 1120px);
+    width: var(--page-width);
     min-height: 44vh;
     margin-top: 1rem;
   }
 
   .site-footer {
-    width: min(100% - 1.5rem, 1120px);
+    width: var(--page-width);
   }
 
   .container.ship-detail-redesign {
-    width: min(100% - 1.5rem, 1120px);
+    width: var(--page-width);
   }
 
   .home-sections {
@@ -4690,12 +4734,16 @@ select:focus {
 }
 
 @media (max-width: 640px) {
+  :root {
+    --page-gutter: 0.9rem;
+  }
+
   .hero {
     padding-inline: 0;
   }
 
   .container.ship-detail-redesign {
-    width: min(100% - 1rem, 1120px);
+    width: var(--page-width);
   }
 
   .ship-detail-redesign {
@@ -4777,6 +4825,10 @@ select:focus {
     min-height: 280px;
   }
 
+  .home-status-strip {
+    grid-template-columns: 1fr;
+  }
+
   .home-sections {
     grid-template-columns: 1fr;
   }
@@ -4819,8 +4871,12 @@ select:focus {
 }
 
 @media (max-width: 480px) {
+  :root {
+    --page-gutter: 0.65rem;
+  }
+
   .container.ship-sheet {
-    width: min(100% - 0.75rem, 1120px);
+    width: var(--page-width);
   }
 
   .ship-sheet .ship-sheet-metrics {

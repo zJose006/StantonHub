@@ -17,6 +17,11 @@ export function Home({ navigate }) {
     ['Ejecuta', 'Usa guias e intel para priorizar actividades, farmeo, compras y pruebas de carga.'],
     ['Comparte', 'Publica ayudas con imagenes, comentarios y votos para que la informacion mejore con la comunidad.']
   ];
+  const status = [
+    ['Catalogo', 'Naves y componentes enlazados'],
+    ['Guias', 'Farmeo, preparacion y rutas'],
+    ['Comunidad', 'Intel, votos y comentarios']
+  ];
   const slides = [
     ['Combate', 'Naves, hardpoints y lectura rapida de potencia ofensiva.', 'https://robertsspaceindustries.com/media/eiua12z9nxlkar/source/Buc_final120_compFlat.jpg'],
     ['Sistemas', 'Componentes, energia, quantum y configuraciones preparadas para comparar.', 'https://robertsspaceindustries.com/media/bgkdmr6l1l62yr/source/Ryan_Blueprints_Components_2.jpg'],
@@ -34,6 +39,9 @@ export function Home({ navigate }) {
             <a className="action-btn primary-action" href={routes.ships} onClick={(event) => routeClick(event, routes.ships, navigate)}>Explorar naves</a>
             <a className="action-btn" href={routes.guides} onClick={(event) => routeClick(event, routes.guides, navigate)}>Ver guias</a>
           </div>
+          <dl className="home-status-strip">
+            {status.map(([label, value]) => <div key={label}><dt>{label}</dt><dd>{value}</dd></div>)}
+          </dl>
         </div>
         <div className="home-carousel" aria-label="Capturas destacadas de Star Citizen">
           {slides.map(([label, text, image], index) => (
