@@ -7,6 +7,7 @@ export function normalizeRoute(path) { if (path === routes.register) return rout
 export function getCurrentPage() {
   const path = normalizeRoute(window.location.pathname);
   if (path.startsWith(routes.ships + '/')) return 'ship-detail';
+  if (path.startsWith(routes.components + '/')) return 'component-detail';
   return pageMap[path] || 'home';
 }
 
@@ -14,6 +15,12 @@ export function getCurrentPage() {
 export function getShipIdentifier() {
   const path = normalizeRoute(window.location.pathname);
   return path.startsWith(routes.ships + '/') ? decodeURIComponent(path.slice(routes.ships.length + 1)) : '';
+}
+
+/** Devuelve el identificador dinamico de un componente desde la ruta actual. */
+export function getComponentIdentifier() {
+  const path = normalizeRoute(window.location.pathname);
+  return path.startsWith(routes.components + '/') ? decodeURIComponent(path.slice(routes.components.length + 1)) : '';
 }
 
 /** Navega sin recargar la pagina, manteniendo el router casero de la app. */

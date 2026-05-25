@@ -3,6 +3,7 @@ import { routes } from '../config/routes.js';
 import { loadVehicleDetail } from '../services/api.js';
 import { money, textValue } from '../utils/format.js';
 import { routeClick } from '../utils/navigation.js';
+import { componentRouteId } from './ComponentsPage.jsx';
 
 /** Ficha tecnica de nave con datos locales de API, hardpoints y componentes. */
 export function ShipDetailPage({ identifier, navigate }) {
@@ -98,7 +99,7 @@ export function ShipDetailPage({ identifier, navigate }) {
         <PanelTitle icon="turret" label="Combat & systems" title="Hardpoints y equipamiento instalado" />
         <div className="ship-loadout-board">
           <div className="ship-loadout-primary">
-            {loadout.length ? loadout.map((section) => <LoadoutGroup key={section.key} section={section} />) : <p className="auth-message">Sin hardpoints detectados en la cache local.</p>}
+            {loadout.length ? loadout.map((section) => <LoadoutGroup key={section.key} section={section} navigate={navigate} />) : <p className="auth-message">Sin hardpoints detectados en la cache local.</p>}
           </div>
           <aside className="ship-component-sidebar">
             <header>
@@ -106,7 +107,7 @@ export function ShipDetailPage({ identifier, navigate }) {
               <h3>Resto de modulos</h3>
             </header>
             <p>Listado preparado para enlazar cada componente a su ficha cuando exista la pagina de componentes.</p>
-            {componentSections.length ? componentSections.map((section) => <ComponentDetails key={section.category} section={section} />) : <p className="auth-message">Sin componentes adicionales.</p>}
+            {componentSections.length ? componentSections.map((section) => <ComponentDetails key={section.category} section={section} navigate={navigate} />) : <p className="auth-message">Sin componentes adicionales.</p>}
           </aside>
         </div>
       </section>
@@ -213,7 +214,7 @@ function ScoreRadar({ scores, selected, onSelect }) {
   );
 }
 
-function LoadoutGroup({ section }) {
+function LoadoutGroup({ section, navigate }) {
   return (
     <section className="loadout-family">
       <header>
@@ -224,17 +225,18 @@ function LoadoutGroup({ section }) {
         </div>
       </header>
       <div className="loadout-row-list">
-        {section.items.map((item) => <LoadoutItem key={item.key} item={item} />)}
+        {section.items.map((item) => <LoadoutItem key={item.key} item={item} navigate={navigate} />)}
       </div>
     </section>
   );
 }
 
-function LoadoutItem({ item }) {
+function LoadoutItem({ item, navigate }) {
+  const path = componentDetailPath(item.componentKey);
   return (
     <article className="loadout-row">
       <div>
-        <strong>{item.name}</strong>
+        {path ? <a className="component-inline-link" href={path} onClick={(event) => routeClick(event, path, navigate)}>{item.name}</a> : <strong>{item.name}</strong>}
         <span>{item.subtitle}</span>
       </div>
       <div className="card-badge-stack">
@@ -246,20 +248,24 @@ function LoadoutItem({ item }) {
   );
 }
 
-function ComponentDetails({ section }) {
+function ComponentDetails({ section, navigate }) {
   return (
     <details className="component-details">
       <summary><span>{section.category}</span><strong>{section.items.length}</strong></summary>
       <div>
         {section.items.map((item) => (
           <article className="component-mini-card" key={item.key} data-component-key={item.componentKey}>
-            <strong>{item.name}</strong>
+            {componentDetailPath(item.componentKey) ? <a href={componentDetailPath(item.componentKey)} onClick={(event) => routeClick(event, componentDetailPath(item.componentKey), navigate)}>{item.name}</a> : <strong>{item.name}</strong>}
             <span>{[item.count > 1 ? `x${item.count}` : '', item.size ? `S${item.size}` : '', item.grade ? `Grado ${item.grade}` : ''].filter(Boolean).join(' · ') || 'Componente'}</span>
           </article>
         ))}
       </div>
     </details>
   );
+}
+
+function componentDetailPath(componentKey) {
+  return componentKey ? `${routes.components}/${componentRouteId({ key: componentKey })}` : '';
 }
 
 function RawCard({ title, data }) {
@@ -359,6 +365,7 @@ function weaponToLoadoutItem(weapon, kind, count) {
   const meta = weapon.meta || {};
   return {
     key: `${kind}-${weapon.name}-${weapon.size}-${count}`,
+    componentKey: weapon.componentKey,
     name: textValue(weapon.name, 'Arma sin nombre'),
     subtitle: [kind, textValue(weapon.mount)].filter(Boolean).join(' · '),
     count,
@@ -376,6 +383,7 @@ function moduleToLoadoutItem(group) {
   const meta = group.meta || {};
   return {
     key: `${group.componentKey || group.category}-${group.name}-${group.size}`,
+    componentKey: group.componentKey,
     name: textValue(group.name, group.examples?.[0] || textValue(group.category, 'Sistema')),
     subtitle: textValue(group.category, 'Sistema auxiliar'),
     count: group.count || 1,
@@ -422,7 +430,7 @@ function buildWeaponCatalog(moduleItems) {
       if (/manned|tripulada|s4|hammerhead/i.test(signal)) mannedSizes.add(size);
     }
     if (!/armas/i.test(category) || !/WeaponGun|Gun/i.test(signal)) continue;
-    byName.set(normalizeName(item.name), { size, type: item.type, className: item.className, meta: item.meta || {} });
+    byName.set(normalizeName(item.name), { componentKey: item.componentKey, size, type: item.type, className: item.className, meta: item.meta || {} });
   }
   return { byName, turretSizes, remoteSizes, mannedSizes };
 }
@@ -430,7 +438,7 @@ function buildWeaponCatalog(moduleItems) {
 function mergeWeaponData(weapons, catalog) {
   return (weapons || []).map((weapon) => {
     const item = catalog.byName.get(normalizeName(weapon.name));
-    return item ? { ...weapon, size: item.size || weapon.size, type: item.type || weapon.type, className: item.className || weapon.className, meta: { ...(weapon.meta || {}), ...(item.meta || {}) } } : weapon;
+    return item ? { ...weapon, componentKey: item.componentKey || weapon.componentKey, size: item.size || weapon.size, type: item.type || weapon.type, className: item.className || weapon.className, meta: { ...(weapon.meta || {}), ...(item.meta || {}) } } : weapon;
   });
 }
 

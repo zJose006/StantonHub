@@ -54,25 +54,25 @@ export function Header({ page, navigate, currentUser }) {
           <span className="mobile-nav-toggle-arrow" aria-hidden="true" />
         </button>
         <a className="home-button" href={routes.home} onClick={(event) => { routeClick(event, routes.home, navigate); closeMobileNav(); }} aria-label="Inicio">
-          <span className="home-icon" aria-hidden="true">SC</span>
+          <span className="home-icon" aria-hidden="true"><img src="/assets/stanton-hub-logo.png" alt="" /></span>
           <span className="brand-copy"><strong className="flow-text">Stanton Hub</strong><small>Organizacion Star Citizen</small></span>
         </a>
         <div className={`header-nav-panel ${mobileNavOpen ? 'is-open' : ''}`}>
           <div className="mobile-drawer-head">
             <button className="mobile-drawer-close" type="button" aria-label="Cerrar menu" onClick={closeMobileNav}>x</button>
             <a className="mobile-drawer-brand" href={routes.home} onClick={(event) => { routeClick(event, routes.home, navigate); closeMobileNav(); }}>
-              <span className="home-icon" aria-hidden="true">SC</span>
+              <span className="home-icon" aria-hidden="true"><img src="/assets/stanton-hub-logo.png" alt="" /></span>
               <span className="brand-copy"><strong className="flow-text">Stanton Hub</strong><small>Organizacion Star Citizen</small></span>
             </a>
           </div>
           <a className="mobile-home-link" href={routes.home} onClick={(event) => { routeClick(event, routes.home, navigate); closeMobileNav(); }}>Inicio</a>
           <nav className="site-nav" aria-label="Navegacion principal">
-            <NavGroup name="Operaciones" active={page === 'forum'} openMenu={openMenu} setOpenMenu={toggleMenu}>
-              <MenuItem path={routes.forum} title="Base de operaciones" text="Consejos destacados, rutas aUEC y actividad reciente." navigate={navigate} closeMobileNav={closeMobileNav} />
-            </NavGroup>
-            <NavGroup name="Biblioteca" active={page === 'guides' || page === 'ships' || page === 'ship-detail'} openMenu={openMenu} setOpenMenu={toggleMenu}>
+            <NavGroup name="Biblioteca" active={page === 'guides'} openMenu={openMenu} setOpenMenu={toggleMenu}>
               <MenuItem path={routes.guides} title="Guias" text="Manuales, preparacion y mecanicas explicadas." navigate={navigate} closeMobileNav={closeMobileNav} />
+            </NavGroup>
+            <NavGroup name="Naves y Componentes" active={page === 'ships' || page === 'ship-detail' || page === 'components' || page === 'component-detail'} openMenu={openMenu} setOpenMenu={toggleMenu}>
               <MenuItem path={routes.ships} title="Naves" text="Catalogo con precios, filtros y detalles tecnicos." navigate={navigate} closeMobileNav={closeMobileNav} />
+              <MenuItem path={routes.components} title="Componentes" text="Armas, escudos, quantum y sistemas instalables." navigate={navigate} closeMobileNav={closeMobileNav} />
             </NavGroup>
             <NavGroup name="Comunidad" active={page === 'news'} openMenu={openMenu} setOpenMenu={toggleMenu}>
               <MenuItem path={routes.news} title="Intel" text="Novedades, eventos y oportunidades del verso." navigate={navigate} closeMobileNav={closeMobileNav} />
@@ -89,7 +89,7 @@ export function Header({ page, navigate, currentUser }) {
 /** Grupo desplegable del header. */
 function NavGroup({ name, active, openMenu, setOpenMenu, triggerContent, children }) {
   const isOpen = openMenu === name;
-  const introText = { Biblioteca: 'Guias y preparacion de vuelo', Operaciones: 'Rutas, farmeo y actividad del hub', Cuenta: 'Perfil, editor y acceso de piloto', Comunidad: 'Intel y actividad de la comunidad' }[name] || 'Secciones de Stanton Hub';
+  const introText = { Biblioteca: 'Guias y preparacion de vuelo', 'Naves y Componentes': 'Catalogos tecnicos del verso', Cuenta: 'Perfil, editor y acceso de piloto', Comunidad: 'Intel y actividad de la comunidad' }[name] || 'Secciones de Stanton Hub';
   return (
     <div className={`nav-group ${triggerContent ? 'account-nav' : ''} ${isOpen ? 'is-open' : ''}`}>
       <button className={`nav-trigger ${active ? 'active' : ''}`} type="button" aria-expanded={isOpen} aria-label={triggerContent ? name : undefined} title={triggerContent ? name : undefined} onClick={(event) => { event.stopPropagation(); setOpenMenu(name, isOpen); }}>

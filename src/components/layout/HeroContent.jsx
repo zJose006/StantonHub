@@ -11,6 +11,8 @@ export function HeroContent({ page, navigate }) {
     news: ['Intel de comunidad', 'Avisos, eventos y novedades publicadas por usuarios.'],
     ships: ['Naves y vehiculos del verso', 'Catalogo UEX con precios, filtros, fabricantes y detalles tecnicos.'],
     'ship-detail': ['Ficha tecnica de nave', 'Datos locales, precios, hardpoints y combate.'],
+    components: ['Componentes del verso', 'Catalogo de armas, escudos, quantum, propulsion y sistemas instalables.'],
+    'component-detail': ['Ficha tecnica de componente', 'Datos de uso, clase, tamano, grado y naves relacionadas.'],
     profile: ['Perfil de piloto', 'Identidad, acceso y actividad de tu cuenta.'],
     login: ['Acceso de piloto', 'Inicia sesion para publicar contenido.'],
     register: ['Acceso de piloto', 'Crea o recupera tu cuenta usando Discord.'],
@@ -34,6 +36,8 @@ function Breadcrumb({ page, navigate }) {
     news: 'Intel',
     ships: 'Naves',
     'ship-detail': 'Detalle',
+    components: 'Componentes',
+    'component-detail': 'Detalle componente',
     profile: 'Perfil',
     login: 'Login',
     register: 'Registro',
@@ -43,6 +47,8 @@ function Breadcrumb({ page, navigate }) {
 
   const items = page === 'ship-detail'
     ? [[routes.home, 'Stanton Hub'], [routes.ships, 'Naves'], ['', 'Detalle']]
+    : page === 'component-detail'
+      ? [[routes.home, 'Stanton Hub'], [routes.components, 'Componentes'], ['', 'Detalle']]
     : page === 'home'
       ? [['', 'Stanton Hub']]
       : [[routes.home, 'Stanton Hub'], ['', current]];

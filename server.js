@@ -2463,6 +2463,71 @@ async function refreshVehicleDetailRow(row) {
   }
 }
 
+async function readComponentCatalog() {
+  try {
+    return JSON.parse(await fs.readFile(componentCatalogPath, 'utf8'));
+  } catch {
+    return { generatedAt: '', total: 0, categories: {}, components: [] };
+  }
+}
+
+async function readComponentDetail(identifier) {
+  const decoded = decodeComponentIdentifier(identifier);
+  if (!decoded) return null;
+
+  const catalog = await readComponentCatalog();
+  const components = Array.isArray(catalog.components) ? catalog.components : [];
+  const normalized = normalizeComparableName(decoded);
+  const component = components.find((item) => item.key === decoded)
+    || components.find((item) => normalizeComparableName(item.key) === normalized)
+    || components.find((item) => normalizeComparableName(item.name) === normalized);
+
+  if (!component) return null;
+
+  const related = await enrichComponentExamples(component.examples || []);
+  const sameFamily = components
+    .filter((item) => item.key !== component.key && item.category === component.category && normalizeComparableName(item.name) === normalizeComparableName(component.name))
+    .slice(0, 12);
+
+  return {
+    source: 'Catalogo local de componentes',
+    generatedAt: catalog.generatedAt || '',
+    component,
+    related,
+    sameFamily
+  };
+}
+
+function decodeComponentIdentifier(identifier) {
+  const raw = decodeURIComponent(String(identifier || '')).trim();
+  if (!raw) return '';
+  if (raw.includes('|')) return raw;
+  try {
+    const normalized = raw.replace(/-/g, '+').replace(/_/g, '/');
+    const padded = normalized.padEnd(Math.ceil(normalized.length / 4) * 4, '=');
+    return Buffer.from(padded, 'base64').toString('utf8') || raw;
+  } catch {
+    return raw;
+  }
+}
+
+async function enrichComponentExamples(examples) {
+  if (!Array.isArray(examples) || !examples.length) return [];
+  const rows = await queryRows('SELECT id, name FROM uex_vehicle_cache');
+  const vehiclesByName = new Map(rows.map((row) => [normalizeComparableName(row.name), row]));
+
+  return examples.map((example) => {
+    const match = vehiclesByName.get(normalizeComparableName(example.vehicle));
+    return {
+      ...example,
+      vehicleId: match?.id || '',
+      vehicle: example.vehicle || match?.name || '',
+      count: Number(example.count || 1),
+      size: Number(example.size || 0) || null
+    };
+  });
+}
+
 function safeJson(value, fallback) {
   try {
     return value ? JSON.parse(value) : fallback;
@@ -2888,11 +2953,18 @@ async function handleApi(request, response, pathname) {
   }
 
   if (request.method === 'GET' && pathname === '/api/components/catalog') {
-    try {
-      sendJson(response, 200, JSON.parse(await fs.readFile(componentCatalogPath, 'utf8')));
-    } catch {
-      sendJson(response, 200, { generatedAt: '', total: 0, categories: {}, components: [] });
+    sendJson(response, 200, await readComponentCatalog());
+    return;
+  }
+
+  if (request.method === 'GET' && pathname.startsWith('/api/components/')) {
+    const identifier = pathname.slice('/api/components/'.length);
+    const detail = await readComponentDetail(identifier);
+    if (!detail) {
+      sendJson(response, 404, { error: 'Componente no encontrado en el catalogo local.' });
+      return;
     }
+    sendJson(response, 200, detail);
     return;
   }
 

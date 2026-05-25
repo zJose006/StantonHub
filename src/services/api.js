@@ -32,3 +32,13 @@ export async function loadVehiclesCatalog() {
 export async function loadVehicleDetail(identifier) {
   return requestJson('/api/vehicles/' + encodeURIComponent(identifier));
 }
+
+/** Carga el catalogo de componentes preparado desde las fichas de naves. */
+export async function loadComponentCatalog() {
+  return requestJson('/api/components/catalog');
+}
+
+/** Carga una ficha individual de componente. */
+export async function loadComponentDetail(identifier) {
+  return requestJson('/api/components/' + encodeURIComponent(identifier));
+}
