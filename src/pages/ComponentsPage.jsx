@@ -24,7 +24,9 @@ export function ComponentsPage({ navigate }) {
   const categories = uniqueSorted(components.map((item) => item.category).filter(Boolean));
   const sizes = uniqueSorted(displayComponents.map((item) => item.size ? `S${item.size}` : '').filter(Boolean));
   const grades = uniqueSorted(displayComponents.map((item) => textValue(item.grade)).filter(Boolean));
-  const filtered = useMemo(() => displayComponents.filter((component) => componentMatches(component, filters)).slice(0, 160), [displayComponents, filters]);
+  const totalVisible = displayComponents.filter((component) => componentMatches(component, filters)).length;
+  const filtered = useMemo(() => displayComponents.filter((component) => componentMatches(component, filters)).slice(0, 84), [displayComponents, filters]);
+  const topCategories = Object.entries(catalog.categories || {}).sort((a, b) => b[1] - a[1]).slice(0, 8);
 
   return (
     <main className="container components-shell">
@@ -35,7 +37,13 @@ export function ComponentsPage({ navigate }) {
             <h2>Catalogo de componentes</h2>
             <p>{status}</p>
           </div>
-          <span className="components-count">{filtered.length} visibles</span>
+          <span className="components-count">{totalVisible} visibles</span>
+        </div>
+        <div className="components-command-grid">
+          <Metric value={components.length || 0} label="Registros" />
+          <Metric value={displayComponents.length || 0} label="Familias" />
+          <Metric value={categories.length || 0} label="Categorias" />
+          <Metric value={sizes.length || 0} label="Tamanos" />
         </div>
         <div className="components-controls">
           <label>Buscar<input value={filters.search} onChange={(event) => setFilters({ ...filters, search: event.target.value })} placeholder="Nombre, clase, nave..." /></label>
@@ -46,20 +54,26 @@ export function ComponentsPage({ navigate }) {
       </section>
 
       <section className="component-category-strip">
-        {Object.entries(catalog.categories || {}).map(([category, count]) => (
+        {topCategories.map(([category, count]) => (
           <button type="button" key={category} className={filters.category === category ? 'active' : ''} onClick={() => setFilters({ ...filters, category: filters.category === category ? '' : category })}>
-            <img src={componentVisual(category, category)} alt="" loading="lazy" />
+            <span className="component-category-icon">{componentIcon(category)}</span>
             <span>{category}</span>
             <strong>{count}</strong>
           </button>
         ))}
       </section>
 
+      {totalVisible > filtered.length ? <p className="components-limit-note">Mostrando los primeros {filtered.length} resultados. Afina busqueda o filtros para ver una familia concreta.</p> : null}
+
       <section className="components-grid">
         {filtered.map((component) => <ComponentCard key={component.key} component={component} navigate={navigate} />)}
       </section>
     </main>
   );
+}
+
+function Metric({ value, label }) {
+  return <div className="components-command-metric"><strong>{value}</strong><span>{label}</span></div>;
 }
 
 function Select({ label, value, values, onChange }) {
@@ -85,9 +99,10 @@ function ComponentCard({ component, navigate }) {
           {component.type ? <span>{component.type}</span> : null}
         </div>
         <dl className="component-card-stats">
-          <div><dt>Instalados</dt><dd>{component.totalInstalled || component.usedByCount || 0}</dd></div>
-          <div><dt>Naves</dt><dd>{component.usedByCount || 0}</dd></div>
+          <div><dt>Instalaciones</dt><dd>{component.totalInstalled || component.usedByCount || 0}</dd></div>
+          <div><dt>Compatibilidad</dt><dd>{component.usedByCount || 0} naves</dd></div>
         </dl>
+        {component.examples?.length ? <p className="component-card-example">Ejemplo: {component.examples[0].vehicle}</p> : null}
         <span className="ship-link">Ver ficha tecnica</span>
       </a>
     </article>

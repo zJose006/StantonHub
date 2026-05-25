@@ -255,7 +255,7 @@ function ComponentDetails({ section, navigate }) {
       <div>
         {section.items.map((item) => (
           <article className="component-mini-card" key={item.key} data-component-key={item.componentKey}>
-            {componentDetailPath(item.componentKey) ? <a href={componentDetailPath(item.componentKey)} onClick={(event) => routeClick(event, componentDetailPath(item.componentKey), navigate)}>{item.name}</a> : <strong>{item.name}</strong>}
+            {componentDetailPath(item.componentKey) ? <a href={componentDetailPath(item.componentKey)} onClick={(event) => routeClick(event, componentDetailPath(item.componentKey), navigate)}><strong>{item.name}</strong></a> : <strong>{item.name}</strong>}
             <span>{[item.count > 1 ? `x${item.count}` : '', item.size ? `S${item.size}` : '', item.grade ? `Grado ${item.grade}` : ''].filter(Boolean).join(' · ') || 'Componente'}</span>
           </article>
         ))}

@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { routes } from '../config/routes.js';
 import { loadComponentDetail } from '../services/api.js';
-import { textValue } from '../utils/format.js';
+import { slugify, textValue } from '../utils/format.js';
 import { routeClick } from '../utils/navigation.js';
 import { componentIcon, componentPath, componentVisual } from './ComponentsPage.jsx';
 
@@ -36,11 +36,19 @@ export function ComponentDetailPage({ identifier, navigate }) {
   const related = detail.related || [];
   const sameFamily = detail.sameFamily || [];
   const intelligence = componentIntel(component);
+  const quickStats = [
+    ['Categoria', component.category || 'Componente'],
+    ['Tamano', component.size ? `S${component.size}` : 'N/D'],
+    ['Grado', component.grade || 'N/D'],
+    ['Naves', component.usedByCount || 0]
+  ];
 
   return (
     <main className="container component-detail-shell">
       <section className="component-detail-hero panel">
-        <img className="component-detail-image" src={componentVisual(component.category, component.name)} alt="" />
+        <div className="component-detail-media">
+          <img className="component-detail-image" src={componentVisual(component.category, component.name)} alt="" />
+        </div>
         <div className="component-detail-hero-copy">
           <span className="section-label">{component.category || 'Componente'}</span>
           <h2>{component.name}</h2>
@@ -51,8 +59,10 @@ export function ComponentDetailPage({ identifier, navigate }) {
             {component.type ? <span>{component.type}</span> : null}
             {component.subType ? <span>{component.subType}</span> : null}
           </div>
+          <dl className="component-quick-strip">
+            {quickStats.map(([label, value]) => <div key={label}><dt>{label}</dt><dd>{value}</dd></div>)}
+          </dl>
         </div>
-        <BackLink navigate={navigate} />
       </section>
 
       <section className="component-detail-grid">
@@ -66,7 +76,7 @@ export function ComponentDetailPage({ identifier, navigate }) {
             ['Tamano', component.size ? `S${component.size}` : 'N/D'],
             ['Grado', component.grade || 'N/D'],
             ['Fabricante', component.manufacturer || 'N/D'],
-            ['Instalados detectados', component.totalInstalled || component.usedByCount || 0]
+            ['Instalaciones', component.totalInstalled || component.usedByCount || 0]
           ]} />
         </section>
 
@@ -108,7 +118,7 @@ function MetricGrid({ items }) {
 }
 
 function RelatedShip({ item, navigate }) {
-  const path = item.vehicleId ? `${routes.ships}/${item.vehicleId}` : `${routes.ships}?search=${encodeURIComponent(item.vehicle || '')}`;
+  const path = item.vehicleId ? `${routes.ships}/${item.vehicleId}-${slugify(item.vehicle)}` : `${routes.ships}?search=${encodeURIComponent(item.vehicle || '')}`;
   return (
     <a className="related-ship-row" href={path} onClick={(event) => routeClick(event, path, navigate)}>
       <div>
@@ -119,6 +129,7 @@ function RelatedShip({ item, navigate }) {
         {item.count > 1 ? <span className="system-count-badge">x{item.count}</span> : null}
         {item.size ? <span className="weapon-size-badge">S{item.size}</span> : null}
       </div>
+      <span className="related-ship-arrow" aria-hidden="true">Ver nave</span>
     </a>
   );
 }

@@ -40,5 +40,68 @@ export async function loadComponentCatalog() {
 
 /** Carga una ficha individual de componente. */
 export async function loadComponentDetail(identifier) {
-  return requestJson('/api/components/' + encodeURIComponent(identifier));
+  const catalog = await loadComponentCatalog();
+  const components = Array.isArray(catalog.components) ? catalog.components : [];
+  const decoded = decodeComponentIdentifier(identifier);
+  const normalized = normalizeComponentToken(decoded);
+  const component = components.find((item) => item.key === decoded)
+    || components.find((item) => normalizeComponentToken(item.key) === normalized)
+    || components.find((item) => normalizeComponentToken(item.name) === normalized);
+
+  if (!component) throw new Error('Componente no encontrado en el catalogo local.');
+
+  const vehicleLookup = await buildVehicleLookup();
+  const related = (component.examples || []).map((example) => {
+    const vehicleName = example.vehicle || '';
+    const matchedVehicle = vehicleLookup.get(normalizeComponentToken(vehicleName));
+    return {
+    ...example,
+    vehicleId: example.vehicleId || matchedVehicle?.id || '',
+    vehicle: vehicleName || matchedVehicle?.name || '',
+    count: Number(example.count || 1),
+    size: Number(example.size || component.size || 0) || null
+    };
+  });
+  const sameFamily = components
+    .filter((item) => item.key !== component.key && item.category === component.category && normalizeComponentToken(item.name) === normalizeComponentToken(component.name))
+    .slice(0, 12);
+
+  return {
+    source: 'Catalogo local de componentes',
+    generatedAt: catalog.generatedAt || '',
+    component,
+    related,
+    sameFamily
+  };
+}
+
+function decodeComponentIdentifier(identifier) {
+  const raw = decodeURIComponent(String(identifier || '')).trim();
+  if (!raw) return '';
+  if (raw.includes('|')) return raw;
+  try {
+    const normalized = raw.replace(/-/g, '+').replace(/_/g, '/');
+    const padded = normalized.padEnd(Math.ceil(normalized.length / 4) * 4, '=');
+    return decodeURIComponent(escape(atob(padded))) || raw;
+  } catch {
+    return raw;
+  }
+}
+
+function normalizeComponentToken(value) {
+  return String(value || '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, ' ')
+    .trim();
+}
+
+async function buildVehicleLookup() {
+  try {
+    const payload = await loadVehiclesCatalog();
+    return new Map((payload.vehicles || []).map((vehicle) => [normalizeComponentToken(vehicle.name), vehicle]));
+  } catch {
+    return new Map();
+  }
 }
