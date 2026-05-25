@@ -1,5 +1,4 @@
 const apiBaseUrl = '';
-const isLocalHost = ['localhost', '127.0.0.1', '::1'].includes(window.location.hostname);
 
 /** Ejecuta una peticion JSON contra el backend local y normaliza errores. */
 export async function requestJson(url, options = {}) {
@@ -21,41 +20,15 @@ export async function requestJson(url, options = {}) {
 
 /** Carga el estado publico y la sesion actual de la web. */
 export async function loadState() {
-  if (!isLocalHost) return requestStaticJson('/static-api/state.json');
-  try {
-    return await requestJson('/api/state');
-  } catch {
-    return requestStaticJson('/static-api/state.json');
-  }
+  return requestJson('/api/state');
 }
 
-async function requestStaticJson(path) {
-  const response = await fetch(path, { headers: { Accept: 'application/json' } });
-  const contentType = response.headers.get('content-type') || '';
-  if (!response.ok || !contentType.includes('application/json')) throw new Error('No existe el JSON estatico de produccion.');
-  return response.json();
-}
-
-/** Carga catalogo desde backend local o desde el snapshot estatico preparado para IONOS. */
+/** Carga catalogo desde el backend de Stanton Hub. */
 export async function loadVehiclesCatalog() {
-  if (!isLocalHost) {
-    const payload = await requestStaticJson('/static-api/vehicles.json');
-    return { ...payload, source: payload.source || 'Snapshot estatico de produccion' };
-  }
-  try {
-    return await requestJson('/api/vehicles');
-  } catch (error) {
-    const payload = await requestStaticJson('/static-api/vehicles.json');
-    return { ...payload, source: payload.source || 'Snapshot estatico de produccion' };
-  }
+  return requestJson('/api/vehicles');
 }
 
-/** Carga detalle de nave desde backend local o snapshot estatico preparado para IONOS. */
+/** Carga detalle de nave desde el backend de Stanton Hub. */
 export async function loadVehicleDetail(identifier) {
-  if (!isLocalHost) return requestStaticJson('/static-api/vehicles/' + encodeURIComponent(identifier) + '.json');
-  try {
-    return await requestJson('/api/vehicles/' + encodeURIComponent(identifier));
-  } catch (error) {
-    return requestStaticJson('/static-api/vehicles/' + encodeURIComponent(identifier) + '.json');
-  }
+  return requestJson('/api/vehicles/' + encodeURIComponent(identifier));
 }
