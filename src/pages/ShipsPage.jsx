@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { requestJson } from '../services/api.js';
+import { loadVehiclesCatalog, requestJson } from '../services/api.js';
 import { money, meters, slugify, textValue, uniqueSorted } from '../utils/format.js';
 import { can } from '../utils/permissions.js';
 import { isCatalogVehicle, shipMatches, sortShips } from '../utils/ships.js';
@@ -18,12 +18,12 @@ export function ShipsPage({ currentUser, navigate }) {
   const [filters, setFilters] = useState({ search: '', manufacturer: '', type: '', role: '', sort: '' });
 
   useEffect(() => {
-    requestJson('/api/vehicles')
+    loadVehiclesCatalog()
       .then((payload) => {
         setShips((payload.vehicles || []).filter(isCatalogVehicle));
         setStatus(payload.warnings?.length ? 'Naves cargadas desde ' + payload.source + '. Algunos precios no estan disponibles temporalmente.' : 'Datos cargados desde ' + payload.source + '.');
       })
-      .catch((error) => setStatus(error.message.includes('EACCES') ? 'No se pudo acceder a UEX desde este entorno. Abre la web con npm run dev desde tu terminal local.' : 'No se pudo cargar el catalogo local: ' + error.message));
+      .catch((error) => setStatus(error.message.includes('EACCES') ? 'No se pudo acceder a UEX desde este entorno. Abre la web con npm run dev desde tu terminal local.' : 'No se pudo cargar el catalogo: ' + error.message));
   }, []);
 
   useEffect(() => {

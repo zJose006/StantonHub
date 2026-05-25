@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "npm run build && node server.js",
     "build": "vite build --config vite.config.js --configLoader native",
+    "build:ionos": "npm run build && node scripts/prepare-ionos.js",
     "start": "node server.js"
   },
   "dependencies": {

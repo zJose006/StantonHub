@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { routes } from '../config/routes.js';
-import { requestJson } from '../services/api.js';
+import { loadVehicleDetail } from '../services/api.js';
 import { money, textValue } from '../utils/format.js';
 import { routeClick } from '../utils/navigation.js';
 
@@ -11,10 +11,10 @@ export function ShipDetailPage({ identifier, navigate }) {
   const [selectedScore, setSelectedScore] = useState('Salud');
 
   useEffect(() => {
-    requestJson('/api/vehicles/' + encodeURIComponent(identifier))
+    loadVehicleDetail(identifier)
       .then((payload) => {
         setDetail(payload);
-        setStatus('Ficha cargada desde Base de datos local.');
+        setStatus('Ficha cargada.');
       })
       .catch((error) => setStatus(error.message));
   }, [identifier]);

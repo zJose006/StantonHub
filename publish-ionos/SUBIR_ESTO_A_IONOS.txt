@@ -1,0 +1,19 @@
+Sube SOLO el contenido de la carpeta StantonHub al directorio raiz del dominio en IONOS.
+
+Dentro del hosting deben quedar estos elementos:
+- index.html
+- .htaccess
+- assets/
+- static-api/
+
+No subas estas carpetas al hosting estatico:
+- src/
+- node_modules/
+- public/
+- dist/
+- data/
+- .git/
+- .env
+
+Si ves un error sobre main.jsx, significa que IONOS esta sirviendo el index.html de desarrollo, no este build.
+Si la pagina Naves no carga, falta static-api/. Ejecuta npm run build:ionos con MySQL encendido.

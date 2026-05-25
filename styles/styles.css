@@ -86,8 +86,8 @@ body::after {
   z-index: 20;
   overflow: visible;
   isolation: isolate;
-  min-height: clamp(410px, 42vw, 500px);
-  padding: 1.5rem clamp(1rem, 4vw, 3rem) 5rem;
+  min-height: clamp(260px, 24vw, 340px);
+  padding: 1.5rem clamp(1rem, 4vw, 3rem) 2.2rem;
   color: var(--ink);
   background:
     radial-gradient(circle at 15% 10%, rgba(0, 217, 255, 0.14), transparent 30%),
@@ -118,9 +118,9 @@ body::after {
   align-items: center;
   justify-content: space-between;
   gap: 1rem;
-  width: min(1120px, 100%);
+  width: min(1560px, 100%);
   min-height: 62px;
-  margin: 0 auto 4.8rem;
+  margin: 0 auto 2.3rem;
   padding: 0.5rem 0.65rem;
   border: 1px solid rgba(91, 218, 255, 0.14);
   border-radius: var(--radius);
@@ -343,9 +343,16 @@ body::after {
   transition: transform 0.22s ease, color 0.18s ease;
 }
 
+.nav-trigger:hover::after {
+  animation: nav-arrow-float-down 2.8s cubic-bezier(0.42, 0, 0.18, 1) infinite;
+  color: var(--primary);
+  transform: rotate(45deg) translateY(-0.12rem);
+}
+
+.nav-trigger.active::after,
 .nav-group.is-open > .nav-trigger::after,
 .nav-trigger[aria-expanded="true"]::after {
-  animation: nav-arrow-float 2.8s cubic-bezier(0.42, 0, 0.18, 1) infinite;
+  animation: nav-arrow-float-up 2.8s cubic-bezier(0.42, 0, 0.18, 1) infinite;
   color: var(--primary);
   transform: translateY(0) rotate(-135deg);
 }
@@ -635,7 +642,7 @@ body::after {
   }
 }
 
-@keyframes nav-arrow-float {
+@keyframes nav-arrow-float-up {
   0% {
     color: var(--primary);
     transform: translateY(0.08rem) rotate(-135deg);
@@ -649,6 +656,23 @@ body::after {
   100% {
     color: var(--primary);
     transform: translateY(0.08rem) rotate(-135deg);
+  }
+}
+
+@keyframes nav-arrow-float-down {
+  0% {
+    color: var(--primary);
+    transform: translateY(-0.04rem) rotate(45deg);
+  }
+
+  50% {
+    color: var(--accent);
+    transform: translateY(0.12rem) rotate(45deg);
+  }
+
+  100% {
+    color: var(--primary);
+    transform: translateY(-0.04rem) rotate(45deg);
   }
 }
 
@@ -668,11 +692,16 @@ body::after {
   .profile-link.active::before,
   .nav-group.is-open > .nav-trigger::before,
   .nav-trigger[aria-expanded="true"]::before,
+  .component-details summary::before,
   .account-nav .nav-trigger:hover .user-badge-avatar::before,
   .account-nav .nav-trigger.active .user-badge-avatar::before,
   .account-nav.is-open .user-badge-avatar::before,
   .nav-group.is-open > .nav-trigger::after,
-  .nav-trigger[aria-expanded="true"]::after {
+  .nav-trigger[aria-expanded="true"]::after,
+  .nav-trigger:hover::after,
+  .nav-trigger.active::after,
+  .component-details:hover summary::after,
+  .component-details[open] summary::after {
     animation: none;
   }
 }
@@ -685,8 +714,8 @@ body::after {
 .hero-content {
   position: relative;
   z-index: 1;
-  width: min(1120px, 100%);
-  min-height: 178px;
+  width: min(1560px, 100%);
+  min-height: 120px;
   margin: 0 auto;
 }
 
@@ -731,10 +760,10 @@ body::after {
 }
 
 .hero h1 {
-  max-width: 850px;
+  max-width: 980px;
   margin: 0;
   color: #f7fcff;
-  font-size: clamp(2.1rem, 6.4vw, 5.2rem);
+  font-size: clamp(2.4rem, 4.2vw, 5.1rem);
   line-height: 1;
   letter-spacing: 0;
   text-shadow: 0 0 26px rgba(0, 217, 255, 0.18);
@@ -755,8 +784,8 @@ body::after {
   grid-template-columns: minmax(0, 1fr);
   gap: 1rem;
   align-items: start;
-  width: min(1120px, calc(100% - 2rem));
-  min-height: 62vh;
+  width: min(1560px, calc(100% - 3rem));
+  min-height: 48vh;
   margin: 1rem auto 3rem;
 }
 
@@ -769,8 +798,12 @@ body::after {
   grid-template-columns: minmax(0, 1fr);
 }
 
+.content-shell {
+  grid-template-columns: minmax(0, 1fr);
+}
+
 .profile-shell {
-  grid-template-columns: minmax(280px, 0.9fr) minmax(0, 1.35fr);
+  grid-template-columns: minmax(320px, 0.58fr) minmax(0, 1.42fr);
 }
 
 .ships-shell {
@@ -790,9 +823,9 @@ body::after {
 
 .welcome-panel {
   display: grid;
-  gap: 1.2rem;
+  gap: 1rem;
   width: 100%;
-  padding: clamp(1rem, 3vw, 1.6rem);
+  padding: clamp(1rem, 2vw, 1.35rem);
 }
 
 .welcome-copy {
@@ -817,7 +850,7 @@ body::after {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 0.85rem;
-  min-height: 176px;
+  min-height: 0;
 }
 
 .home-highlight-grid {
@@ -829,7 +862,7 @@ body::after {
 
 .home-highlight {
   min-width: 0;
-  min-height: 128px;
+  min-height: 0;
   padding: 1rem;
   border: 1px solid rgba(91, 218, 255, 0.16);
   border-radius: var(--radius);
@@ -852,7 +885,7 @@ body::after {
 .section-card {
   display: grid;
   min-width: 0;
-  min-height: 176px;
+  min-height: 142px;
   align-content: start;
   gap: 0.55rem;
   padding: 1rem;
@@ -890,10 +923,56 @@ body::after {
   line-height: 1.55;
 }
 
+.page-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: clamp(1rem, 2vw, 1.35rem);
+}
+
+.page-heading h2 {
+  margin: 0;
+  color: #f7fcff;
+  font-size: clamp(1.55rem, 3vw, 2.5rem);
+  line-height: 1.08;
+}
+
+@media (min-width: 1180px) {
+  .welcome-panel {
+    grid-template-columns: minmax(320px, 0.62fr) minmax(0, 1.38fr);
+    align-items: start;
+  }
+
+  .welcome-copy {
+    grid-row: span 2;
+    padding-right: clamp(0.5rem, 1.5vw, 1.25rem);
+  }
+
+  .welcome-copy h2 {
+    font-size: clamp(2rem, 2.5vw, 3rem);
+  }
+
+  .home-highlight-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .home-sections {
+    grid-column: 1 / -1;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+  }
+
+  .post-list {
+    grid-template-columns: repeat(auto-fit, minmax(360px, 1fr));
+    align-items: start;
+    min-height: 0;
+  }
+}
+
 .site-footer {
   min-width: 0;
-  width: min(1120px, calc(100% - 2rem));
-  min-height: 188px;
+  width: min(1560px, calc(100% - 3rem));
+  min-height: 150px;
   margin: 0 auto 2rem;
   border: 1px solid rgba(91, 218, 255, 0.16);
   border-radius: var(--radius);
@@ -1047,13 +1126,13 @@ body::after {
   top: 1rem;
   display: grid;
   gap: 1.15rem;
-  padding: clamp(1rem, 3vw, 1.35rem);
+  padding: clamp(1rem, 2vw, 1.25rem);
 }
 
 .profile-ops-panel {
   display: grid;
   gap: 1rem;
-  padding: clamp(1rem, 3vw, 1.5rem);
+  padding: clamp(1rem, 2vw, 1.35rem);
 }
 
 .profile-identity-main {
@@ -1162,9 +1241,9 @@ body::after {
 
 .ships-toolbar {
   display: grid;
-  gap: 1.2rem;
+  gap: 1rem;
   width: 100%;
-  padding: clamp(1rem, 3vw, 1.6rem);
+  padding: clamp(1rem, 2vw, 1.35rem);
 }
 
 .ships-toolbar-header {
@@ -1227,7 +1306,7 @@ body::after {
   grid-template-columns: repeat(auto-fit, minmax(min(100%, 310px), 1fr));
   gap: 0.9rem;
   align-items: stretch;
-  min-height: 520px;
+  min-height: 0;
 }
 
 .ships-grid-compact {
@@ -1792,6 +1871,8 @@ body::after {
 .ship-card-heading h3,
 .weapon-kind-block h3 {
   margin: 0;
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 
 .ship-system-icon {
@@ -2147,96 +2228,14 @@ body::after {
   border-bottom: 1px solid rgba(91, 218, 255, 0.18);
 }
 
-.ship-hero-wide {
-  display: grid;
-  grid-template-columns: minmax(280px, 1fr) minmax(360px, 1fr);
-  gap: clamp(1.25rem, 3vw, 2rem);
-  align-items: center;
-}
-
-.ship-hero-visual {
-  min-width: 0;
-  max-width: 100%;
-  overflow: hidden;
-}
-
-.ship-detail-redesign .ship-detail-media {
-  width: 100%;
-  max-width: 100%;
-  min-height: 0;
-  height: clamp(220px, 26vw, 340px);
-  aspect-ratio: auto;
-  border-color: rgba(91, 218, 255, 0.22);
-  border-radius: 8px;
-  background: rgba(3, 11, 20, 0.34);
-}
-
-.ship-detail-redesign .ship-detail-media img {
-  display: block;
-  max-width: 100%;
-  object-fit: contain;
-  padding: clamp(0.35rem, 1vw, 0.75rem);
-}
-
-.ship-hero-copy {
-  min-width: 0;
-  position: relative;
-  z-index: 1;
-  padding-left: 0.25rem;
-}
-
-.ship-detail-redesign .ship-title-line {
-  align-items: flex-start;
-  margin-top: 0.45rem;
-  gap: 1.25rem;
-}
-
-.ship-detail-redesign .ship-title-line h2 {
-  max-width: none;
-  font-size: clamp(2.25rem, 4.4vw, 4.4rem);
-  line-height: 1;
-}
-
-.ship-detail-redesign .ship-title-line > span {
-  padding-top: 0.25rem;
-  color: var(--accent);
-  flex: 0 0 auto;
-}
-
-.ship-hero-copy p {
-  max-width: 62ch;
-  margin: 1rem 0 0;
-  color: rgba(220, 237, 248, 0.82);
-  font-size: 0.98rem;
-  line-height: 1.65;
-}
-
 .ship-detail-redesign .ship-meta-strip {
   margin-top: 1rem;
-}
-
-.ship-section-block {
-  display: grid;
-  gap: 1rem;
-  padding: clamp(1rem, 3vw, 1.25rem);
-}
-
-.ship-score-section {
-  display: grid;
-  gap: 1rem;
-  padding: clamp(1rem, 3vw, 1.25rem);
 }
 
 .ship-detail-redesign .ship-panel-title {
   justify-content: flex-start;
   padding-bottom: 0.85rem;
   border-bottom: 1px solid rgba(91, 218, 255, 0.16);
-}
-
-.ship-info-grid {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 1rem;
 }
 
 .ship-detail-redesign .metric-section dl div {
@@ -2255,12 +2254,6 @@ body::after {
   white-space: normal;
 }
 
-.ship-metrics-grid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 1rem;
-}
-
 .ship-detail-redesign .ship-metric-panel {
   min-width: 0;
   padding: 1rem;
@@ -2273,104 +2266,11 @@ body::after {
   grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
 }
 
-.ship-loadout-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-  gap: 1rem;
-  align-items: start;
-}
-
-.ship-loadout-layout {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(300px, 0.36fr);
-  gap: 1rem;
-  align-items: start;
-}
-
-.ship-loadout-main {
-  min-width: 0;
-}
-
-.loadout-section {
-  display: grid;
-  gap: 0.85rem;
-  min-width: 0;
-  padding: 1rem;
-  border: 1px solid rgba(91, 218, 255, 0.14);
-  border-radius: 8px;
-  background: rgba(3, 11, 20, 0.28);
-}
-
-.loadout-section header {
-  display: flex;
-  align-items: center;
-  gap: 0.7rem;
-}
-
-.loadout-section h3 {
-  margin: 0;
-  color: #f7fcff;
-  font-size: 1rem;
-}
-
 .ship-utility-block {
   display: grid;
   gap: 0.75rem;
   padding-top: 0.9rem;
   border-top: 1px solid rgba(91, 218, 255, 0.14);
-}
-
-.loadout-side-panel {
-  position: sticky;
-  top: 1rem;
-  display: grid;
-  max-height: calc(100vh - 2rem);
-  min-width: 0;
-  gap: 0.85rem;
-  overflow: hidden;
-  padding: 1rem;
-  border: 1px solid rgba(91, 218, 255, 0.14);
-  border-radius: 8px;
-  background: rgba(3, 11, 20, 0.34);
-}
-
-.loadout-side-panel > header {
-  display: flex;
-  justify-content: space-between;
-  gap: 0.8rem;
-  align-items: flex-start;
-}
-
-.loadout-side-panel h3 {
-  margin: 0;
-  color: #f7fcff;
-  font-size: 1.05rem;
-}
-
-.component-filter-control {
-  display: grid;
-  gap: 0.4rem;
-}
-
-.component-filter-control span {
-  color: var(--muted);
-  font-size: 0.66rem;
-  font-weight: 900;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-}
-
-.component-filter-control select {
-  width: 100%;
-}
-
-.component-link-list {
-  display: grid;
-  gap: 0.65rem;
-  overflow-y: auto;
-  padding-right: 0.15rem;
-  scrollbar-width: thin;
-  scrollbar-color: rgba(0, 217, 255, 0.45) rgba(3, 11, 20, 0.4);
 }
 
 .ship-detail-redesign .weapon-kind-block {
@@ -2437,9 +2337,10 @@ body::after {
 }
 
 .ship-sheet-media {
-  display: grid;
+  display: flex;
   height: clamp(260px, 22vw, 380px);
-  place-items: center;
+  align-items: center;
+  justify-content: center;
   overflow: hidden;
   padding: clamp(0.45rem, 1vw, 0.75rem);
   border: 1px solid rgba(91, 218, 255, 0.2);
@@ -2450,10 +2351,13 @@ body::after {
 .ship-sheet-media img {
   width: 100%;
   height: 100%;
+  min-width: 0;
+  min-height: 0;
   max-width: 100%;
   max-height: 100%;
   box-sizing: border-box;
   object-fit: contain;
+  object-position: center;
 }
 
 .ship-sheet-media span {
@@ -2543,7 +2447,7 @@ body::after {
 
 .score-radar-layout {
   display: grid;
-  grid-template-columns: minmax(230px, 280px) minmax(0, 1fr);
+  grid-template-columns: minmax(0, 1fr);
   gap: 1rem;
   align-items: center;
 }
@@ -2559,34 +2463,6 @@ body::after {
   width: 100%;
   height: 100%;
   filter: drop-shadow(0 0 22px rgba(0, 229, 255, 0.12));
-}
-
-.score-button {
-  cursor: pointer;
-  outline: none;
-}
-
-.score-button circle {
-  fill: #00e5ff;
-  stroke: rgba(3, 11, 20, 0.95);
-  stroke-width: 1.1;
-  transition: fill 0.16s ease, r 0.16s ease;
-}
-
-.score-button.active circle,
-.score-button:hover circle,
-.score-button:focus circle {
-  fill: #f7fcff;
-  r: 4.6;
-}
-
-.score-button text {
-  fill: rgba(238, 248, 255, 0.9);
-  font-size: 3.4px;
-  font-weight: 950;
-  paint-order: stroke;
-  stroke: rgba(3, 11, 20, 0.95);
-  stroke-width: 1.35px;
 }
 
 .score-vertex-button {
@@ -2623,6 +2499,7 @@ body::after {
 }
 
 .score-explanation {
+  width: 100%;
   min-width: 0;
   padding: 1rem;
   border: 1px solid rgba(91, 218, 255, 0.14);
@@ -2773,14 +2650,87 @@ body::after {
   border: 1px solid rgba(91, 218, 255, 0.12);
   border-radius: 8px;
   background: rgba(1, 8, 15, 0.28);
+  transition: border-color 0.2s ease, background 0.2s ease, box-shadow 0.2s ease;
 }
 
 .component-details summary {
+  position: relative;
   display: flex;
   justify-content: space-between;
   gap: 0.75rem;
-  padding: 0.72rem;
+  align-items: center;
+  min-height: 48px;
+  padding: 0.72rem 2.35rem 0.78rem 0.72rem;
   cursor: pointer;
+  list-style: none;
+}
+
+.component-details summary::-webkit-details-marker {
+  display: none;
+}
+
+.component-details summary::before {
+  position: absolute;
+  right: 0.72rem;
+  bottom: 0.38rem;
+  left: 0.72rem;
+  height: 1px;
+  content: "";
+  background: linear-gradient(90deg, var(--primary), var(--accent), var(--primary), var(--accent), var(--primary));
+  background-size: 300% 100%;
+  opacity: 0;
+  transform: scaleX(0.72);
+  transform-origin: center;
+  transition: opacity 0.24s ease, transform 0.34s cubic-bezier(0.2, 0.8, 0.2, 1);
+  will-change: opacity, transform;
+}
+
+.component-details summary::after {
+  position: absolute;
+  top: 50%;
+  right: 0.82rem;
+  width: 0.42rem;
+  height: 0.42rem;
+  border-right: 2px solid currentColor;
+  border-bottom: 2px solid currentColor;
+  color: var(--primary);
+  content: "";
+  transform: translateY(-62%) rotate(45deg);
+  transform-origin: 62% 62%;
+  transition: transform 0.22s ease, color 0.18s ease;
+}
+
+.component-details:hover,
+.component-details[open] {
+  border-color: rgba(91, 218, 255, 0.26);
+  background:
+    linear-gradient(135deg, rgba(0, 217, 255, 0.08), rgba(255, 181, 71, 0.04)),
+    rgba(1, 8, 15, 0.34);
+  box-shadow: 0 0 26px rgba(0, 217, 255, 0.08);
+}
+
+.component-details:hover summary::before,
+.component-details[open] summary::before,
+.component-details summary:focus-visible::before {
+  animation: gradient-flow 4.8s linear infinite;
+  opacity: 1;
+  transform: scaleX(1);
+}
+
+.component-details:hover summary::after {
+  animation: nav-arrow-float-down 2.8s cubic-bezier(0.42, 0, 0.18, 1) infinite;
+  color: var(--primary);
+  transform: translateY(-62%) rotate(45deg);
+}
+
+.component-details[open] summary::after {
+  animation: nav-arrow-float-up 2.8s cubic-bezier(0.42, 0, 0.18, 1) infinite;
+  color: var(--primary);
+  transform: translateY(-50%) rotate(-135deg);
+}
+
+.component-details summary:focus-visible {
+  outline: none;
 }
 
 .component-details summary strong {
@@ -2854,10 +2804,6 @@ body::after {
     grid-template-columns: minmax(0, 1.05fr) minmax(560px, 0.95fr);
   }
 
-  .ship-sheet .score-radar-layout {
-    grid-template-columns: minmax(260px, 320px) minmax(0, 1fr);
-  }
-
   .ship-sheet .score-explanation {
     min-height: 220px;
   }
@@ -2883,30 +2829,8 @@ body::after {
   }
 
   .ship-detail-redesign .ship-hero-redesign,
-  .ship-detail-redesign .ship-score-section,
-  .ship-detail-redesign > .ship-section-block:nth-of-type(5),
   .ship-detail-redesign .ship-technical-details {
     grid-column: 1 / -1;
-  }
-
-  .ship-hero-wide {
-    grid-template-columns: minmax(460px, 0.95fr) minmax(420px, 1.05fr);
-  }
-
-  .ship-detail-redesign .ship-detail-media {
-    height: clamp(260px, 21vw, 380px);
-  }
-
-  .ship-detail-redesign .ship-info-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
-  .ship-detail-redesign .ship-metrics-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
-  .ship-detail-redesign .ship-loadout-layout {
-    grid-template-columns: minmax(0, 1fr) minmax(340px, 0.34fr);
   }
 
 }
@@ -2931,6 +2855,10 @@ body::after {
 
   .ship-sheet .ship-sheet-top-grid {
     grid-template-columns: minmax(0, 1fr) minmax(620px, 0.86fr);
+  }
+
+  .ship-sheet .score-radar-layout {
+    grid-template-columns: minmax(260px, 320px) minmax(0, 1fr);
   }
 
   .ship-sheet .ship-loadout-board {
@@ -3026,13 +2954,17 @@ body::after {
 }
 
 .admin-shell {
-  grid-template-columns: minmax(0, 1fr);
+  grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
 .admin-panel {
   display: grid;
   gap: 1rem;
-  padding: clamp(1rem, 3vw, 1.35rem);
+  padding: clamp(1rem, 2vw, 1.25rem);
+}
+
+.admin-shell > .admin-panel:first-child {
+  grid-column: 1 / -1;
 }
 
 .admin-panel h3 {
@@ -3607,11 +3539,12 @@ select:focus {
 }
 
 .editor-shell {
-  grid-template-columns: minmax(0, 920px);
+  grid-template-columns: minmax(0, 1120px);
+  justify-content: center;
 }
 
 .editor-panel {
-  padding: clamp(1rem, 3vw, 1.5rem);
+  padding: clamp(1rem, 2vw, 1.35rem);
 }
 
 .editor-form {
@@ -3732,7 +3665,7 @@ select:focus {
 
 @media (max-width: 1024px) {
   .hero-topbar {
-    margin-bottom: 3.8rem;
+    margin-bottom: 2.6rem;
     gap: 0.7rem;
     padding-inline: 0.55rem;
   }
@@ -3783,8 +3716,8 @@ select:focus {
 
 @media (max-width: 900px) {
   .hero {
-    min-height: 350px;
-    padding: 0 0 2.4rem;
+    min-height: 300px;
+    padding: 0 0 1.8rem;
   }
 
   .hero::before {
@@ -3805,7 +3738,7 @@ select:focus {
     gap: 0.7rem;
     width: 100%;
     min-height: 76px;
-    margin-bottom: 2.8rem;
+    margin-bottom: 2rem;
     padding: 0.7rem 0.9rem;
     border-right: 0;
     border-left: 0;
@@ -3822,7 +3755,7 @@ select:focus {
 
   .hero-content {
     width: min(1120px, calc(100% - 1.5rem));
-    min-height: 142px;
+    min-height: 110px;
   }
 
   .header-nav-panel {
@@ -4120,8 +4053,12 @@ select:focus {
   .container {
     grid-template-columns: 1fr;
     width: min(100% - 1.5rem, 1120px);
-    min-height: 64vh;
+    min-height: 44vh;
     margin-top: 1rem;
+  }
+
+  .site-footer {
+    width: min(100% - 1.5rem, 1120px);
   }
 
   .container.ship-detail-redesign {
@@ -4129,6 +4066,12 @@ select:focus {
   }
 
   .home-sections {
+    grid-template-columns: 1fr;
+  }
+
+  .admin-shell,
+  .content-shell,
+  .editor-shell {
     grid-template-columns: 1fr;
   }
 
@@ -4198,32 +4141,22 @@ select:focus {
   }
 
   .ship-detail-redesign .ship-hero-redesign,
-  .ship-hero-wide,
-  .ship-info-grid,
-  .ship-metrics-grid,
-  .ship-loadout-grid,
-  .ship-loadout-layout,
   .ship-sheet-hero,
   .ship-sheet-top-grid,
-  .ship-sheet-metrics,
+  .ship-sheet .ship-sheet-metrics,
   .ship-loadout-board,
   .score-radar-layout {
     grid-template-columns: 1fr;
   }
 
-  .loadout-side-panel,
+  .ship-sheet .ship-sheet-panel,
+  .ship-sheet .ship-metric-panel {
+    min-width: 0;
+  }
+
   .ship-component-sidebar {
     position: static;
     max-height: none;
-  }
-
-  .ship-detail-redesign .ship-detail-media {
-    height: clamp(190px, 42vw, 280px);
-    min-height: 0;
-  }
-
-  .ship-detail-redesign .ship-title-line {
-    flex-direction: column;
   }
 
   .ship-detail-redesign {
@@ -4234,22 +4167,6 @@ select:focus {
     padding-bottom: 0.9rem;
   }
 
-  .ship-hero-copy p {
-    display: -webkit-box;
-    max-width: 100%;
-    margin-top: 0.7rem;
-    overflow: hidden;
-    line-height: 1.5;
-    -webkit-box-orient: vertical;
-    -webkit-line-clamp: 3;
-  }
-
-  .ship-section-block,
-  .ship-score-section {
-    gap: 0.75rem;
-    padding: 0.85rem;
-  }
-
   .ship-detail-redesign .ship-panel-title {
     padding-bottom: 0.65rem;
   }
@@ -4258,8 +4175,7 @@ select:focus {
     font-size: clamp(1.25rem, 5.6vw, 1.85rem);
   }
 
-  .ship-detail-redesign .ship-metric-panel,
-  .loadout-section {
+  .ship-detail-redesign .ship-metric-panel {
     padding: 0.75rem;
   }
 
@@ -4283,30 +4199,6 @@ select:focus {
   }
 }
 
-@media (min-width: 700px) and (max-width: 900px) {
-  .ship-hero-wide {
-    grid-template-columns: minmax(260px, 0.9fr) minmax(0, 1.1fr);
-    gap: 1rem;
-  }
-
-  .ship-detail-redesign .ship-title-line {
-    flex-direction: row;
-    align-items: flex-start;
-  }
-
-  .ship-detail-redesign .ship-title-line h2 {
-    font-size: clamp(2rem, 5.6vw, 3.25rem);
-  }
-
-  .ship-detail-redesign .ship-detail-media {
-    height: clamp(220px, 30vw, 270px);
-  }
-
-  .ship-info-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-}
-
 @media (max-width: 640px) {
   .hero {
     padding-inline: 0;
@@ -4318,39 +4210,6 @@ select:focus {
 
   .ship-detail-redesign {
     gap: 0.75rem;
-  }
-
-  .ship-hero-wide {
-    gap: 0.85rem;
-  }
-
-  .ship-detail-redesign .ship-detail-media {
-    height: clamp(170px, 54vw, 230px);
-  }
-
-  .ship-detail-redesign .ship-detail-media img {
-    padding: 0.35rem;
-  }
-
-  .ship-detail-redesign .ship-title-line {
-    gap: 0.5rem;
-    margin-top: 0.35rem;
-  }
-
-  .ship-detail-redesign .ship-title-line h2 {
-    font-size: clamp(2rem, 12vw, 3.25rem);
-  }
-
-  .ship-detail-redesign .ship-title-line > span {
-    padding-top: 0;
-    font-size: 0.95rem;
-  }
-
-  .ship-hero-copy p {
-    margin-top: 0.55rem;
-    font-size: 0.9rem;
-    line-height: 1.45;
-    -webkit-line-clamp: 2;
   }
 
   .ship-detail-redesign .ship-meta-strip {
@@ -4374,7 +4233,6 @@ select:focus {
     font-size: 0.72rem;
   }
 
-  .ship-info-grid,
   .loadout-row dl {
     grid-template-columns: 1fr;
   }
@@ -4397,12 +4255,14 @@ select:focus {
   }
 
   .ship-detail-redesign .metric-section dl div {
-    grid-template-columns: minmax(92px, 1fr) minmax(78px, auto);
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0.2rem;
     min-height: 1.95rem;
   }
 
   .ship-detail-redesign .metric-section dd {
     font-size: 0.84rem;
+    text-align: left;
   }
 
   .score-total strong {
@@ -4453,5 +4313,64 @@ select:focus {
   .header-account-slot .discord-login-link .discord-icon {
     width: 1.55rem;
     height: 1.18rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .container.ship-sheet {
+    width: min(100% - 0.75rem, 1120px);
+  }
+
+  .ship-sheet .ship-sheet-metrics {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0.75rem;
+  }
+
+  .ship-sheet .ship-sheet-panel {
+    min-width: 0;
+    padding: 0.85rem;
+  }
+
+  .ship-card-heading {
+    gap: 0.6rem;
+    margin-bottom: 0.65rem;
+  }
+
+  .ship-card-heading h3 {
+    font-size: clamp(1rem, 6vw, 1.2rem);
+    line-height: 1.15;
+  }
+
+  .ship-system-icon {
+    width: 2.1rem;
+    height: 2.1rem;
+    flex-basis: 2.1rem;
+  }
+
+  .ship-detail-redesign .metric-section-grid,
+  .ship-sheet .metric-section-grid {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0.85rem;
+  }
+
+  .metric-section dl div,
+  .ship-detail-redesign .metric-section dl div {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0.2rem;
+    padding: 0.5rem 0;
+  }
+
+  .metric-section dt {
+    min-width: 0;
+    font-size: 0.66rem;
+    overflow-wrap: anywhere;
+  }
+
+  .metric-section dd,
+  .ship-detail-redesign .metric-section dd {
+    min-width: 0;
+    font-size: 0.92rem;
+    text-align: left;
+    overflow-wrap: anywhere;
   }
 }

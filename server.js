@@ -19,7 +19,9 @@ const dataDir = path.join(rootDir, 'data');
 const componentCatalogPath = path.join(dataDir, 'component-catalog.json');
 const port = Number(globalThis.STANTON_PORT || (typeof process !== 'undefined' ? process.env.PORT : 0)) || 4173;
 const env = typeof process !== 'undefined' ? process.env : {};
+const listenHost = env.HOST || '127.0.0.1';
 const databaseName = env.DB_NAME || 'stanton_hub';
+const skipDatabaseCreate = ['1', 'true', 'yes'].includes(String(env.DB_SKIP_CREATE || '').toLowerCase());
 const execFileAsync = promisify(execFile);
 
 const dbConfig = {
@@ -29,7 +31,8 @@ const dbConfig = {
   password: env.DB_PASSWORD || ''
 };
 
-const mysqlBinary = env.MYSQL_BIN || 'C:\\Program Files\\MySQL\\MySQL Workbench 8.0 CE\\mysql.exe';
+const defaultMysqlBinary = process.platform === 'win32' ? 'C:\\Program Files\\MySQL\\MySQL Workbench 8.0 CE\\mysql.exe' : 'mysql';
+const mysqlBinary = env.MYSQL_BIN || defaultMysqlBinary;
 const uexToken = env.UEX_TOKEN || globalThis.UEX_TOKEN || '';
 const uexClientVersion = env.UEX_CLIENT_VERSION || globalThis.UEX_CLIENT_VERSION || '';
 const uexApiHosts = ['https://api.uexcorp.uk/2.0', 'https://api.uexcorp.space/2.0'];
@@ -153,7 +156,9 @@ function loadLocalEnv() {
 }
 
 async function initializeDatabase() {
-  await runSql(`CREATE DATABASE IF NOT EXISTS \`${databaseName}\` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci`, null);
+  if (!skipDatabaseCreate) {
+    await runSql(`CREATE DATABASE IF NOT EXISTS \`${databaseName}\` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci`, null);
+  }
   await runSql(`
     CREATE TABLE IF NOT EXISTS users (
       id CHAR(36) PRIMARY KEY,
@@ -3065,6 +3070,16 @@ const server = http.createServer(async (request, response) => {
     const url = new URL(request.url, `http://${request.headers.host}`);
 
     if (url.pathname.startsWith('/api/')) {
+      if (request.method === 'GET' && url.pathname === '/api/health') {
+        sendJson(response, databaseReady ? 200 : 503, {
+          ok: databaseReady,
+          database: databaseReady ? 'ready' : 'unavailable',
+          error: databaseReady ? '' : (databaseStartupError?.message || 'conexion no disponible'),
+          timestamp: new Date().toISOString()
+        });
+        return;
+      }
+
       if (request.method === 'GET' && url.pathname === '/api/ship-image') {
         await proxyShipImage(request, response);
         return;
@@ -3092,8 +3107,9 @@ const server = http.createServer(async (request, response) => {
   }
 });
 
-server.listen(port, '127.0.0.1', () => {
-  console.log(`Stanton Hub disponible en http://127.0.0.1:${port}/pages/index`);
+server.listen(port, listenHost, () => {
+  const shownHost = listenHost === '0.0.0.0' ? '127.0.0.1' : listenHost;
+  console.log(`Stanton Hub disponible en http://${shownHost}:${port}/pages/index`);
   console.log(`Discord OAuth: ${discordClientId && discordClientSecret ? 'configurado' : 'sin configurar'} (${discordRedirectUri})`);
   if (!databaseReady) {
     console.log('Aviso: la web esta abierta, pero MySQL debe estar encendido para login, perfil y publicaciones.');
