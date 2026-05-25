@@ -14,10 +14,10 @@ RUN npm run build
 
 ENV NODE_ENV=production
 ENV HOST=0.0.0.0
-ENV PORT=4173
+ENV PORT=80
 ENV MYSQL_BIN=mysql
 ENV DB_SKIP_CREATE=1
 
-EXPOSE 4173
+EXPOSE 80
 
 CMD ["node", "server.js"]
