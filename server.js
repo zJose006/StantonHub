@@ -2325,7 +2325,10 @@ async function readVehicleDetailFromDatabase(identifier) {
 
   if (!rows.length) return null;
 
-  const row = rows[0];
+  let row = rows[0];
+  if (needsVehicleDetailRefresh(row)) {
+    row = await refreshVehicleDetailRow(row);
+  }
   const vehicle = decodeDbJson(row.vehicle_json, {});
   const rawVehicle = decodeDbJson(row.uex_vehicle_api_json, decodeDbJson(row.raw_vehicle_json, {}));
   const wiki = decodeDbJson(row.wiki_api_json, decodeDbJson(row.wiki_vehicle_json, {}));
@@ -2356,6 +2359,108 @@ async function readVehicleDetailFromDatabase(identifier) {
     },
     curiosity: buildVehicleCuriosity(vehicle, combat)
   };
+}
+
+function needsVehicleDetailRefresh(row) {
+  const vehicle = decodeDbJson(row?.vehicle_json, {});
+  const wiki = decodeDbJson(row?.wiki_api_json, decodeDbJson(row?.wiki_vehicle_json, {}));
+  const combat = decodeDbJson(row?.combat_cache_json, decodeDbJson(row?.combat_json, vehicle.combat || {}));
+  const modules = vehicle.modules || {};
+  return !wiki || !Object.keys(wiki).length
+    || !combat?.weaponCount
+    || !modules?.items?.length;
+}
+
+async function refreshVehicleDetailRow(row) {
+  const vehicleId = Number(row.id);
+  const cachedVehicle = decodeDbJson(row.vehicle_json, {});
+  const syncedAt = new Date().toISOString().slice(0, 19).replace('T', ' ');
+
+  try {
+    const wikiVehicles = await fetchWikiVehiclesList();
+    const wikiVehicle = await fetchWikiVehicleDetail(cachedVehicle, wikiVehicles);
+    if (!wikiVehicle || !Object.keys(wikiVehicle).length) return row;
+
+    let combat = buildCombatSummary(wikiVehicle);
+    if (combat.weaponCount <= 2 || (!combat.totals?.alphaTotal && !combat.totals?.sustained60s)) {
+      try {
+        const detailedCombat = await fetchWikiVehicleDetailedCombat(wikiVehicle);
+        if (detailedCombat && detailedCombat.weaponCount > combat.weaponCount) {
+          combat = detailedCombat;
+        }
+      } catch {
+        // The base wiki payload is still useful when the detailed combat page is unavailable.
+      }
+    }
+
+    const wikiImages = collectImageUrls(wikiVehicle);
+    const modules = buildModulesSummary(wikiVehicle);
+    const enrichedVehicle = {
+      ...cachedVehicle,
+      wiki: {
+        uuid: textValue(wikiVehicle.uuid),
+        apiUrl: textValue(wikiVehicle.uuid) ? `${starCitizenWikiApiBase}/vehicles/${encodeURIComponent(textValue(wikiVehicle.uuid))}` : '',
+        gameVersion: textValue(wikiVehicle.game_version || wikiVehicle.version),
+        health: Number(wikiVehicle.health || 0) || null,
+        armor: Number(wikiVehicle.armor?.health || 0) || null,
+        shieldHp: Number(wikiVehicle.shield?.hp || 0) || null
+      },
+      combat,
+      modules,
+      wikiImageProxy: wikiImages[0] || cachedVehicle.wikiImageProxy || '',
+      imageCandidates: [
+        ...(cachedVehicle.photo ? [proxiedImageUrl(cachedVehicle.photo), cachedVehicle.photo] : []),
+        ...wikiImages.flatMap((url) => [proxiedImageUrl(url), url])
+      ].filter(Boolean)
+    };
+
+    await runSql(`
+      UPDATE uex_vehicle_cache
+      SET vehicle_json = ${sql(encodeDbJson(enrichedVehicle))},
+          wiki_vehicle_json = ${sql(encodeDbJson(compactWikiVehicle(wikiVehicle)))},
+          combat_json = ${sql(encodeDbJson(combat))},
+          details_synced_at = ${sql(syncedAt)}
+      WHERE id = ${vehicleId}
+    `);
+
+    await runSql(`
+      INSERT INTO star_citizen_wiki_vehicle_cache
+        (vehicle_id, wiki_uuid, name, status, error_message, payload_json, synced_at)
+      VALUES
+        (${vehicleId}, ${sql(wikiVehicle.uuid || cachedVehicle.wiki?.uuid || '')}, ${sql(cachedVehicle.name || wikiVehicle.name || '')},
+         'ok', NULL, ${sql(encodeDbJson(wikiVehicle))}, ${sql(syncedAt)})
+      ON DUPLICATE KEY UPDATE
+        wiki_uuid = VALUES(wiki_uuid),
+        name = VALUES(name),
+        status = VALUES(status),
+        error_message = VALUES(error_message),
+        payload_json = VALUES(payload_json),
+        synced_at = VALUES(synced_at)
+    `);
+
+    await runSql(`
+      INSERT INTO vehicle_combat_cache (vehicle_id, payload_json, synced_at)
+      VALUES (${vehicleId}, ${sql(encodeDbJson(combat || {}))}, ${sql(syncedAt)})
+      ON DUPLICATE KEY UPDATE
+        payload_json = VALUES(payload_json),
+        synced_at = VALUES(synced_at)
+    `);
+
+    return {
+      ...row,
+      vehicle_json: encodeDbJson(enrichedVehicle),
+      wiki_vehicle_json: encodeDbJson(compactWikiVehicle(wikiVehicle)),
+      wiki_api_json: encodeDbJson(wikiVehicle),
+      combat_json: encodeDbJson(combat),
+      combat_cache_json: encodeDbJson(combat),
+      details_synced_at: syncedAt,
+      wiki_synced_at: syncedAt,
+      combat_synced_at: syncedAt
+    };
+  } catch (error) {
+    await recordApiSyncRun('vehicle-detail', 'error', `${cachedVehicle.name || vehicleId}: ${error.message}`);
+    return row;
+  }
 }
 
 function safeJson(value, fallback) {
