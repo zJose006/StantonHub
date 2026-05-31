@@ -38,6 +38,7 @@ const uexClientVersion = env.UEX_CLIENT_VERSION || globalThis.UEX_CLIENT_VERSION
 const uexApiHosts = ['https://api.uexcorp.uk/2.0', 'https://api.uexcorp.space/2.0'];
 const starCitizenWikiApiBase = 'https://api.star-citizen.wiki/api';
 const eurExchangeRateApiBase = 'https://api.frankfurter.dev/v1/latest';
+const commLinkUrl = 'https://robertsspaceindustries.com/en/comm-link';
 const discordClientId = env.DISCORD_CLIENT_ID || globalThis.DISCORD_CLIENT_ID || '';
 const discordClientSecret = env.DISCORD_CLIENT_SECRET || env.DISCORD_TOKEN || env.DISCORD_BOT_TOKEN || globalThis.DISCORD_CLIENT_SECRET || globalThis.DISCORD_TOKEN || '';
 const discordRedirectUri = env.DISCORD_REDIRECT_URI || globalThis.DISCORD_REDIRECT_URI || `http://127.0.0.1:${port}/api/auth/discord/callback`;
@@ -49,6 +50,8 @@ const sessionCookieName = 'stanton_session';
 const oauthStateCookieName = 'stanton_oauth_state';
 const sessionMaxAgeSeconds = 60 * 60 * 24 * 14;
 const oauthStateMaxAgeSeconds = 60 * 10;
+let gameNewsCache = { expiresAt: 0, payload: null };
+const translationCache = new Map();
 const roleDefinitions = [
   {
     key: 'recluta',
@@ -1517,6 +1520,247 @@ function normalizeModuleCategory(value) {
   if (/controller/i.test(raw)) return 'Controladores';
   if (/blade/i.test(raw)) return 'Blades';
   return raw.replace(/([a-z])([A-Z])/g, '$1 $2');
+}
+
+async function readGameNews() {
+  const now = Date.now();
+  if (gameNewsCache.payload && gameNewsCache.expiresAt > now) return gameNewsCache.payload;
+
+  try {
+    const response = await fetch(commLinkUrl, { headers: { 'User-Agent': 'StantonHub/1.0 (+https://stantonhub.com)' } });
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    const html = await response.text();
+    const items = await enrichCommLinkItems(extractCommLinkItems(html).slice(0, 8));
+    const payload = {
+      source: 'Comm-Link oficial',
+      sourceUrl: commLinkUrl,
+      updatedAt: new Date().toISOString(),
+      updatedLabel: new Date().toLocaleString('es-ES', { dateStyle: 'medium', timeStyle: 'short' }),
+      items
+    };
+    gameNewsCache = { expiresAt: now + 1000 * 60 * 30, payload };
+    return payload;
+  } catch (error) {
+    const payload = {
+      source: 'Comm-Link oficial',
+      sourceUrl: commLinkUrl,
+      updatedAt: new Date().toISOString(),
+      updatedLabel: '',
+      warning: `No se pudo consultar Comm-Link: ${error.message}`,
+      items: [{
+        title: 'Actualidad oficial de Star Citizen',
+        url: commLinkUrl,
+        category: 'Actualidad',
+        excerpt: 'No se pudo sincronizar automaticamente en este momento. Abre la fuente oficial para revisar las ultimas comunicaciones.',
+        image: '/assets/stanton-hub-logo.png',
+        publishedLabel: ''
+      }]
+    };
+    gameNewsCache = { expiresAt: now + 1000 * 60 * 5, payload };
+    return payload;
+  }
+}
+
+async function enrichCommLinkItems(items) {
+  const enriched = await Promise.all(items.map(async (item) => {
+    const detail = await readCommLinkDetail(item.url).catch(() => ({}));
+    const urlTitle = titleFromCommLinkUrl(item.url);
+    const title = isGenericNewsTitle(detail.title) ? (urlTitle || item.title) : (detail.title || item.title || urlTitle);
+    const excerpt = isGenericNewsExcerpt(detail.excerpt) ? `Comunicado oficial sobre ${title}.` : (detail.excerpt || item.excerpt);
+    return {
+      ...item,
+      title: await translateToSpanish(title),
+      excerpt: await translateToSpanish(excerpt),
+      category: translateNewsCategory(item.category),
+      image: detail.image || item.image || '/assets/stanton-hub-logo.png',
+      publishedLabel: translatePublishedLabel(item.publishedLabel || detail.publishedLabel || '')
+    };
+  }));
+  return enriched.filter((item) => item.title && item.url);
+}
+
+function isGenericNewsTitle(value) {
+  const text = cleanNewsText(value).toLowerCase();
+  return !text || text === 'star citizen' || text === 'roberts space industries';
+}
+
+function isGenericNewsExcerpt(value) {
+  const text = cleanNewsText(value).toLowerCase();
+  return !text || text.includes('roberts space industries es el sitio web oficial') || text.includes('official website for all news');
+}
+
+async function readCommLinkDetail(url) {
+  if (!/^https:\/\/robertsspaceindustries\.com\/(?:[a-z]{2}\/)?comm-link\//i.test(url)) return {};
+  const response = await fetch(url, { headers: { 'User-Agent': 'StantonHub/1.0 (+https://stantonhub.com)' } });
+  if (!response.ok) throw new Error(`HTTP ${response.status}`);
+  const html = await response.text();
+  return {
+    title: metaContent(html, 'og:title') || metaContent(html, 'twitter:title') || '',
+    excerpt: metaContent(html, 'og:description') || metaContent(html, 'description') || '',
+    image: normalizeRsiMediaUrl(metaContent(html, 'og:image') || metaContent(html, 'twitter:image') || firstImageUrl(html)),
+    publishedLabel: metaContent(html, 'article:published_time') || ''
+  };
+}
+
+function metaContent(html, key) {
+  const pattern = new RegExp(`<meta[^>]+(?:property|name)=["']${escapeRegExp(key)}["'][^>]+content=["']([^"']+)["'][^>]*>`, 'i');
+  const match = String(html || '').match(pattern);
+  return match ? cleanNewsText(match[1]) : '';
+}
+
+function firstImageUrl(html) {
+  const match = String(html || '').match(/<img[^>]+(?:src|data-src)=["']([^"']+)["']/i);
+  return match ? match[1] : '';
+}
+
+function normalizeRsiMediaUrl(value) {
+  const url = decodeHtmlEntities(String(value || '')).trim();
+  if (!url) return '';
+  if (url.startsWith('//')) return `https:${url}`;
+  if (url.startsWith('/')) return `https://robertsspaceindustries.com${url}`;
+  return url;
+}
+
+async function translateToSpanish(value) {
+  const text = cleanNewsText(value);
+  if (!text) return '';
+  if (translationCache.has(text)) return translationCache.get(text);
+
+  try {
+    const url = new URL('https://api.mymemory.translated.net/get');
+    url.searchParams.set('q', text.slice(0, 480));
+    url.searchParams.set('langpair', 'en|es');
+    const response = await fetch(url, { headers: { 'User-Agent': 'StantonHub/1.0 (+https://stantonhub.com)' } });
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    const payload = await response.json();
+    const translated = cleanNewsText(payload?.responseData?.translatedText || '');
+    if (translated && translated.toLowerCase() !== text.toLowerCase()) {
+      translationCache.set(text, translated);
+      return translated;
+    }
+  } catch {
+    // Fallback local si el traductor publico no responde.
+  }
+
+  const localized = localizeNewsText(text);
+  translationCache.set(text, localized);
+  return localized;
+}
+
+function localizeNewsText(value) {
+  const replacements = [
+    [/This Week in Star Citizen/gi, 'Esta semana en Star Citizen'],
+    [/Roadmap Roundup/gi, 'Resumen de la hoja de ruta'],
+    [/Q&A/gi, 'Preguntas y respuestas'],
+    [/DefenseCon/gi, 'DefenseCon'],
+    [/Stay up to date with everything going on in the.?verse\.?/gi, 'Ponte al dia con todo lo que ocurre en el verso.'],
+    [/Here are the answers, straight from the devs themselves\.?/gi, 'Aqui tienes las respuestas directamente del equipo de desarrollo.'],
+    [/ship/gi, 'nave'],
+    [/ships/gi, 'naves'],
+    [/vehicle/gi, 'vehiculo'],
+    [/vehicles/gi, 'vehiculos'],
+    [/development/gi, 'desarrollo'],
+    [/showcase/gi, 'presentacion'],
+    [/released/gi, 'lanzado'],
+    [/latest/gi, 'ultimas'],
+    [/official/gi, 'oficial'],
+    [/news/gi, 'noticias'],
+    [/game/gi, 'juego']
+  ];
+  return replacements.reduce((text, [pattern, replacement]) => text.replace(pattern, replacement), value);
+}
+
+function translateNewsCategory(value) {
+  const text = String(value || '').toLowerCase();
+  if (text.includes('transmission')) return 'Transmision';
+  if (text.includes('engineering')) return 'Ingenieria';
+  if (text.includes('citizens')) return 'Comunidad';
+  if (text.includes('spectrum')) return 'Spectrum';
+  if (text.includes('video')) return 'Video';
+  return 'Comm-Link';
+}
+
+function translatePublishedLabel(value) {
+  const text = String(value || '').trim();
+  if (!text) return '';
+  const date = new Date(text);
+  if (!Number.isNaN(date.getTime())) return date.toLocaleDateString('es-ES', { dateStyle: 'medium' });
+  return text
+    .replace(/Posted:/gi, 'Publicado:')
+    .replace(/hours? ago/gi, 'horas')
+    .replace(/days? ago/gi, 'dias')
+    .replace(/weeks? ago/gi, 'semanas');
+}
+
+function escapeRegExp(value) {
+  return String(value || '').replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+function extractCommLinkItems(html) {
+  const items = [];
+  const seen = new Set();
+  const anchorPattern = /<a\b[^>]*href=["']([^"']*\/comm-link\/[^"']+)["'][^>]*>([\s\S]*?)<\/a>/gi;
+  let match;
+
+  while ((match = anchorPattern.exec(html)) && items.length < 16) {
+    const url = normalizeCommLinkUrl(match[1]);
+    const rawTitle = cleanNewsText(match[2]);
+    const title = isUsableNewsTitle(rawTitle) && !/Posted:|Mantente|Stay up/i.test(rawTitle) ? rawTitle : titleFromCommLinkUrl(url);
+    if (!url || !isUsableNewsTitle(title) || seen.has(url)) continue;
+    seen.add(url);
+    items.push({
+      title,
+      url,
+      category: categoryFromUrl(url),
+      excerpt: 'Comunicado reciente del desarrollo de Star Citizen.',
+      publishedLabel: ''
+    });
+  }
+
+  if (items.length >= 4) return items;
+
+  const text = htmlToTextLines(html).join('\n');
+  const plainPattern = /post\s+(.+?)\s+\d+\s+Posted:\s+([A-Za-z]+\s+\d{1,2},\s+\d{4})\s+(.+?)(?=\npost\s+|\n[a-z]+\s+post\s+|$)/gis;
+  while ((match = plainPattern.exec(text)) && items.length < 8) {
+    const title = cleanNewsText(match[1]);
+    if (!isUsableNewsTitle(title) || seen.has(title)) continue;
+    seen.add(title);
+    items.push({
+      title,
+      url: commLinkUrl,
+      category: 'Comm-Link',
+      excerpt: cleanNewsText(match[3]).slice(0, 220),
+      publishedLabel: match[2]
+    });
+  }
+
+  return items;
+}
+
+function normalizeCommLinkUrl(value) {
+  const url = String(value || '').replace(/^https?:\/\/robertsspaceindustries\.com/i, '');
+  if (!url.includes('/comm-link/')) return '';
+  return `https://robertsspaceindustries.com${url.split('?')[0]}`;
+}
+
+function titleFromCommLinkUrl(url) {
+  const slug = String(url || '').split('/').pop() || '';
+  const title = slug.replace(/^\d+-/, '').replace(/-/g, ' ').trim();
+  return title ? title.replace(/\b\w/g, (char) => char.toUpperCase()) : '';
+}
+
+function categoryFromUrl(url) {
+  const match = String(url || '').match(/comm-link\/([^/]+)/i);
+  return match ? match[1].replace(/-/g, ' ') : 'Comm-Link';
+}
+
+function cleanNewsText(value) {
+  return decodeHtmlEntities(String(value || '').replace(/<[^>]+>/g, ' ')).replace(/\s+/g, ' ').trim();
+}
+
+function isUsableNewsTitle(value) {
+  const text = String(value || '').trim();
+  return text.length >= 12 && text.length <= 160 && !/comm-link|read more|spectrum|login|pledge/i.test(text);
 }
 
 function isUsefulModule(module) {
@@ -3264,6 +3508,11 @@ const server = http.createServer(async (request, response) => {
 
       if (request.method === 'GET' && url.pathname === '/api/wiki-ship-image') {
         await proxyWikiShipImage(request, response);
+        return;
+      }
+
+      if (request.method === 'GET' && url.pathname === '/api/game-news') {
+        sendJson(response, 200, await readGameNews());
         return;
       }
 

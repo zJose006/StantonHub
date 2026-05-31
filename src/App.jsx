@@ -8,6 +8,7 @@ import { ShipsPage } from './pages/ShipsPage.jsx';
 import { ShipDetailPage } from './pages/ShipDetailPage.jsx';
 import { ComponentsPage } from './pages/ComponentsPage.jsx';
 import { ComponentDetailPage } from './pages/ComponentDetailPage.jsx';
+import { GameNewsPage } from './pages/GameNewsPage.jsx';
 import { ProfilePage } from './pages/ProfilePage.jsx';
 import { LoginPage } from './pages/LoginPage.jsx';
 import { EditorPage } from './pages/EditorPage.jsx';
@@ -25,6 +26,7 @@ export function App() {
   const [stateError, setStateError] = useState('');
 
   useEffect(() => {
+    if ('scrollRestoration' in window.history) window.history.scrollRestoration = 'manual';
     const cleanPath = normalizeRoute(window.location.pathname);
     if (cleanPath !== window.location.pathname) { window.history.replaceState(null, '', cleanPath + window.location.search); setPage(getCurrentPage()); }
     const onPopState = () => setPage(getCurrentPage());
@@ -37,7 +39,14 @@ export function App() {
   const currentUser = useMemo(() => state.users.find((user) => user.id === state.sessionUserId) || null, [state]);
 
   /** Cambia de ruta dentro del SPA sin recargar documento. */
-  function navigate(path) { window.history.pushState(null, '', path.replace(/\.html(?=\?|$)/, '')); setPage(getCurrentPage()); }
+  function navigate(path) {
+    const cleanPath = path.replace(/\.html(?=\?|$)/, '');
+    window.history.pushState(null, '', cleanPath);
+    setPage(getCurrentPage());
+    if (cleanPath.startsWith(routes.ship + '/') || cleanPath.startsWith(routes.components + '/')) {
+      window.requestAnimationFrame(() => window.scrollTo({ top: 0, left: 0, behavior: 'auto' }));
+    }
+  }
 
-  return <><Header page={page} navigate={navigate} currentUser={currentUser} />{page === 'home' && <Home navigate={navigate} />}{['forum','guides','news'].includes(page) && <ContentPage section={page} state={state} setState={setState} currentUser={currentUser} navigate={navigate} stateError={stateError} />}{page === 'ships' && <ShipsPage currentUser={currentUser} navigate={navigate} />}{page === 'ship-detail' && <ShipDetailPage identifier={getShipIdentifier()} navigate={navigate} />}{page === 'components' && <ComponentsPage navigate={navigate} />}{page === 'component-detail' && <ComponentDetailPage identifier={getComponentIdentifier()} navigate={navigate} />}{page === 'profile' && <ProfilePage state={state} setState={setState} currentUser={currentUser} navigate={navigate} stateError={stateError} />}{(page === 'login' || page === 'register') && <LoginPage />}{page === 'editor' && <EditorPage setState={setState} navigate={navigate} />}{page === 'admin' && <AdminPage currentUser={currentUser} navigate={navigate} />}<Footer navigate={navigate} /></>;
+  return <><Header page={page} navigate={navigate} currentUser={currentUser} />{page === 'home' && <Home navigate={navigate} />}{['forum','guides','news'].includes(page) && <ContentPage section={page} state={state} setState={setState} currentUser={currentUser} navigate={navigate} stateError={stateError} />}{page === 'game-news' && <GameNewsPage navigate={navigate} />}{page === 'ships' && <ShipsPage currentUser={currentUser} navigate={navigate} />}{page === 'ship-detail' && <ShipDetailPage identifier={getShipIdentifier()} navigate={navigate} />}{page === 'components' && <ComponentsPage navigate={navigate} />}{page === 'component-detail' && <ComponentDetailPage identifier={getComponentIdentifier()} navigate={navigate} />}{page === 'profile' && <ProfilePage state={state} setState={setState} currentUser={currentUser} navigate={navigate} stateError={stateError} />}{(page === 'login' || page === 'register') && <LoginPage />}{page === 'editor' && <EditorPage setState={setState} navigate={navigate} />}{page === 'admin' && <AdminPage currentUser={currentUser} navigate={navigate} />}<Footer navigate={navigate} /></>;
 }

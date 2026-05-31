@@ -69,6 +69,7 @@ export function ShipDetailPage({ identifier, navigate }) {
           <div className="ship-detail-actions">
             {vehicle.storeUrl && <a className="action-btn" href={vehicle.storeUrl} target="_blank" rel="noreferrer">RSI Store</a>}
           </div>
+          <ShipMarketStrip vehicle={vehicle} prices={prices} />
         </div>
       </section>
 
@@ -150,6 +151,29 @@ function MetricTile({ label, value }) {
   return <div className="ship-kpi"><dt>{label}</dt><dd>{textValue(value, 'N/D')}</dd></div>;
 }
 
+function ShipMarketStrip({ vehicle, prices = {} }) {
+  const purchaseLocations = vehicle.purchase?.locations?.length ? vehicle.purchase.locations : marketLocations(prices.purchase);
+  const rentalLocations = vehicle.rental?.locations?.length ? vehicle.rental.locations : marketLocations(prices.rental);
+  return (
+    <div className="ship-market-strip" aria-label="Puntos de compra y alquiler">
+      <article>
+        <span>Compra in-game</span>
+        <strong>{money(vehicle.purchase?.price)}</strong>
+        <p>{purchaseLocations.length ? purchaseLocations.map((item) => textValue(item)).join(', ') : 'Sin terminal conocido'}</p>
+      </article>
+      <article>
+        <span>Alquiler</span>
+        <strong>{money(vehicle.rental?.price)}</strong>
+        <p>{rentalLocations.length ? rentalLocations.map((item) => textValue(item)).join(', ') : 'Sin terminal conocido'}</p>
+      </article>
+    </div>
+  );
+}
+
+function marketLocations(rows = []) {
+  return [...new Set((rows || []).map((row) => row.terminal_name || row.location_name || row.city_name || row.planet_name).filter(Boolean))].slice(0, 4);
+}
+
 function MetricPanel({ icon, title, sections }) {
   return (
     <section className="panel ship-sheet-panel">
@@ -189,14 +213,12 @@ function ScoreRadar({ scores, selected, onSelect }) {
         </svg>
         <div className="score-total"><strong>{average.toFixed(1)}</strong><span>/10</span></div>
         {scores.map((score, index) => {
-          const angle = -Math.PI / 2 + (index * Math.PI * 2) / scores.length;
           const active = selected.label === score.label;
           return (
             <button
               key={score.label}
-              className={`score-vertex-button ${active ? 'active' : ''}`}
+              className={`score-vertex-button score-vertex-${index + 1} ${active ? 'active' : ''}`}
               type="button"
-              style={{ '--x': `${50 + Math.cos(angle) * 43}%`, '--y': `${50 + Math.sin(angle) * 43}%` }}
               onClick={() => onSelect(score.label)}
               aria-label={`Ver explicacion de ${score.label}`}
             >

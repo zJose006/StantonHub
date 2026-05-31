@@ -38,6 +38,11 @@ export async function loadComponentCatalog() {
   return requestJson('/api/components/catalog');
 }
 
+/** Carga noticias recientes del Comm-Link oficial con cache en backend. */
+export async function loadGameNews() {
+  return requestJson('/api/game-news');
+}
+
 /** Carga una ficha individual de componente. */
 export async function loadComponentDetail(identifier) {
   const catalog = await loadComponentCatalog();

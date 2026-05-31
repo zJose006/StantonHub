@@ -7,15 +7,19 @@ import { routes } from '../config/routes.js';
 import { routeClick } from '../utils/navigation.js';
 
 const pageSizeOptions = [20, 40, 80, 120];
+const shipsStateKey = 'stantonHubShipsState';
+const shipsScrollKey = 'stantonHubShipsScroll';
+const defaultFilters = { search: '', manufacturer: '', type: '', role: '', sort: '' };
 
 /** Pagina de catalogo de naves con filtros, paginacion y sincronizacion protegida. */
 export function ShipsPage({ currentUser, navigate }) {
   const [ships, setShips] = useState([]);
   const [status, setStatus] = useState('Cargando catalogo local...');
   const [syncing, setSyncing] = useState(false);
-  const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(20);
-  const [filters, setFilters] = useState({ search: '', manufacturer: '', type: '', role: '', sort: '' });
+  const initialCatalogState = readShipsState();
+  const [page, setPage] = useState(initialCatalogState.page);
+  const [pageSize, setPageSize] = useState(initialCatalogState.pageSize);
+  const [filters, setFilters] = useState(initialCatalogState.filters);
 
   useEffect(() => {
     loadVehiclesCatalog()
@@ -29,6 +33,18 @@ export function ShipsPage({ currentUser, navigate }) {
   useEffect(() => {
     setPage(1);
   }, [filters, pageSize]);
+
+  useEffect(() => {
+    window.sessionStorage?.setItem(shipsStateKey, JSON.stringify({ page, pageSize, filters }));
+  }, [page, pageSize, filters]);
+
+  useEffect(() => {
+    const scrollY = Number(window.sessionStorage?.getItem(shipsScrollKey) || 0);
+    if (scrollY > 0) {
+      window.requestAnimationFrame(() => window.scrollTo({ top: scrollY, left: 0, behavior: 'auto' }));
+      window.sessionStorage.removeItem(shipsScrollKey);
+    }
+  }, []);
 
   async function syncVehicles() {
     setSyncing(true);
@@ -82,6 +98,19 @@ export function ShipsPage({ currentUser, navigate }) {
   );
 }
 
+function readShipsState() {
+  try {
+    const stored = JSON.parse(window.sessionStorage?.getItem(shipsStateKey) || '{}');
+    return {
+      page: Number(stored.page || 1),
+      pageSize: pageSizeOptions.includes(Number(stored.pageSize)) ? Number(stored.pageSize) : 20,
+      filters: { ...defaultFilters, ...(stored.filters || {}) }
+    };
+  } catch {
+    return { page: 1, pageSize: 20, filters: defaultFilters };
+  }
+}
+
 /** Campo de busqueda del catalogo. */
 function ShipInput({ label, value, onChange }) {
   return <label>{label}<input type="search" value={value} onChange={(event) => onChange(event.target.value)} placeholder="Nombre, fabricante, rol..." /></label>;
@@ -126,5 +155,5 @@ function ShipCard({ ship, navigate }) {
   const currentImage = images[imageIndex];
   const shipName = textValue(ship.name, 'Nave sin nombre');
   const detailPath = `${routes.ships}/${ship.id}-${slugify(shipName)}`;
-  return <article className="ship-card"><a className="ship-card-link" href={detailPath} onClick={(event) => routeClick(event, detailPath, navigate)}><div className="ship-image">{currentImage ? <img src={currentImage} width="1600" height="900" alt={shipName} loading="lazy" onError={() => setImageIndex((index) => index + 1)} /> : <div className="ship-image-placeholder">SC</div>}</div><div className="ship-card-body"><div className="ship-title-row"><div><span>{textValue(ship.manufacturer, 'Fabricante desconocido')}</span><h3>{shipName}</h3></div><strong>{textValue(ship.padType, 'N/D')}</strong></div><div className="ship-tags">{ship.tags?.slice(0, 4).map((tag) => <span key={textValue(tag)}>{textValue(tag)}</span>) || <span>Sin rol</span>}</div><dl className="ship-specs"><div><dt>Pledge</dt><dd>{money(ship.pledge?.price, ship.pledge?.currency || 'USD')}</dd></div><div><dt>Compra</dt><dd>{money(ship.purchase?.price)}</dd></div><div><dt>Alquiler</dt><dd>{money(ship.rental?.price)}</dd></div><div><dt>Carga</dt><dd>{ship.scu ? ship.scu + ' SCU' : 'N/D'}</dd></div><div><dt>Tripulacion</dt><dd>{textValue(ship.crew, 'N/D')}</dd></div><div><dt>Longitud</dt><dd>{meters(ship.length)}</dd></div></dl><div className="ship-locations"><strong>Compra:</strong><span>{ship.purchase?.locations?.length ? ship.purchase.locations.map((item) => textValue(item)).join(', ') : 'Sin terminal conocido'}</span></div><div className="ship-locations"><strong>Alquiler:</strong><span>{ship.rental?.locations?.length ? ship.rental.locations.map((item) => textValue(item)).join(', ') : 'Sin terminal conocido'}</span></div><span className="ship-link">Ver ficha completa</span></div></a></article>;
+  return <article className="ship-card"><a className="ship-card-link" href={detailPath} onClick={(event) => { window.sessionStorage?.setItem(shipsScrollKey, String(window.scrollY)); routeClick(event, detailPath, navigate); }}><div className="ship-image">{currentImage ? <img src={currentImage} width="1600" height="900" alt={shipName} loading="lazy" onError={() => setImageIndex((index) => index + 1)} /> : <div className="ship-image-placeholder">SC</div>}</div><div className="ship-card-body"><div className="ship-title-row"><div><span>{textValue(ship.manufacturer, 'Fabricante desconocido')}</span><h3>{shipName}</h3></div><strong>{textValue(ship.padType, 'N/D')}</strong></div><div className="ship-tags">{ship.tags?.slice(0, 4).map((tag) => <span key={textValue(tag)}>{textValue(tag)}</span>) || <span>Sin rol</span>}</div><dl className="ship-specs"><div><dt>Pledge</dt><dd>{money(ship.pledge?.price, ship.pledge?.currency || 'USD')}</dd></div><div><dt>Compra</dt><dd>{money(ship.purchase?.price)}</dd></div><div><dt>Alquiler</dt><dd>{money(ship.rental?.price)}</dd></div><div><dt>Carga</dt><dd>{ship.scu ? ship.scu + ' SCU' : 'N/D'}</dd></div><div><dt>Tripulacion</dt><dd>{textValue(ship.crew, 'N/D')}</dd></div><div><dt>Longitud</dt><dd>{meters(ship.length)}</dd></div></dl><div className="ship-locations"><strong>Compra:</strong><span>{ship.purchase?.locations?.length ? ship.purchase.locations.map((item) => textValue(item)).join(', ') : 'Sin terminal conocido'}</span></div><div className="ship-locations"><strong>Alquiler:</strong><span>{ship.rental?.locations?.length ? ship.rental.locations.map((item) => textValue(item)).join(', ') : 'Sin terminal conocido'}</span></div><span className="ship-link">Ver ficha completa</span></div></a></article>;
 }

@@ -152,17 +152,17 @@ export function componentVisual(category = '', name = '') {
         <stop offset="1" stop-color="${palette.b}"/>
       </linearGradient>
       <linearGradient id="line" x1="0" x2="1">
-        <stop offset="0" stop-color="#00d9ff"/>
+        <stop offset="0" stop-color="#18c5dc"/>
         <stop offset="1" stop-color="${palette.c}"/>
       </linearGradient>
     </defs>
-    <rect width="640" height="360" fill="#050911"/>
-    <rect x="18" y="18" width="604" height="324" rx="18" fill="url(#bg)" stroke="#1d6f87" stroke-width="2"/>
-    <path d="M70 270 L210 90 L430 90 L570 270 Z" fill="none" stroke="#153b4d" stroke-width="10"/>
+    <rect width="640" height="360" fill="#0F1012"/>
+    <rect x="18" y="18" width="604" height="324" rx="18" fill="url(#bg)" stroke="#C9CED6" stroke-width="2" opacity="0.9"/>
+    <path d="M70 270 L210 90 L430 90 L570 270 Z" fill="none" stroke="#2F3136" stroke-width="10"/>
     <path d="M112 250 L236 122 L404 122 L528 250" fill="none" stroke="url(#line)" stroke-width="8" stroke-linecap="round"/>
-    <circle cx="320" cy="178" r="72" fill="rgba(0,217,255,0.13)" stroke="#00d9ff" stroke-width="5"/>
+    <circle cx="320" cy="178" r="72" fill="rgba(24,197,220,0.13)" stroke="#18c5dc" stroke-width="5"/>
     <text x="320" y="192" text-anchor="middle" fill="#eef8ff" font-family="Inter,Segoe UI,sans-serif" font-size="54" font-weight="900">${token}</text>
-    <text x="48" y="66" fill="#ffb547" font-family="Inter,Segoe UI,sans-serif" font-size="20" font-weight="900" letter-spacing="4">${escapeSvgText(textValue(category, 'Component').toUpperCase())}</text>
+    <text x="48" y="66" fill="#F6C500" font-family="Inter,Segoe UI,sans-serif" font-size="20" font-weight="900" letter-spacing="4">${escapeSvgText(textValue(category, 'Component').toUpperCase())}</text>
     <text x="48" y="316" fill="#b7cad9" font-family="Inter,Segoe UI,sans-serif" font-size="18" font-weight="800">${title}</text>
   </svg>`;
   return `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(svg)}`;
@@ -170,11 +170,11 @@ export function componentVisual(category = '', name = '') {
 
 function componentPalette(category = '') {
   const text = textValue(category).toLowerCase();
-  if (/arma|misil|torreta/.test(text)) return { a: '#21100c', b: '#07111e', c: '#ffb547' };
-  if (/escudo|blindaje/.test(text)) return { a: '#082137', b: '#07111e', c: '#73e7ff' };
-  if (/quantum|propulsion|combustible/.test(text)) return { a: '#111044', b: '#061827', c: '#9b8cff' };
-  if (/refrigeracion|energia|planta/.test(text)) return { a: '#052d2a', b: '#07111e', c: '#53ffbf' };
-  return { a: '#0b2235', b: '#07111e', c: '#00d9ff' };
+  if (/arma|misil|torreta/.test(text)) return { a: '#2F3136', b: '#0F1012', c: '#F6C500' };
+  if (/escudo|blindaje/.test(text)) return { a: '#16323a', b: '#0F1012', c: '#18c5dc' };
+  if (/quantum|propulsion|combustible/.test(text)) return { a: '#2F3136', b: '#0F1012', c: '#FFE07A' };
+  if (/refrigeracion|energia|planta/.test(text)) return { a: '#14363d', b: '#0F1012', c: '#18c5dc' };
+  return { a: '#2F3136', b: '#0F1012', c: '#C9CED6' };
 }
 
 function escapeSvgText(value) {

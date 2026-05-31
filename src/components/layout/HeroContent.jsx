@@ -9,6 +9,7 @@ export function HeroContent({ page, navigate }) {
     forum: ['Base de operaciones', 'Publicaciones de usuarios sobre rutas, consejos y actividad reciente.'],
     guides: ['Guias de pilotos', 'Manuales y preparacion creados por la comunidad.'],
     news: ['Intel de comunidad', 'Avisos, eventos y novedades publicadas por usuarios.'],
+    'game-news': ['Actualidad del verso', 'Ultimas comunicaciones oficiales sobre Star Citizen.'],
     ships: ['Naves y vehiculos del verso', 'Catalogo UEX con precios, filtros, fabricantes y detalles tecnicos.'],
     'ship-detail': ['Ficha tecnica de nave', 'Datos locales, precios, hardpoints y combate.'],
     components: ['Componentes del verso', 'Catalogo de armas, escudos, quantum, propulsion y sistemas instalables.'],
@@ -34,6 +35,7 @@ function Breadcrumb({ page, navigate }) {
     forum: 'Foro',
     guides: 'Guias',
     news: 'Intel',
+    'game-news': 'Actualidad',
     ships: 'Naves',
     'ship-detail': 'Detalle',
     components: 'Componentes',
@@ -49,6 +51,8 @@ function Breadcrumb({ page, navigate }) {
     ? [[routes.home, 'Stanton Hub'], [routes.ships, 'Naves'], ['', 'Detalle']]
     : page === 'component-detail'
       ? [[routes.home, 'Stanton Hub'], [routes.components, 'Componentes'], ['', 'Detalle']]
+    : page === 'game-news'
+      ? [[routes.home, 'Stanton Hub'], ['', 'Actualidad']]
     : page === 'home'
       ? [['', 'Stanton Hub']]
       : [[routes.home, 'Stanton Hub'], ['', current]];

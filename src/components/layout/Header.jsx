@@ -55,14 +55,14 @@ export function Header({ page, navigate, currentUser }) {
         </button>
         <a className="home-button" href={routes.home} onClick={(event) => { routeClick(event, routes.home, navigate); closeMobileNav(); }} aria-label="Inicio">
           <span className="home-icon" aria-hidden="true"><img src="/assets/stanton-hub-logo.png" alt="" /></span>
-          <span className="brand-copy"><strong className="flow-text">Stanton Hub</strong><small>Organizacion Star Citizen</small></span>
+          <span className="brand-copy"><strong className="flow-text">Stanton Hub</strong><small>Guias, naves e intel</small></span>
         </a>
         <div className={`header-nav-panel ${mobileNavOpen ? 'is-open' : ''}`}>
           <div className="mobile-drawer-head">
             <button className="mobile-drawer-close" type="button" aria-label="Cerrar menu" onClick={closeMobileNav}>x</button>
             <a className="mobile-drawer-brand" href={routes.home} onClick={(event) => { routeClick(event, routes.home, navigate); closeMobileNav(); }}>
               <span className="home-icon" aria-hidden="true"><img src="/assets/stanton-hub-logo.png" alt="" /></span>
-              <span className="brand-copy"><strong className="flow-text">Stanton Hub</strong><small>Organizacion Star Citizen</small></span>
+              <span className="brand-copy"><strong className="flow-text">Stanton Hub</strong><small>Guias, naves e intel</small></span>
             </a>
           </div>
           <a className="mobile-home-link" href={routes.home} onClick={(event) => { routeClick(event, routes.home, navigate); closeMobileNav(); }}>Inicio</a>
@@ -74,8 +74,9 @@ export function Header({ page, navigate, currentUser }) {
               <MenuItem path={routes.ships} title="Naves" text="Catalogo con precios, filtros y detalles tecnicos." navigate={navigate} closeMobileNav={closeMobileNav} />
               <MenuItem path={routes.components} title="Componentes" text="Armas, escudos, quantum y sistemas instalables." navigate={navigate} closeMobileNav={closeMobileNav} />
             </NavGroup>
-            <NavGroup name="Comunidad" active={page === 'news'} openMenu={openMenu} setOpenMenu={toggleMenu}>
+            <NavGroup name="Comunidad" active={page === 'news' || page === 'game-news'} openMenu={openMenu} setOpenMenu={toggleMenu}>
               <MenuItem path={routes.news} title="Intel" text="Novedades, eventos y oportunidades del verso." navigate={navigate} closeMobileNav={closeMobileNav} />
+              <MenuItem path={routes.gameNews} title="Actualidad" text="Ultimas comunicaciones oficiales del desarrollo." navigate={navigate} closeMobileNav={closeMobileNav} />
             </NavGroup>
           </nav>
         </div>

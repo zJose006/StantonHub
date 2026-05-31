@@ -1,15 +1,23 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { routes } from '../config/routes.js';
+import { loadGameNews } from '../services/api.js';
 import { routeClick } from '../utils/navigation.js';
 
 /** Pagina de bienvenida con accesos directos a las secciones principales. */
 export function Home({ navigate }) {
+  const [latestNews, setLatestNews] = useState([]);
+
+  useEffect(() => {
+    loadGameNews().then((payload) => setLatestNews((payload.items || []).slice(0, 3))).catch(() => setLatestNews([]));
+  }, []);
+
   const cards = [
     [routes.ships, 'Catalogo tecnico', 'Naves', 'Filtra vehiculos por fabricante, rol, tamano, precio y revisa fichas con hardpoints, modulos y puntuacion operacional.'],
     [routes.components, 'Equipamiento', 'Componentes', 'Consulta armas, escudos, quantum, propulsion y sistemas relacionados con las naves del catalogo.'],
     [routes.guides, 'Aprendizaje', 'Guias', 'Manuales de farmeo, preparacion de rutas, mecanicas y recomendaciones creadas por la comunidad.'],
     [routes.forum, 'Operaciones', 'Base de operaciones', 'Publica rutas, dudas, hallazgos y consejos rapidos para otros pilotos.'],
-    [routes.news, 'Comunidad', 'Intel', 'Avisos, novedades, eventos y oportunidades utiles para estar al dia antes de despegar.'],
+    [routes.gameNews, 'Actualidad', 'Noticias oficiales', 'Ultimas comunicaciones del desarrollo para estar al dia antes de despegar.'],
+    [routes.news, 'Comunidad', 'Intel', 'Avisos, eventos y oportunidades utiles publicadas por pilotos del hub.'],
     [routes.profile, 'Cuenta', 'Perfil', 'Acceso con Discord, actividad, publicaciones y herramientas para aportar contenido.']
   ];
   const workflow = [
@@ -23,9 +31,9 @@ export function Home({ navigate }) {
     ['Comunidad', 'Intel, votos y comentarios']
   ];
   const slides = [
-    ['Combate', 'Naves, hardpoints y lectura rapida de potencia ofensiva.', 'https://robertsspaceindustries.com/media/eiua12z9nxlkar/source/Buc_final120_compFlat.jpg'],
-    ['Sistemas', 'Componentes, energia, quantum y configuraciones preparadas para comparar.', 'https://robertsspaceindustries.com/media/bgkdmr6l1l62yr/source/Ryan_Blueprints_Components_2.jpg'],
-    ['Exploracion', 'Fichas pensadas para elegir nave, rol y preparacion de vuelo.', 'https://robertsspaceindustries.com/media/a1qlqb8ernl8ur/source/ARGO_Raft_Argo-Durability_and_-Quality.jpg']
+    ['Combate', 'Naves, hardpoints y lectura rapida de potencia ofensiva.'],
+    ['Sistemas', 'Componentes, energia, quantum y configuraciones preparadas para comparar.'],
+    ['Exploracion', 'Fichas pensadas para elegir nave, rol y preparacion de vuelo.']
   ];
 
   return (
@@ -44,8 +52,8 @@ export function Home({ navigate }) {
           </dl>
         </div>
         <div className="home-carousel" aria-label="Capturas destacadas de Star Citizen">
-          {slides.map(([label, text, image], index) => (
-            <article className="home-carousel-slide" key={label} style={{ '--slide-image': `url("${image}")`, '--slide-index': index }}>
+          {slides.map(([label, text], index) => (
+            <article className={`home-carousel-slide home-carousel-slide-${index + 1}`} key={label}>
               <span>{label}</span>
               <strong>{text}</strong>
             </article>
@@ -55,6 +63,24 @@ export function Home({ navigate }) {
 
       <section className="home-workflow" aria-label="Flujo de uso">
         {workflow.map(([title, text]) => <article className="home-highlight" key={title}><strong>{title}</strong><p>{text}</p></article>)}
+      </section>
+
+      <section className="home-news-panel" aria-label="Ultimas noticias de Star Citizen">
+        <div className="home-news-heading">
+          <span className="section-label">Actualidad</span>
+          <h2>Ultimas noticias del verso</h2>
+          <a className="ship-link" href={routes.gameNews} onClick={(event) => routeClick(event, routes.gameNews, navigate)}>Ver actualidad</a>
+        </div>
+        <div className="home-news-grid">
+          {(latestNews.length ? latestNews : [['Cargando actualidad...', 'La seccion se actualiza automaticamente desde Comm-Link.', '']].map(([title, excerpt, url]) => ({ title, excerpt, url }))).map((item) => (
+            <article className="home-news-card" key={item.url || item.title}>
+              {item.image ? <img src={item.image} alt="" loading="lazy" /> : null}
+              <span>{item.category || 'Comm-Link'}</span>
+              <strong>{item.title}</strong>
+              <p>{item.excerpt}</p>
+            </article>
+          ))}
+        </div>
       </section>
 
       <section className="home-sections" aria-label="Apartados principales">
