@@ -8,6 +8,7 @@ export function getCurrentPage() {
   const path = normalizeRoute(window.location.pathname);
   if (path.startsWith(routes.ships + '/')) return 'ship-detail';
   if (path.startsWith(routes.components + '/')) return 'component-detail';
+  if (path.startsWith(routes.gameNews + '/')) return 'game-news-detail';
   return pageMap[path] || 'home';
 }
 
@@ -21,6 +22,12 @@ export function getShipIdentifier() {
 export function getComponentIdentifier() {
   const path = normalizeRoute(window.location.pathname);
   return path.startsWith(routes.components + '/') ? decodeURIComponent(path.slice(routes.components.length + 1)) : '';
+}
+
+/** Devuelve el identificador dinamico de una noticia oficial desde la ruta actual. */
+export function getGameNewsIdentifier() {
+  const path = normalizeRoute(window.location.pathname);
+  return path.startsWith(routes.gameNews + '/') ? decodeURIComponent(path.slice(routes.gameNews.length + 1)) : '';
 }
 
 /** Navega sin recargar la pagina, manteniendo el router casero de la app. */

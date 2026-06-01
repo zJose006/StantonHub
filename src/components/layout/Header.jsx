@@ -30,8 +30,8 @@ export function Header({ page, navigate, currentUser }) {
     if (name === 'Cuenta') setMobileNavOpen(false);
   }
 
-  const link = (path, label, className = 'page-btn') => (
-    <a className={className} href={path} onClick={(event) => { routeClick(event, path, navigate); closeMobileNav(); }}>
+  const link = (path, label, className = 'page-btn', active = false) => (
+    <a className={`${className} ${active ? 'active' : ''}`} href={path} onClick={(event) => { routeClick(event, path, navigate); closeMobileNav(); }}>
       {className.includes('discord-login-link') && <DiscordIcon />}
       <span>{label}</span>
     </a>
@@ -39,7 +39,6 @@ export function Header({ page, navigate, currentUser }) {
   const accountNav = currentUser ? (
     <NavGroup name="Cuenta" active={page === 'profile' || page === 'editor' || page === 'admin'} openMenu={openMenu} setOpenMenu={toggleMenu} triggerContent={<UserBadge user={currentUser} />}>
       <MenuItem path={routes.profile} title="Mi perfil" text="Identidad, acceso y actividad de tu cuenta." navigate={navigate} closeMobileNav={closeMobileNav} />
-      <MenuItem path={routes.editor + '?type=forum'} title="Crear publicacion" text="Publica consejos, guias o intel desde el editor." navigate={navigate} closeMobileNav={closeMobileNav} />
       {can(currentUser, 'admin.access') && <MenuItem path={routes.admin} title="Administracion" text="Usuarios, roles, publicaciones, capturas y UEX." navigate={navigate} closeMobileNav={closeMobileNav} />}
     </NavGroup>
   ) : (
@@ -55,29 +54,23 @@ export function Header({ page, navigate, currentUser }) {
         </button>
         <a className="home-button" href={routes.home} onClick={(event) => { routeClick(event, routes.home, navigate); closeMobileNav(); }} aria-label="Inicio">
           <span className="home-icon" aria-hidden="true"><img src="/assets/stanton-hub-logo.png" alt="" /></span>
-          <span className="brand-copy"><strong className="flow-text">Stanton Hub</strong><small>Guias, naves e intel</small></span>
+          <span className="brand-copy"><strong className="flow-text">Stanton Hub</strong><small>Herramientas de pilotos</small></span>
         </a>
         <div className={`header-nav-panel ${mobileNavOpen ? 'is-open' : ''}`}>
           <div className="mobile-drawer-head">
             <button className="mobile-drawer-close" type="button" aria-label="Cerrar menu" onClick={closeMobileNav}>x</button>
             <a className="mobile-drawer-brand" href={routes.home} onClick={(event) => { routeClick(event, routes.home, navigate); closeMobileNav(); }}>
               <span className="home-icon" aria-hidden="true"><img src="/assets/stanton-hub-logo.png" alt="" /></span>
-              <span className="brand-copy"><strong className="flow-text">Stanton Hub</strong><small>Guias, naves e intel</small></span>
+              <span className="brand-copy"><strong className="flow-text">Stanton Hub</strong><small>Herramientas de pilotos</small></span>
             </a>
           </div>
           <a className="mobile-home-link" href={routes.home} onClick={(event) => { routeClick(event, routes.home, navigate); closeMobileNav(); }}>Inicio</a>
           <nav className="site-nav" aria-label="Navegacion principal">
-            <NavGroup name="Biblioteca" active={page === 'guides'} openMenu={openMenu} setOpenMenu={toggleMenu}>
-              <MenuItem path={routes.guides} title="Guias" text="Manuales, preparacion y mecanicas explicadas." navigate={navigate} closeMobileNav={closeMobileNav} />
-            </NavGroup>
             <NavGroup name="Naves y Componentes" active={page === 'ships' || page === 'ship-detail' || page === 'components' || page === 'component-detail'} openMenu={openMenu} setOpenMenu={toggleMenu}>
               <MenuItem path={routes.ships} title="Naves" text="Catalogo con precios, filtros y detalles tecnicos." navigate={navigate} closeMobileNav={closeMobileNav} />
               <MenuItem path={routes.components} title="Componentes" text="Armas, escudos, quantum y sistemas instalables." navigate={navigate} closeMobileNav={closeMobileNav} />
             </NavGroup>
-            <NavGroup name="Comunidad" active={page === 'news' || page === 'game-news'} openMenu={openMenu} setOpenMenu={toggleMenu}>
-              <MenuItem path={routes.news} title="Intel" text="Novedades, eventos y oportunidades del verso." navigate={navigate} closeMobileNav={closeMobileNav} />
-              <MenuItem path={routes.gameNews} title="Actualidad" text="Ultimas comunicaciones oficiales del desarrollo." navigate={navigate} closeMobileNav={closeMobileNav} />
-            </NavGroup>
+            {link(routes.gameNews, 'Noticias', 'page-btn', page === 'game-news' || page === 'game-news-detail')}
           </nav>
         </div>
         <div className="header-account-slot">{accountNav}</div>
@@ -90,7 +83,7 @@ export function Header({ page, navigate, currentUser }) {
 /** Grupo desplegable del header. */
 function NavGroup({ name, active, openMenu, setOpenMenu, triggerContent, children }) {
   const isOpen = openMenu === name;
-  const introText = { Biblioteca: 'Guias y preparacion de vuelo', 'Naves y Componentes': 'Catalogos tecnicos del verso', Cuenta: 'Perfil, editor y acceso de piloto', Comunidad: 'Intel y actividad de la comunidad' }[name] || 'Secciones de Stanton Hub';
+  const introText = { 'Naves y Componentes': 'Catalogos tecnicos del verso', Cuenta: 'Perfil y acceso de piloto' }[name] || 'Secciones de Stanton Hub';
   return (
     <div className={`nav-group ${triggerContent ? 'account-nav' : ''} ${isOpen ? 'is-open' : ''}`}>
       <button className={`nav-trigger ${active ? 'active' : ''}`} type="button" aria-expanded={isOpen} aria-label={triggerContent ? name : undefined} title={triggerContent ? name : undefined} onClick={(event) => { event.stopPropagation(); setOpenMenu(name, isOpen); }}>

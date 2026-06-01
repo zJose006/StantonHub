@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { loadVehiclesCatalog, requestJson } from '../services/api.js';
 import { money, meters, slugify, textValue, uniqueSorted } from '../utils/format.js';
 import { can } from '../utils/permissions.js';
@@ -13,6 +13,7 @@ const defaultFilters = { search: '', manufacturer: '', type: '', role: '', sort:
 
 /** Pagina de catalogo de naves con filtros, paginacion y sincronizacion protegida. */
 export function ShipsPage({ currentUser, navigate }) {
+  const pageTopRef = useRef(null);
   const [ships, setShips] = useState([]);
   const [status, setStatus] = useState('Cargando catalogo local...');
   const [syncing, setSyncing] = useState(false);
@@ -70,8 +71,18 @@ export function ShipsPage({ currentUser, navigate }) {
   const rangeStart = filteredShips.length ? (safePage - 1) * pageSize + 1 : 0;
   const rangeEnd = Math.min(safePage * pageSize, filteredShips.length);
 
+  function changePage(nextPage) {
+    setPage((currentPage) => {
+      const resolvedPage = typeof nextPage === 'function' ? nextPage(currentPage) : nextPage;
+      return Math.max(1, Math.min(totalPages, resolvedPage));
+    });
+    window.requestAnimationFrame(() => {
+      pageTopRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
+  }
+
   return (
-    <main className="container ships-shell">
+    <main className="container ships-shell" ref={pageTopRef}>
       <section className="ships-toolbar panel">
         <div className="ships-toolbar-header">
           <div><span className="section-label">Busqueda</span><h2>Filtra el catalogo</h2><p>{status}</p></div>
@@ -93,7 +104,7 @@ export function ShipsPage({ currentUser, navigate }) {
 
       <section className={`ships-status ${filteredShips.length ? 'hidden' : ''}`}>{filteredShips.length ? '' : status}</section>
       <section className={`ships-grid ${pagedShips.length <= 2 ? 'ships-grid-compact' : ''}`}>{pagedShips.map((ship) => <ShipCard key={ship.id} ship={ship} navigate={navigate} />)}</section>
-      <Pagination page={safePage} totalPages={totalPages} setPage={setPage} totalItems={filteredShips.length} />
+      <Pagination page={safePage} totalPages={totalPages} setPage={changePage} totalItems={filteredShips.length} />
     </main>
   );
 }

@@ -1,11 +1,27 @@
 import React, { useEffect, useState } from 'react';
 import { routes } from '../config/routes.js';
 import { loadGameNews } from '../services/api.js';
+import { fallbackNewsImage, highQualityNewsImage } from '../utils/news.js';
 import { routeClick } from '../utils/navigation.js';
+
+function newsIdentifier(item) {
+  const source = item.id || item.slug || String(item.url || '').split('/').filter(Boolean).pop() || item.title;
+  return String(source || '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '');
+}
+
+function newsPath(item) {
+  return `${routes.gameNews}/${encodeURIComponent(newsIdentifier(item))}`;
+}
 
 /** Pagina de bienvenida con accesos directos a las secciones principales. */
 export function Home({ navigate }) {
   const [latestNews, setLatestNews] = useState([]);
+  const [showConstructionNotice, setShowConstructionNotice] = useState(() => !window.sessionStorage?.getItem('stantonhub-construction-notice'));
 
   useEffect(() => {
     loadGameNews().then((payload) => setLatestNews((payload.items || []).slice(0, 3))).catch(() => setLatestNews([]));
@@ -16,7 +32,7 @@ export function Home({ navigate }) {
     [routes.components, 'Equipamiento', 'Componentes', 'Consulta armas, escudos, quantum, propulsion y sistemas relacionados con las naves del catalogo.'],
     [routes.guides, 'Aprendizaje', 'Guias', 'Manuales de farmeo, preparacion de rutas, mecanicas y recomendaciones creadas por la comunidad.'],
     [routes.forum, 'Operaciones', 'Base de operaciones', 'Publica rutas, dudas, hallazgos y consejos rapidos para otros pilotos.'],
-    [routes.gameNews, 'Actualidad', 'Noticias oficiales', 'Ultimas comunicaciones del desarrollo para estar al dia antes de despegar.'],
+    [routes.gameNews, 'Noticias', 'Noticias oficiales', 'Ultimas comunicaciones del desarrollo para estar al dia antes de despegar.'],
     [routes.news, 'Comunidad', 'Intel', 'Avisos, eventos y oportunidades utiles publicadas por pilotos del hub.'],
     [routes.profile, 'Cuenta', 'Perfil', 'Acceso con Discord, actividad, publicaciones y herramientas para aportar contenido.']
   ];
@@ -36,8 +52,24 @@ export function Home({ navigate }) {
     ['Exploracion', 'Fichas pensadas para elegir nave, rol y preparacion de vuelo.']
   ];
 
+  function closeConstructionNotice() {
+    window.sessionStorage?.setItem('stantonhub-construction-notice', 'seen');
+    setShowConstructionNotice(false);
+  }
+
   return (
     <main className="container home-shell">
+      {showConstructionNotice ? (
+        <aside className="construction-notice" role="dialog" aria-label="Aviso de pagina en construccion">
+          <div className="construction-notice-card">
+            <span className="section-label">Aviso de desarrollo</span>
+            <h2>Stanton Hub esta en construccion</h2>
+            <p>La web ya se puede explorar, pero algunas secciones, datos y automatizaciones pueden cambiar mientras seguimos puliendo el hub.</p>
+            <button type="button" className="action-btn primary-action" onClick={closeConstructionNotice}>Entendido</button>
+          </div>
+        </aside>
+      ) : null}
+
       <section className="home-command">
         <div className="home-command-copy">
           <span className="section-label">Centro de mando</span>
@@ -67,18 +99,18 @@ export function Home({ navigate }) {
 
       <section className="home-news-panel" aria-label="Ultimas noticias de Star Citizen">
         <div className="home-news-heading">
-          <span className="section-label">Actualidad</span>
+          <span className="section-label">Noticias</span>
           <h2>Ultimas noticias del verso</h2>
-          <a className="ship-link" href={routes.gameNews} onClick={(event) => routeClick(event, routes.gameNews, navigate)}>Ver actualidad</a>
+          <a className="ship-link" href={routes.gameNews} onClick={(event) => routeClick(event, routes.gameNews, navigate)}>Ver noticias</a>
         </div>
         <div className="home-news-grid">
           {(latestNews.length ? latestNews : [['Cargando actualidad...', 'La seccion se actualiza automaticamente desde Comm-Link.', '']].map(([title, excerpt, url]) => ({ title, excerpt, url }))).map((item) => (
-            <article className="home-news-card" key={item.url || item.title}>
-              {item.image ? <img src={item.image} alt="" loading="lazy" /> : null}
+            <a className="home-news-card" key={item.url || item.title} href={newsPath(item)} onClick={(event) => routeClick(event, newsPath(item), navigate)}>
+              {item.image ? <img src={highQualityNewsImage(item.image)} alt="" loading="lazy" onError={(event) => { event.currentTarget.onerror = null; event.currentTarget.src = fallbackNewsImage(event.currentTarget.src); }} /> : null}
               <span>{item.category || 'Comm-Link'}</span>
               <strong>{item.title}</strong>
               <p>{item.excerpt}</p>
-            </article>
+            </a>
           ))}
         </div>
       </section>

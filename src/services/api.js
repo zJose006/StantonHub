@@ -43,6 +43,11 @@ export async function loadGameNews() {
   return requestJson('/api/game-news');
 }
 
+/** Carga una noticia oficial completa, preparada y traducida desde el backend. */
+export async function loadGameNewsDetail(identifier) {
+  return requestJson('/api/game-news/' + encodeURIComponent(identifier));
+}
+
 /** Carga una ficha individual de componente. */
 export async function loadComponentDetail(identifier) {
   const catalog = await loadComponentCatalog();

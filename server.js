@@ -1569,6 +1569,8 @@ async function enrichCommLinkItems(items) {
     const excerpt = isGenericNewsExcerpt(detail.excerpt) ? `Comunicado oficial sobre ${title}.` : (detail.excerpt || item.excerpt);
     return {
       ...item,
+      id: newsIdFromUrl(item.url || title),
+      slug: newsIdFromUrl(item.url || title),
       title: await translateToSpanish(title),
       excerpt: await translateToSpanish(excerpt),
       category: translateNewsCategory(item.category),
@@ -1577,6 +1579,230 @@ async function enrichCommLinkItems(items) {
     };
   }));
   return enriched.filter((item) => item.title && item.url);
+}
+
+async function readGameNewsDetail(identifier) {
+  const payload = await readGameNews();
+  const decoded = decodeURIComponent(String(identifier || '')).trim();
+  const normalized = normalizeNewsIdentifier(decoded);
+  const item = (payload.items || []).find((entry) => {
+    const signals = [entry.id, entry.slug, entry.title, entry.url, newsIdFromUrl(entry.url)];
+    return signals.some((signal) => {
+      const normalizedSignal = normalizeNewsIdentifier(signal);
+      return normalizedSignal === normalized || normalizedSignal.includes(normalized) || normalized.includes(normalizedSignal);
+    });
+  });
+
+  const resolvedItem = item || {
+    id: normalized,
+    slug: normalized,
+    title: titleFromCommLinkUrl(normalized),
+    url: `https://robertsspaceindustries.com/comm-link/transmission/${decoded}`,
+    category: 'Comm-Link',
+    excerpt: 'Comunicado oficial de Star Citizen pendiente de procesar.',
+    image: '/assets/stanton-hub-logo.png',
+    publishedLabel: ''
+  };
+
+  const full = await readCommLinkFullDetail(resolvedItem).catch((error) => ({
+    warning: error.message,
+    paragraphs: [resolvedItem.excerpt || 'No se pudo extraer el contenido completo en este momento.'],
+    images: resolvedItem.image ? [resolvedItem.image] : [],
+    videos: []
+  }));
+
+  const paragraphs = full.paragraphs?.length ? full.paragraphs : [resolvedItem.excerpt].filter(Boolean);
+  return {
+    ...resolvedItem,
+    ...full,
+    id: resolvedItem.id || newsIdFromUrl(resolvedItem.url || resolvedItem.title),
+    title: full.title || resolvedItem.title,
+    excerpt: full.excerpt || resolvedItem.excerpt,
+    image: full.image || resolvedItem.image || '/assets/stanton-hub-logo.png',
+    paragraphs,
+    images: full.images?.length ? full.images : [full.image || resolvedItem.image].filter(Boolean),
+    videos: full.videos || [],
+    source: payload.source,
+    translationMode: 'Extraccion y traduccion automatica'
+  };
+}
+
+async function readCommLinkFullDetail(item) {
+  if (!/^https:\/\/robertsspaceindustries\.com\/(?:[a-z]{2}\/)?comm-link\//i.test(item.url)) {
+    return { paragraphs: [item.excerpt].filter(Boolean), images: [item.image].filter(Boolean), videos: [] };
+  }
+
+  const wikiDetail = await readWikiCommLinkDetail(commLinkIdFromValue(item.url || item.id || item.slug)).catch(() => null);
+  if (wikiDetail?.paragraphs?.length) {
+    return {
+      title: await translateToSpanish(wikiDetail.title || item.title),
+      excerpt: await translateToSpanish(wikiDetail.excerpt || item.excerpt),
+      image: item.image,
+      publishedLabel: translatePublishedLabel(item.publishedLabel || wikiDetail.publishedLabel || ''),
+      paragraphs: await Promise.all(wikiDetail.paragraphs.map((line) => translateToSpanish(line))),
+      images: [item.image].filter(Boolean),
+      videos: []
+    };
+  }
+
+  const response = await fetch(item.url, { headers: { 'User-Agent': 'StantonHub/1.0 (+https://stantonhub.com)' } });
+  if (!response.ok) throw new Error(`HTTP ${response.status}`);
+  const html = await response.text();
+  const detail = await readCommLinkDetail(item.url).catch(() => ({}));
+  const rawParagraphs = extractCommLinkParagraphs(html, detail.title || item.title, detail.excerpt || item.excerpt);
+  const paragraphs = await Promise.all(rawParagraphs.map((line) => translateToSpanish(line)));
+  const images = extractCommLinkImages(html, detail.image || item.image);
+  const videos = extractCommLinkVideos(html);
+
+  return {
+    title: await translateToSpanish(detail.title || item.title),
+    excerpt: await translateToSpanish(detail.excerpt || item.excerpt),
+    image: detail.image || images[0] || item.image,
+    publishedLabel: translatePublishedLabel(item.publishedLabel || detail.publishedLabel || ''),
+    paragraphs,
+    images,
+    videos
+  };
+}
+
+async function readWikiCommLinkDetail(id) {
+  if (!id) return null;
+  const response = await fetch(`https://api.star-citizen.wiki/comm-links/${encodeURIComponent(id)}`, {
+    headers: { 'User-Agent': 'StantonHub/1.0 (+https://stantonhub.com)' }
+  });
+  if (!response.ok) throw new Error(`Wiki Comm-Link HTTP ${response.status}`);
+  const html = await response.text();
+  const lines = htmlToTextLines(html);
+  const contentLines = extractWikiCommLinkContent(lines);
+  if (!contentLines.length) return null;
+  const titleIndex = lines.findIndex((line) => /^#?\s*This Week|^#?\s*DefenseCon|^#?\s*[A-Z0-9].{8,}$/i.test(line));
+  const title = cleanNewsText(lines[titleIndex] || contentLines[0] || '');
+  const paragraphs = normalizeNewsArticleLines(contentLines).filter((line) => line.toLowerCase() !== title.toLowerCase());
+  return {
+    title,
+    excerpt: paragraphs.find((line) => line.length > 80) || paragraphs[0] || '',
+    paragraphs,
+    publishedLabel: wikiPublishedLabel(lines)
+  };
+}
+
+function extractWikiCommLinkContent(lines) {
+  const startIndex = lines.findIndex((line) => /^Content$/i.test(cleanNewsText(line)));
+  if (startIndex === -1) return [];
+  const endIndex = lines.findIndex((line, index) => index > startIndex && /^(Links|Images|Metadata|Home|What's New)$/i.test(cleanNewsText(line)));
+  return lines.slice(startIndex + 1, endIndex === -1 ? lines.length : endIndex);
+}
+
+function normalizeNewsArticleLines(lines) {
+  const result = [];
+  const seen = new Set();
+  const stopPattern = /^(Source|COMMUNITY MVP|Top Images from the Community Hub|Links|Images|Metadata|CIG ID)$/i;
+  const blocked = /^(By|Previous|Next|Source|Details|Info|Last Modified|Size|image\/|g-feature|g-illustration|\d+|None|Undefined|Transmission)$/i;
+
+  for (const rawLine of lines) {
+    const line = cleanNewsText(rawLine)
+      .replace(/AbdiYohanBy\s+AbdiYohan/gi, '')
+      .replace(/Here's what's ahead/gi, "Here's what's ahead")
+      .trim();
+    if (!line || blocked.test(line)) continue;
+    if (stopPattern.test(line)) break;
+    if (line.length < 4) continue;
+    if (/SourcePilotVision|Known locally as|Point is, no damn AI system/i.test(line)) break;
+    const key = line.toLowerCase();
+    if (seen.has(key)) continue;
+    seen.add(key);
+    result.push(line);
+    if (result.length >= 28) break;
+  }
+
+  return result;
+}
+
+function wikiPublishedLabel(lines) {
+  const publishedIndex = lines.findIndex((line) => /^Published$/i.test(cleanNewsText(line)));
+  return publishedIndex >= 0 ? cleanNewsText(lines[publishedIndex + 1] || '') : '';
+}
+
+function commLinkIdFromValue(value) {
+  const text = String(value || '');
+  const match = text.match(/(?:comm-link\/(?:[^/]+)\/|^)(\d{4,})/i);
+  return match ? match[1] : '';
+}
+
+function extractCommLinkParagraphs(html, title, excerpt) {
+  const blocked = /^(star citizen|roberts space industries|pledge|store|login|spectrum|share|copy|download|comm-link|read more|related posts|subscribe|play now)$/i;
+  const titleText = cleanNewsText(title).toLowerCase();
+  const excerptText = cleanNewsText(excerpt);
+  const lines = htmlToTextLines(html)
+    .map(cleanNewsText)
+    .filter((line) => line.length >= 55 && line.length <= 520)
+    .filter((line) => !blocked.test(line))
+    .filter((line) => !/cookie|privacy policy|javascript|browser|newsletter|all rights reserved/i.test(line))
+    .filter((line) => line.toLowerCase() !== titleText);
+
+  const unique = [];
+  const seen = new Set();
+  for (const line of [excerptText, ...lines]) {
+    const key = line.toLowerCase();
+    if (!line || seen.has(key)) continue;
+    seen.add(key);
+    unique.push(line);
+    if (unique.length >= 12) break;
+  }
+  return unique.length ? unique : [excerptText || 'Contenido pendiente de sincronizar.'];
+}
+
+function extractCommLinkImages(html, featured) {
+  const images = [];
+  const seen = new Set();
+  const add = (value) => {
+    const url = normalizeRsiMediaUrl(value);
+    if (!url || seen.has(url)) return;
+    if (!/^https:\/\/(?:media\.)?robertsspaceindustries\.com|^https:\/\/robertsspaceindustries\.com/i.test(url)) return;
+    if (/avatar|favicon|logo|icon|sprite|badge/i.test(url)) return;
+    seen.add(url);
+    images.push(url);
+  };
+
+  add(featured);
+  const pattern = /<(?:img|source)\b[^>]+(?:src|data-src|srcset)=["']([^"']+)["']/gi;
+  let match;
+  while ((match = pattern.exec(html)) && images.length < 10) {
+    const first = String(match[1]).split(',')[0].trim().split(/\s+/)[0];
+    add(first);
+  }
+  return images;
+}
+
+function extractCommLinkVideos(html) {
+  const videos = [];
+  const seen = new Set();
+  const pattern = /<(?:iframe|source|video)\b[^>]+src=["']([^"']+)["']/gi;
+  let match;
+  while ((match = pattern.exec(html)) && videos.length < 4) {
+    const url = normalizeRsiMediaUrl(match[1]);
+    if (!url || seen.has(url)) continue;
+    if (!/youtube|youtu\.be|vimeo|robertsspaceindustries|\.mp4/i.test(url)) continue;
+    seen.add(url);
+    videos.push(url);
+  }
+  return videos;
+}
+
+function newsIdFromUrl(value) {
+  const text = String(value || '').trim();
+  const slug = text.includes('/comm-link/') ? (text.split('/').filter(Boolean).pop() || text) : text;
+  return slug
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .slice(0, 120);
+}
+
+function normalizeNewsIdentifier(value) {
+  return newsIdFromUrl(value);
 }
 
 function isGenericNewsTitle(value) {
@@ -3513,6 +3739,16 @@ const server = http.createServer(async (request, response) => {
 
       if (request.method === 'GET' && url.pathname === '/api/game-news') {
         sendJson(response, 200, await readGameNews());
+        return;
+      }
+
+      if (request.method === 'GET' && url.pathname.startsWith('/api/game-news/')) {
+        const detail = await readGameNewsDetail(url.pathname.slice('/api/game-news/'.length));
+        if (!detail) {
+          sendJson(response, 404, { error: 'Noticia no encontrada.' });
+          return;
+        }
+        sendJson(response, 200, detail);
         return;
       }
 

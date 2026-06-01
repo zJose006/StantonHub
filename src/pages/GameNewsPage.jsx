@@ -1,7 +1,22 @@
 import React, { useEffect, useState } from 'react';
 import { routes } from '../config/routes.js';
 import { loadGameNews } from '../services/api.js';
+import { fallbackNewsImage, highQualityNewsImage } from '../utils/news.js';
 import { routeClick } from '../utils/navigation.js';
+
+function newsIdentifier(item) {
+  const source = item.id || item.slug || String(item.url || '').split('/').filter(Boolean).pop() || item.title;
+  return String(source || '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '');
+}
+
+function newsPath(item) {
+  return `${routes.gameNews}/${encodeURIComponent(newsIdentifier(item))}`;
+}
 
 /** Actualidad oficial del juego con lectura rapida para la comunidad. */
 export function GameNewsPage({ navigate }) {
@@ -24,7 +39,7 @@ export function GameNewsPage({ navigate }) {
     <main className="container game-news-shell">
       <section className="panel game-news-brief">
         <div>
-          <span className="section-label">Actualidad</span>
+          <span className="section-label">Noticias</span>
           <h2>Ultimas noticias de Star Citizen</h2>
           <p>{status}</p>
         </div>
@@ -33,16 +48,16 @@ export function GameNewsPage({ navigate }) {
 
       {main ? (
         <section className="game-news-feature">
-          <article className="panel game-news-card featured">
-            {main.image ? <img src={main.image} alt="" loading="lazy" /> : null}
+          <a className="panel game-news-card featured" href={newsPath(main)} onClick={(event) => routeClick(event, newsPath(main), navigate)}>
+            {main.image ? <img src={highQualityNewsImage(main.image)} alt="" loading="lazy" onError={(event) => { event.currentTarget.onerror = null; event.currentTarget.src = fallbackNewsImage(event.currentTarget.src); }} /> : null}
             <span>{main.category || 'Comm-Link'}</span>
             <h3>{main.title}</h3>
             <p>{main.excerpt}</p>
             <div>
               <time>{main.publishedLabel}</time>
-              <a className="ship-link" href={main.url} target="_blank" rel="noreferrer">Leer comunicado</a>
+              <span className="ship-link">Leer noticia</span>
             </div>
-          </article>
+          </a>
           <aside className="panel game-news-source">
             <span className="section-label">Fuente</span>
             <h3>Actualizacion automatica</h3>
@@ -54,16 +69,16 @@ export function GameNewsPage({ navigate }) {
 
       <section className="game-news-list">
         {secondary.map((item) => (
-          <article className="panel game-news-card" key={item.url || item.title}>
-            {item.image ? <img src={item.image} alt="" loading="lazy" /> : null}
+          <a className="panel game-news-card" key={item.url || item.title} href={newsPath(item)} onClick={(event) => routeClick(event, newsPath(item), navigate)}>
+            {item.image ? <img src={highQualityNewsImage(item.image)} alt="" loading="lazy" onError={(event) => { event.currentTarget.onerror = null; event.currentTarget.src = fallbackNewsImage(event.currentTarget.src); }} /> : null}
             <span>{item.category || 'Comm-Link'}</span>
             <h3>{item.title}</h3>
             <p>{item.excerpt}</p>
             <div>
               <time>{item.publishedLabel}</time>
-              <a className="ship-link" href={item.url} target="_blank" rel="noreferrer">Abrir</a>
+              <span className="ship-link">Abrir</span>
             </div>
-          </article>
+          </a>
         ))}
       </section>
     </main>

@@ -471,6 +471,16 @@ body::after {
   background:
     linear-gradient(135deg, rgba(24, 197, 220, 0.08), transparent 48%),
     rgba(47, 49, 54, 0.78);
+  color: inherit;
+  text-decoration: none;
+  cursor: pointer;
+  transition: border-color 0.18s ease, box-shadow 0.18s ease, transform 0.18s ease;
+}
+
+.game-news-card:hover {
+  border-color: var(--border-strong);
+  box-shadow: 0 22px 52px rgba(0, 0, 0, 0.34), 0 0 28px rgba(24, 197, 220, 0.12);
+  transform: translateY(-1px);
 }
 
 .game-news-card.featured {
@@ -534,6 +544,143 @@ body::after {
 .game-news-card time {
   color: var(--muted);
   font-size: 0.82rem;
+}
+
+.game-news-detail-shell {
+  display: grid;
+  gap: clamp(1rem, 1.8vw, 1.35rem);
+}
+
+.game-news-detail-hero {
+  display: grid;
+  grid-template-columns: minmax(0, 0.95fr) minmax(360px, 1.05fr);
+  gap: clamp(1rem, 2.2vw, 1.6rem);
+  align-items: stretch;
+  overflow: hidden;
+  padding: clamp(1rem, 2vw, 1.35rem);
+  background:
+    radial-gradient(ellipse at 84% 14%, rgba(246, 197, 0, 0.1), transparent 34%),
+    linear-gradient(135deg, rgba(24, 197, 220, 0.08), transparent 42%),
+    linear-gradient(180deg, rgba(31, 33, 38, 0.94), rgba(15, 16, 18, 0.92));
+}
+
+.game-news-detail-copy {
+  display: grid;
+  align-content: center;
+  min-width: 0;
+}
+
+.game-news-detail-copy h2 {
+  max-width: 980px;
+  margin: 0.35rem 0 0;
+  color: #f7fcff;
+  font-size: clamp(2.4rem, 5vw, 6rem);
+  line-height: 0.95;
+  overflow-wrap: anywhere;
+}
+
+.game-news-detail-copy p,
+.game-news-article p,
+.game-news-side p {
+  color: #b7cad9;
+  line-height: 1.72;
+}
+
+.game-news-detail-meta,
+.game-news-detail-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.65rem;
+  align-items: center;
+  margin-top: 1rem;
+}
+
+.game-news-detail-meta time,
+.game-news-detail-meta span {
+  min-height: 30px;
+  padding: 0.35rem 0.6rem;
+  border: 1px solid rgba(201, 206, 214, 0.12);
+  border-radius: 6px;
+  background: rgba(15, 16, 18, 0.48);
+  color: var(--muted);
+  font-size: 0.78rem;
+  font-weight: 800;
+}
+
+.game-news-detail-cover {
+  width: 100%;
+  height: clamp(260px, 31vw, 520px);
+  border: 1px solid rgba(201, 206, 214, 0.14);
+  border-radius: var(--radius);
+  object-fit: cover;
+  background: #0F1012;
+  box-shadow: 0 28px 70px rgba(0, 0, 0, 0.36);
+}
+
+.game-news-detail-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1.45fr) minmax(300px, 0.55fr);
+  gap: clamp(1rem, 1.8vw, 1.35rem);
+  align-items: start;
+}
+
+.game-news-article,
+.game-news-side,
+.game-news-detail-empty {
+  padding: clamp(1rem, 2vw, 1.35rem);
+}
+
+.game-news-article h3,
+.game-news-side h3,
+.game-news-detail-empty h2 {
+  margin: 0.35rem 0 0.65rem;
+  color: #f7fcff;
+  font-size: clamp(1.55rem, 2.5vw, 2.45rem);
+}
+
+.game-news-article p {
+  max-width: 980px;
+  margin: 0 0 1rem;
+}
+
+.game-news-side {
+  display: grid;
+  gap: 0.75rem;
+  position: sticky;
+  top: 1rem;
+}
+
+.game-news-side strong {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.75rem;
+  border: 1px solid rgba(201, 206, 214, 0.12);
+  border-radius: var(--radius);
+  background: rgba(15, 16, 18, 0.54);
+  color: #f7fcff;
+}
+
+.game-news-media-grid,
+.game-news-video-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 0.85rem;
+}
+
+.game-news-media-grid img,
+.game-news-video-grid iframe {
+  width: 100%;
+  min-height: 260px;
+  border: 1px solid rgba(201, 206, 214, 0.12);
+  border-radius: var(--radius);
+  object-fit: cover;
+  background: #0F1012;
+}
+
+.game-news-video-grid iframe {
+  aspect-ratio: 16 / 9;
+  height: auto;
 }
 
 .components-toolbar,
@@ -1700,8 +1847,39 @@ body::after {
 }
 
 .home-shell {
+  position: relative;
   grid-template-columns: minmax(0, 1fr);
   gap: clamp(1rem, 2vw, 1.45rem);
+}
+
+.construction-notice {
+  position: fixed;
+  right: clamp(1rem, 3vw, 2rem);
+  bottom: clamp(1rem, 3vw, 2rem);
+  z-index: 80;
+  width: min(430px, calc(100vw - 2rem));
+}
+
+.construction-notice-card {
+  padding: clamp(1rem, 2vw, 1.25rem);
+  border: 1px solid rgba(255, 224, 122, 0.38);
+  border-radius: var(--radius);
+  background:
+    radial-gradient(ellipse at 85% 0%, rgba(255, 224, 122, 0.24), transparent 38%),
+    linear-gradient(135deg, rgba(122, 89, 148, 0.86), rgba(47, 49, 54, 0.94));
+  box-shadow: 0 28px 70px rgba(0, 0, 0, 0.46), 0 0 36px rgba(255, 224, 122, 0.14);
+  color: #f7fcff;
+}
+
+.construction-notice-card h2 {
+  margin: 0.35rem 0 0;
+  font-size: clamp(1.45rem, 3vw, 2rem);
+}
+
+.construction-notice-card p {
+  margin: 0.65rem 0 1rem;
+  color: rgba(247, 252, 255, 0.86);
+  line-height: 1.6;
 }
 
 .content-shell {
@@ -1997,6 +2175,7 @@ body::after {
   border: 1px solid rgba(201, 206, 214, 0.12);
   border-radius: var(--radius);
   background: rgba(15, 16, 18, 0.58);
+  text-decoration: none;
 }
 
 .home-news-card img {
@@ -2139,7 +2318,7 @@ body::after {
 
 .site-footer-inner {
   display: grid;
-  grid-template-columns: minmax(0, 1.35fr) minmax(180px, 0.75fr) minmax(0, 1fr);
+  grid-template-columns: minmax(0, 1.15fr) minmax(160px, 0.55fr) minmax(0, 1fr) minmax(0, 1fr);
   gap: 1rem;
   padding: clamp(1rem, 3vw, 1.35rem);
 }
@@ -4980,6 +5159,19 @@ select:focus {
     grid-template-columns: 1fr;
   }
 
+  .game-news-detail-hero,
+  .game-news-detail-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .game-news-side {
+    position: static;
+  }
+
+  .game-news-detail-cover {
+    height: clamp(220px, 58vw, 360px);
+  }
+
   .ships-controls {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
@@ -4990,6 +5182,12 @@ select:focus {
 }
 
 @media (max-width: 900px) {
+  .construction-notice {
+    right: 0.75rem;
+    bottom: 0.75rem;
+    width: calc(100vw - 1.5rem);
+  }
+
   .hero {
     min-height: 300px;
     padding: 0 0 1.8rem;
@@ -5397,12 +5595,12 @@ select:focus {
   }
 
   .ships-grid {
-    grid-template-columns: 1fr;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr));
     min-height: 420px;
   }
 
   .ships-grid-compact {
-    grid-template-columns: 1fr;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr));
   }
 
   .ship-detail-hero,
@@ -5593,6 +5791,98 @@ select:focus {
   .ship-market-strip,
   .game-news-brief {
     grid-template-columns: 1fr;
+  }
+
+  .ships-grid,
+  .ships-grid-compact {
+    grid-template-columns: 1fr;
+    gap: 0.55rem;
+    min-height: 0;
+  }
+
+  .ship-card {
+    min-height: 0;
+    border-color: rgba(201, 206, 214, 0.12);
+    background:
+      linear-gradient(90deg, rgba(24, 197, 220, 0.06), transparent 42%),
+      rgba(20, 21, 25, 0.9);
+    box-shadow: 0 10px 24px rgba(0, 0, 0, 0.22);
+  }
+
+  .ship-card-link {
+    display: grid;
+    grid-template-columns: 96px minmax(0, 1fr);
+    min-height: 118px;
+  }
+
+  .ship-image {
+    width: 96px;
+    min-height: 118px;
+    aspect-ratio: auto;
+    border-right: 1px solid rgba(201, 206, 214, 0.1);
+    border-bottom: 0;
+  }
+
+  .ship-image img {
+    object-fit: cover;
+  }
+
+  .ship-card-body {
+    gap: 0.48rem;
+    padding: 0.72rem 0.8rem;
+  }
+
+  .ship-title-row {
+    gap: 0.45rem;
+  }
+
+  .ship-title-row h3 {
+    font-size: 1rem;
+    line-height: 1.12;
+  }
+
+  .ship-title-row span,
+  .ship-title-row strong {
+    font-size: 0.62rem;
+    letter-spacing: 0.08em;
+  }
+
+  .ship-tags {
+    gap: 0.32rem;
+  }
+
+  .ship-tags span {
+    min-height: 24px;
+    padding: 0.24rem 0.42rem;
+    font-size: 0.62rem;
+  }
+
+  .ship-tags span:nth-child(n + 3),
+  .ship-specs div:nth-child(n + 3),
+  .ship-locations,
+  .ship-link {
+    display: none;
+  }
+
+  .ship-specs {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.36rem;
+  }
+
+  .ship-specs div {
+    min-height: 0;
+    padding: 0.42rem;
+    border-color: rgba(201, 206, 214, 0.1);
+    background: rgba(15, 16, 18, 0.48);
+  }
+
+  .ship-specs dt {
+    font-size: 0.58rem;
+  }
+
+  .ship-specs dd {
+    font-size: 0.74rem;
   }
 
   .home-sections {
