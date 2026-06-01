@@ -30,21 +30,20 @@ export function Home({ navigate }) {
   const cards = [
     [routes.ships, 'Catalogo tecnico', 'Naves', 'Filtra vehiculos por fabricante, rol, tamano, precio y revisa fichas con hardpoints, modulos y puntuacion operacional.'],
     [routes.components, 'Equipamiento', 'Componentes', 'Consulta armas, escudos, quantum, propulsion y sistemas relacionados con las naves del catalogo.'],
-    [routes.guides, 'Aprendizaje', 'Guias', 'Manuales de farmeo, preparacion de rutas, mecanicas y recomendaciones creadas por la comunidad.'],
-    [routes.forum, 'Operaciones', 'Base de operaciones', 'Publica rutas, dudas, hallazgos y consejos rapidos para otros pilotos.'],
-    [routes.gameNews, 'Noticias', 'Noticias oficiales', 'Ultimas comunicaciones del desarrollo para estar al dia antes de despegar.'],
-    [routes.news, 'Comunidad', 'Intel', 'Avisos, eventos y oportunidades utiles publicadas por pilotos del hub.'],
-    [routes.profile, 'Cuenta', 'Perfil', 'Acceso con Discord, actividad, publicaciones y herramientas para aportar contenido.']
+    [routes.miningMaterials, 'Mineria', 'Materiales', 'Consulta donde minar recursos, calidades esperadas, metodos y consejos de extraccion.'],
+    [routes.gameNews, 'Noticias', 'Comunicaciones oficiales', 'Ultimas novedades del desarrollo traducidas y enlazadas a su fuente original.'],
+    [routes.profile, 'Cuenta', 'Perfil', 'Acceso con Discord, actividad y herramientas disponibles para usuarios registrados.']
   ];
   const workflow = [
-    ['Planifica', 'Compara naves, revisa componentes y decide que llevar antes de iniciar una ruta.'],
-    ['Ejecuta', 'Usa guias e intel para priorizar actividades, farmeo, compras y pruebas de carga.'],
-    ['Comparte', 'Publica ayudas con imagenes, comentarios y votos para que la informacion mejore con la comunidad.']
+    ['Consulta', 'Busca una nave, revisa su ficha y detecta rapidamente su rol, defensa, carga y rendimiento.'],
+    ['Compara', 'Salta de la nave a sus componentes para entender armas, escudos, propulsion y quantum.'],
+    ['Mantente al dia', 'Lee noticias traducidas y confirma siempre el contexto en la fuente oficial.']
   ];
   const status = [
     ['Catalogo', 'Naves y componentes enlazados'],
-    ['Guias', 'Farmeo, preparacion y rutas'],
-    ['Comunidad', 'Intel, votos y comentarios']
+    ['Fichas', 'Datos tecnicos y puntuacion'],
+    ['Mineria', 'Rutas y materiales'],
+    ['Noticias', 'Comm-Link traducido']
   ];
   const slides = [
     ['Combate', 'Naves, hardpoints y lectura rapida de potencia ofensiva.'],
@@ -73,11 +72,13 @@ export function Home({ navigate }) {
       <section className="home-command">
         <div className="home-command-copy">
           <span className="section-label">Centro de mando</span>
-          <h2>Organiza tus operaciones en Stanton</h2>
-          <p>Stanton Hub concentra guias, rutas, intel, catalogo de naves y componentes para que cualquier piloto pueda preparar una sesion sin perder tiempo saltando entre fuentes.</p>
+          <h2>Prepara tu hangar con datos claros</h2>
+          <p>Stanton Hub concentra catalogo de naves, componentes enlazados y noticias oficiales traducidas para que puedas comparar, decidir y preparar tu siguiente compra o prueba con menos vueltas.</p>
           <div className="home-command-actions">
             <a className="action-btn primary-action" href={routes.ships} onClick={(event) => routeClick(event, routes.ships, navigate)}>Explorar naves</a>
-            <a className="action-btn" href={routes.guides} onClick={(event) => routeClick(event, routes.guides, navigate)}>Ver guias</a>
+            <a className="action-btn" href={routes.components} onClick={(event) => routeClick(event, routes.components, navigate)}>Ver componentes</a>
+            <a className="action-btn" href={routes.miningMaterials} onClick={(event) => routeClick(event, routes.miningMaterials, navigate)}>Planificar mineria</a>
+            <a className="action-btn" href={routes.gameNews} onClick={(event) => routeClick(event, routes.gameNews, navigate)}>Leer noticias</a>
           </div>
           <dl className="home-status-strip">
             {status.map(([label, value]) => <div key={label}><dt>{label}</dt><dd>{value}</dd></div>)}
@@ -86,8 +87,10 @@ export function Home({ navigate }) {
         <div className="home-carousel" aria-label="Capturas destacadas de Star Citizen">
           {slides.map(([label, text], index) => (
             <article className={`home-carousel-slide home-carousel-slide-${index + 1}`} key={label}>
-              <span>{label}</span>
-              <strong>{text}</strong>
+              <div className="home-carousel-caption">
+                <span>{label}</span>
+                <strong>{text}</strong>
+              </div>
             </article>
           ))}
         </div>
@@ -95,6 +98,30 @@ export function Home({ navigate }) {
 
       <section className="home-workflow" aria-label="Flujo de uso">
         {workflow.map(([title, text]) => <article className="home-highlight" key={title}><strong>{title}</strong><p>{text}</p></article>)}
+      </section>
+
+      <section className="home-mission-grid" aria-label="Herramientas destacadas">
+        <article className="home-mission-card home-mission-primary">
+          <span className="section-label">Hangar tecnico</span>
+          <h2>Del catalogo a la decision</h2>
+          <p>Empieza filtrando una nave, abre su ficha y baja hasta hardpoints, modulos, compra, alquiler y puntuacion operacional.</p>
+          <a className="ship-link" href={routes.ships} onClick={(event) => routeClick(event, routes.ships, navigate)}>Abrir catalogo de naves</a>
+        </article>
+        <article className="home-mission-card">
+          <span>Componentes enlazados</span>
+          <strong>Armas, escudos y sistemas</strong>
+          <p>Los componentes detectados en las naves preparan el camino para fichas tecnicas reutilizables.</p>
+        </article>
+        <article className="home-mission-card">
+          <span>Materiales minables</span>
+          <strong>Rutas de extraccion</strong>
+          <p>Busca Oro, Quantainium o gemas de ROC y revisa ubicaciones, riesgo, calidad y equipo recomendado.</p>
+        </article>
+        <article className="home-mission-card">
+          <span>Noticias oficiales</span>
+          <strong>Traduccion rapida</strong>
+          <p>Lee el resumen en espanol y abre la fuente oficial cuando necesites confirmar detalles.</p>
+        </article>
       </section>
 
       <section className="home-news-panel" aria-label="Ultimas noticias de Star Citizen">

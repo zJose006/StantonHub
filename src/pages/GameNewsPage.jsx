@@ -42,8 +42,8 @@ export function GameNewsPage({ navigate }) {
           <span className="section-label">Noticias</span>
           <h2>Ultimas noticias de Star Citizen</h2>
           <p>{status}</p>
+          <p className="news-translation-disclaimer">Estas noticias se muestran traducidas automaticamente y pueden contener errores o matices incorrectos. Para informarte con total precision, consulta siempre la comunicacion oficial enlazada.</p>
         </div>
-        <a className="action-btn" href={routes.news} onClick={(event) => routeClick(event, routes.news, navigate)}>Intel de comunidad</a>
       </section>
 
       {main ? (

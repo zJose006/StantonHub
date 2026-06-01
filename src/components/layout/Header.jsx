@@ -66,9 +66,11 @@ export function Header({ page, navigate, currentUser }) {
           </div>
           <a className="mobile-home-link" href={routes.home} onClick={(event) => { routeClick(event, routes.home, navigate); closeMobileNav(); }}>Inicio</a>
           <nav className="site-nav" aria-label="Navegacion principal">
-            <NavGroup name="Naves y Componentes" active={page === 'ships' || page === 'ship-detail' || page === 'components' || page === 'component-detail'} openMenu={openMenu} setOpenMenu={toggleMenu}>
+            <NavGroup name="Naves y Componentes" active={page === 'ships' || page === 'ship-detail' || page === 'ship-compare' || page === 'components' || page === 'component-detail' || page === 'mining-materials'} openMenu={openMenu} setOpenMenu={toggleMenu}>
               <MenuItem path={routes.ships} title="Naves" text="Catalogo con precios, filtros y detalles tecnicos." navigate={navigate} closeMobileNav={closeMobileNav} />
+              <MenuItem path={routes.shipCompare} title="Comparador" text="Compara dos naves con grafico operativo y datos clave." navigate={navigate} closeMobileNav={closeMobileNav} />
               <MenuItem path={routes.components} title="Componentes" text="Armas, escudos, quantum y sistemas instalables." navigate={navigate} closeMobileNav={closeMobileNav} />
+              <MenuItem path={routes.miningMaterials} title="Materiales" text="Donde minar, calidad esperada y rutas recomendadas." navigate={navigate} closeMobileNav={closeMobileNav} />
             </NavGroup>
             {link(routes.gameNews, 'Noticias', 'page-btn', page === 'game-news' || page === 'game-news-detail')}
           </nav>

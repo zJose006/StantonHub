@@ -44,6 +44,7 @@ export function ShipDetailPage({ identifier, navigate }) {
   const selectedScoreRow = scoreRows.find((score) => score.label === selectedScore) || scoreRows[0];
   const loadout = buildLoadoutSections(combat?.weapons || [], moduleGroups, moduleItems);
   const componentSections = buildComponentSections(moduleGroups);
+  const industrialProfile = buildIndustrialProfile(vehicle, wiki, moduleGroups, moduleItems);
 
   return (
     <main className="container ship-detail-shell ship-detail-redesign ship-sheet">
@@ -88,6 +89,8 @@ export function ShipDetailPage({ identifier, navigate }) {
           <ScoreRadar scores={scoreRows} selected={selectedScoreRow} onSelect={setSelectedScore} />
         </section>
       </section>
+
+      {industrialProfile ? <IndustrialPanel profile={industrialProfile} navigate={navigate} /> : null}
 
       <section className="ship-sheet-metrics">
         <MetricPanel icon="weapon" title="Armamento" sections={overview.weaponry} />
@@ -167,6 +170,66 @@ function ShipMarketStrip({ vehicle, prices = {} }) {
         <p>{rentalLocations.length ? rentalLocations.map((item) => textValue(item)).join(', ') : 'Sin terminal conocido'}</p>
       </article>
     </div>
+  );
+}
+
+function IndustrialPanel({ profile, navigate }) {
+  return (
+    <section className="panel ship-sheet-panel ship-industrial-panel">
+      <PanelTitle icon="module" label="Operativa" title="Perfil industrial y logistica" />
+      <div className="ship-industrial-layout">
+        <div className="industrial-role-grid">
+          {profile.roles.map((role) => (
+            <article className="industrial-role-card" key={role.title}>
+              <span>{role.label}</span>
+              <h3>{role.title}</h3>
+              <p>{role.text}</p>
+              {role.value ? <strong>{role.value}</strong> : null}
+            </article>
+          ))}
+        </div>
+        <div className="industrial-module-board">
+          {profile.sections.map((section) => (
+            <section className="industrial-module-section" key={section.key}>
+              <header>
+                <div>
+                  <span className="section-label">{section.label}</span>
+                  <h3>{section.title}</h3>
+                </div>
+                <strong>{section.count}</strong>
+              </header>
+              <div className="industrial-module-grid">
+                {section.items.map((item) => <IndustrialModuleCard key={item.key} item={item} navigate={navigate} />)}
+              </div>
+            </section>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function IndustrialModuleCard({ item, navigate }) {
+  const path = componentDetailPath(item.componentKey);
+  const title = path
+    ? <a className="component-inline-link" href={path} onClick={(event) => routeClick(event, path, navigate)}>{item.name}</a>
+    : <strong>{item.name}</strong>;
+
+  return (
+    <article className="industrial-module-card">
+      <div className="industrial-module-head">
+        <div>
+          {title}
+          <span>{item.subtitle}</span>
+        </div>
+        <div className="card-badge-stack">
+          {item.count > 1 ? <span className="system-count-badge">x{item.count}</span> : null}
+          {item.size ? <span className="weapon-size-badge">S{item.size}</span> : null}
+          {item.grade ? <span className="weapon-size-badge">G{item.grade}</span> : null}
+        </div>
+      </div>
+      {item.stats.length ? <dl>{item.stats.map(([label, value]) => <div key={label}><dt>{label}</dt><dd>{value}</dd></div>)}</dl> : null}
+    </article>
   );
 }
 
@@ -435,6 +498,208 @@ function buildComponentSections(moduleGroups) {
     });
   }
   return [...byCategory.values()].sort((a, b) => a.category.localeCompare(b.category, 'es'));
+}
+
+function buildIndustrialProfile(vehicle, wiki = {}, moduleGroups = [], moduleItems = []) {
+  const tags = (vehicle.tags || []).map((tag) => normalizeName(tag));
+  const allGroups = dedupeIndustrialGroups([...(moduleGroups || []), ...(moduleItems || [])]);
+  const sections = [
+    buildIndustrialSection('fuel-service', 'Repostaje', 'Pods y puertos de combustible', allGroups, isRefuelModule),
+    buildIndustrialSection('fuel', 'Combustible', 'Tanques y admision', allGroups, (group) => isFuelModule(group) && !isRefuelModule(group)),
+    buildIndustrialSection('mining', 'Mineria', 'Herramientas de mineria', allGroups, isMiningModule),
+    buildIndustrialSection('salvage', 'Chatarreria', 'Sistemas de salvamento', allGroups, isSalvageModule),
+    buildIndustrialSection('cargo', 'Carga', 'Capacidad y logistica', allGroups, isCargoModule)
+  ].filter(Boolean);
+  const hasFuelService = sections.some((section) => section.key === 'fuel-service');
+  const hasMining = tags.includes('mineria') || sections.some((section) => section.key === 'mining');
+  const hasSalvage = tags.includes('salvage') || tags.includes('chatarreria') || sections.some((section) => section.key === 'salvage');
+  const cargoValue = Number(wiki.cargo_capacity || vehicle.scu || 0);
+  const isCargo = tags.includes('cargo');
+  const isIndustrial = tags.includes('industrial') || hasFuelService || hasMining || hasSalvage || isCargo;
+
+  if (!isIndustrial) return null;
+
+  const roles = [];
+  if (isCargo) {
+    roles.push({
+      label: 'Carga',
+      title: cargoValue ? `${formatNumber(cargoValue)} SCU utiles` : 'Capacidad logistica',
+      text: cargoValue ? 'Capacidad de carga declarada para comercio, transporte o apoyo a operaciones.' : 'Nave con perfil logistico detectado.',
+      value: vehicle.flags?.loadingDock ? 'Incluye bahia / muelle de carga' : ''
+    });
+  }
+  if (hasFuelService) {
+    roles.push({
+      label: 'Repostaje',
+      title: 'Soporte de combustible',
+      text: 'Se han detectado pods, puertos o elementos externos de combustible pensados para operaciones de repostaje.',
+      value: sectionCount(sections, 'fuel-service')
+    });
+  }
+  if (hasMining) {
+    roles.push({
+      label: 'Mineria',
+      title: 'Extraccion y fractura',
+      text: 'Componentes de mineria detectados: revisa tamano, montaje y cantidad antes de comparar variantes.',
+      value: sectionCount(sections, 'mining')
+    });
+  }
+  if (hasSalvage) {
+    roles.push({
+      label: 'Chatarreria',
+      title: 'Recuperacion de materiales',
+      text: 'Perfil orientado a raspado, recuperacion o apoyo de salvamento cuando el equipamiento lo confirma.',
+      value: sectionCount(sections, 'salvage')
+    });
+  }
+  if (!roles.length && tags.includes('industrial')) {
+    roles.push({
+      label: 'Industrial',
+      title: 'Operacion especializada',
+      text: 'Nave marcada como industrial. La ficha muestra los sistemas detectados en la base local.',
+      value: ''
+    });
+  }
+
+  return { roles, sections };
+}
+
+function buildIndustrialSection(key, label, title, groups, matcher) {
+  const items = groups.filter(matcher).map(industrialModuleItem).filter(Boolean);
+  if (!items.length) return null;
+  return {
+    key,
+    label,
+    title,
+    count: items.reduce((sum, item) => sum + item.count, 0),
+    items: items.slice(0, 8)
+  };
+}
+
+function industrialModuleItem(group) {
+  const name = cleanIndustrialName(group.name || group.examples?.[0] || group.type || group.category);
+  if (!name) return null;
+  const size = numericSize(group);
+  const grade = textValue(group.grade || group.meta?.grade, '');
+  const type = industrialTypeLabel(group);
+  return {
+    key: `${group.componentKey || group.key || name}-${size || ''}-${grade}`,
+    componentKey: group.componentKey || group.key,
+    name,
+    subtitle: [type, group.mounts?.slice(0, 1).join(', ') || group.mount].filter(Boolean).join(' - '),
+    count: Number(group.count || group.totalInstalled || 1) || 1,
+    size,
+    grade,
+    stats: compactStats([
+      ['Tipo', type],
+      ['Fabricante', textValue(group.manufacturer)],
+      ['Clase', textValue(group.className || group.componentClass)],
+      ['Capacidad', industrialCapacity(group)]
+    ])
+  };
+}
+
+function dedupeIndustrialGroups(groups) {
+  const map = new Map();
+  for (const group of groups || []) {
+    const key = [normalizeName(group.name), normalizeName(group.type), normalizeName(group.className), numericSize(group) || '', textValue(group.grade)].join('|');
+    if (!key.replace(/\|/g, '')) continue;
+    const existing = map.get(key);
+    if (existing) {
+      existing.count = Number(existing.count || 1) + Number(group.count || 1);
+      continue;
+    }
+    map.set(key, { ...group });
+  }
+  return [...map.values()];
+}
+
+function isRefuelModule(group) {
+  const signal = industrialSignal(group);
+  return /externalfueltank|fuelpod|fuel\s*pod|fuelport|fuel\s*port|refuel|repost/.test(signal);
+}
+
+function isFuelModule(group) {
+  const signal = industrialSignal(group);
+  if (!/combustible|fuel|hydrogen|quantumfuel|quantum\s*fuel/.test(signal)) return false;
+  return /tank|intake|externalfueltank|fuelpod|fuelport|fuel\s*port/.test(signal);
+}
+
+function isMiningModule(group) {
+  return /mining|mineria|mineral|ore|arbor|hofstede|pitman|lawson|extraction/.test(industrialSignal(group));
+}
+
+function isSalvageModule(group) {
+  return /salvage|salvamento|chatarr|scraper|tractor|reclaimer|vulture|recycling/.test(industrialSignal(group));
+}
+
+function isCargoModule(group) {
+  return /cargo|container|stowage|loading|freight|bay|rack/.test(industrialSignal(group));
+}
+
+function industrialSignal(group) {
+  return [
+    group.category,
+    group.name,
+    group.type,
+    group.subType,
+    group.className,
+    group.componentClass,
+    group.mount,
+    ...(group.mounts || []),
+    ...(group.examples || []).map((example) => example.mount)
+  ].map(normalizeName).join(' ');
+}
+
+function cleanIndustrialName(value) {
+  const text = textValue(value, '').replace(/_/g, ' ').replace(/\s+/g, ' ').trim();
+  if (!text || /^(modulo|component|none|unknown|n\/d)$/i.test(text)) return '';
+  if (/hardpoint|placeholder|itemport|controller|decal|door|damage|dmg_/i.test(text)) return '';
+  return text;
+}
+
+function industrialTypeLabel(group) {
+  const signal = industrialSignal(group);
+  if (/externalfueltank|fuelpod|fuel\s*pod/.test(signal)) return 'Pod externo de combustible';
+  if (/fuelport|fuel\s*port|refuel/.test(signal)) return 'Puerto de repostaje';
+  if (/quantumfuel|quantum\s*fuel/.test(signal)) return 'Tanque quantum';
+  if (/fueltank|fuel\s*tank|hydrogen/.test(signal)) return 'Tanque de combustible';
+  if (/fuelintake|fuel\s*intake/.test(signal)) return 'Toma de combustible';
+  if (/mining|laser/.test(signal)) return 'Herramienta de mineria';
+  if (/salvage|scraper/.test(signal)) return 'Sistema de salvamento';
+  if (/cargo|container|bay/.test(signal)) return 'Sistema de carga';
+  return textValue(group.category || group.type, 'Sistema industrial');
+}
+
+function industrialCapacity(group) {
+  const found = findNumericByKey(group, /(capacity|capac|fuel|tank|scu|stowage|volume)/i);
+  return found ? formatNumber(found) : 'N/D';
+}
+
+function findNumericByKey(value, keyPattern, depth = 0) {
+  if (!value || depth > 5) return null;
+  if (Array.isArray(value)) {
+    for (const item of value) {
+      const found = findNumericByKey(item, keyPattern, depth + 1);
+      if (found) return found;
+    }
+    return null;
+  }
+  if (typeof value !== 'object') return null;
+  for (const [key, child] of Object.entries(value)) {
+    if (keyPattern.test(key)) {
+      const number = Number(child);
+      if (Number.isFinite(number) && number > 0) return number;
+    }
+    const found = findNumericByKey(child, keyPattern, depth + 1);
+    if (found) return found;
+  }
+  return null;
+}
+
+function sectionCount(sections, key) {
+  const count = sections.find((section) => section.key === key)?.count || 0;
+  return count ? `${formatNumber(count)} instalado${count === 1 ? '' : 's'}` : '';
 }
 
 function buildWeaponCatalog(moduleItems) {

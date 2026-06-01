@@ -38,6 +38,16 @@ export async function loadComponentCatalog() {
   return requestJson('/api/components/catalog');
 }
 
+/** Carga la base local de materiales minables y sus ubicaciones recomendadas. */
+export async function loadMiningMaterials() {
+  return requestJson('/api/mining-materials');
+}
+
+/** Carga una ficha individual de material minable. */
+export async function loadMiningMaterialDetail(identifier) {
+  return requestJson('/api/mining-materials/' + encodeURIComponent(identifier));
+}
+
 /** Carga noticias recientes del Comm-Link oficial con cache en backend. */
 export async function loadGameNews() {
   return requestJson('/api/game-news');

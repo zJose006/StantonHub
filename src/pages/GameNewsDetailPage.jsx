@@ -48,6 +48,7 @@ export function GameNewsDetailPage({ identifier, navigate }) {
           <span className="section-label">{payload.category || 'Comm-Link'}</span>
           <h2>{payload.title}</h2>
           <p>{payload.excerpt}</p>
+          <p className="news-translation-disclaimer">Contenido traducido automaticamente. Puede contener errores, frases imprecisas o perder contexto; usa la fuente oficial como referencia definitiva.</p>
           <div className="game-news-detail-meta">
             <time>{payload.publishedLabel || 'Fecha no disponible'}</time>
             <span>{payload.translationMode || 'Traduccion automatica'}</span>

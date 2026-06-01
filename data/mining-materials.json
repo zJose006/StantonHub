@@ -1,0 +1,732 @@
+{
+  "generatedAt": "2026-06-01",
+  "sourceNote": "Base local orientativa para planificacion minera. Los porcentajes reales pueden cambiar por parche, economia del servidor y zona exacta.",
+  "materials": [
+    {
+      "id": "quantainium",
+      "name": "Quantainium",
+      "aliases": ["Quantanium", "Q"],
+      "category": "Mineral inestable",
+      "profit": "Muy alta",
+      "risk": "Muy alto",
+      "miningTypes": ["Nave"],
+      "bestLocations": [
+        { "system": "Stanton", "planet": "Crusader", "area": "Yela - cinturon de asteroides", "method": "Nave", "deposit": "Asteroide", "appearance": "Baja", "quality": "2-18% habitual", "notes": "Buen lugar para Prospector y Mole, pero exige regreso rapido por inestabilidad." },
+        { "system": "Stanton", "planet": "microTech", "area": "Lyria", "method": "Nave", "deposit": "Roca superficial", "appearance": "Baja", "quality": "3-20% habitual", "notes": "Interesante para rutas cortas si tienes refineria cercana planificada." },
+        { "system": "Stanton", "planet": "ArcCorp", "area": "Wala", "method": "Nave", "deposit": "Roca superficial", "appearance": "Baja", "quality": "2-16% habitual", "notes": "Menos comodo que Lyria, pero util cuando la zona principal esta saturada." }
+      ],
+      "qualityBands": [
+        { "label": "Baja", "range": "1-5%", "chance": "Frecuente" },
+        { "label": "Media", "range": "6-12%", "chance": "Media" },
+        { "label": "Alta", "range": "13-25%", "chance": "Rara" },
+        { "label": "Excelente", "range": "+25%", "chance": "Muy rara" }
+      ],
+      "tools": ["Prospector", "Mole", "Laser Helix o Lancet", "Modulo Surge", "Modulo Stampede"],
+      "tips": ["Prioriza rocas con buena masa y bajo material inutil.", "No llenes la bodega si el temporizador de inestabilidad te obliga a cruzar demasiado sistema.", "Prepara la ruta de refineria antes de extraer."]
+    },
+    {
+      "id": "bexalite",
+      "name": "Bexalite",
+      "aliases": ["Bexa"],
+      "category": "Mineral valioso",
+      "profit": "Alta",
+      "risk": "Medio",
+      "miningTypes": ["Nave"],
+      "bestLocations": [
+        { "system": "Stanton", "planet": "Hurston", "area": "Arial", "method": "Nave", "deposit": "Roca superficial", "appearance": "Media", "quality": "8-28% habitual", "notes": "Buena combinacion de valor y estabilidad para sesiones largas." },
+        { "system": "Stanton", "planet": "Crusader", "area": "Daymar", "method": "Nave", "deposit": "Roca superficial", "appearance": "Media", "quality": "6-24% habitual", "notes": "Interesante para rutas de mineria con paradas cortas." },
+        { "system": "Stanton", "planet": "microTech", "area": "Clio", "method": "Nave", "deposit": "Roca superficial", "appearance": "Media", "quality": "7-22% habitual", "notes": "Zona fria, visualmente limpia y comoda para escanear." }
+      ],
+      "qualityBands": [
+        { "label": "Baja", "range": "1-8%", "chance": "Frecuente" },
+        { "label": "Media", "range": "9-22%", "chance": "Media" },
+        { "label": "Alta", "range": "23-40%", "chance": "Rara" },
+        { "label": "Excelente", "range": "+40%", "chance": "Muy rara" }
+      ],
+      "tools": ["Prospector", "Mole", "Laser Lancet", "Modulo Focus"],
+      "tips": ["Merece la pena filtrar rocas con concentracion media-alta.", "Combina bien con Agricium o Taranite en una misma ruta.", "Evita perder tiempo con rocas pequenas si el porcentaje es bajo."]
+    },
+    {
+      "id": "taranite",
+      "name": "Taranite",
+      "aliases": ["Tara"],
+      "category": "Mineral valioso",
+      "profit": "Alta",
+      "risk": "Medio",
+      "miningTypes": ["Nave"],
+      "bestLocations": [
+        { "system": "Stanton", "planet": "Hurston", "area": "Arial", "method": "Nave", "deposit": "Roca superficial", "appearance": "Media", "quality": "7-26% habitual", "notes": "Buena zona para combinar con Bexalite y Agricium." },
+        { "system": "Stanton", "planet": "ArcCorp", "area": "Wala", "method": "Nave", "deposit": "Roca superficial", "appearance": "Media", "quality": "6-24% habitual", "notes": "Aparece en mezclas utiles si buscas minerales de valor medio-alto." },
+        { "system": "Stanton", "planet": "Crusader", "area": "Daymar", "method": "Nave", "deposit": "Roca superficial", "appearance": "Media", "quality": "5-20% habitual", "notes": "Opcion secundaria para rutas con baja competencia." }
+      ],
+      "qualityBands": [
+        { "label": "Baja", "range": "1-8%", "chance": "Frecuente" },
+        { "label": "Media", "range": "9-20%", "chance": "Media" },
+        { "label": "Alta", "range": "21-35%", "chance": "Rara" },
+        { "label": "Excelente", "range": "+35%", "chance": "Muy rara" }
+      ],
+      "tools": ["Prospector", "Mole", "Laser Helix", "Modulo Rieger"],
+      "tips": ["Es un buen objetivo si no encuentras Quantainium.", "Valora el conjunto de la roca, no solo un mineral aislado.", "Si la roca tiene mucha inercia, usa consumibles antes de forzar la fractura."]
+    },
+    {
+      "id": "agricium",
+      "name": "Agricium",
+      "aliases": ["Agri"],
+      "category": "Mineral valioso",
+      "profit": "Alta",
+      "risk": "Medio",
+      "miningTypes": ["Nave"],
+      "bestLocations": [
+        { "system": "Stanton", "planet": "Hurston", "area": "Arial", "method": "Nave", "deposit": "Roca superficial", "appearance": "Media", "quality": "8-30% habitual", "notes": "Muy buen objetivo estable para rutas de farmeo." },
+        { "system": "Stanton", "planet": "microTech", "area": "Euterpe", "method": "Nave", "deposit": "Roca superficial", "appearance": "Media", "quality": "6-22% habitual", "notes": "Zona alternativa con buena visibilidad." },
+        { "system": "Stanton", "planet": "Crusader", "area": "Daymar", "method": "Nave", "deposit": "Roca superficial", "appearance": "Media", "quality": "5-20% habitual", "notes": "Util si quieres mezclar mineria y venta cercana." }
+      ],
+      "qualityBands": [
+        { "label": "Baja", "range": "1-10%", "chance": "Frecuente" },
+        { "label": "Media", "range": "11-25%", "chance": "Media" },
+        { "label": "Alta", "range": "26-45%", "chance": "Rara" },
+        { "label": "Excelente", "range": "+45%", "chance": "Muy rara" }
+      ],
+      "tools": ["Prospector", "Mole", "Laser Lancet", "Modulo Focus"],
+      "tips": ["Buen mineral para llenar bodega sin temporizadores peligrosos.", "Busca rocas con baja cantidad de inertes.", "Combina bien con Bexalite y Taranite."]
+    },
+    {
+      "id": "laranite",
+      "name": "Laranite",
+      "aliases": ["Lara"],
+      "category": "Mineral comercial",
+      "profit": "Media-alta",
+      "risk": "Bajo",
+      "miningTypes": ["Nave"],
+      "bestLocations": [
+        { "system": "Stanton", "planet": "Hurston", "area": "Aberdeen", "method": "Nave", "deposit": "Roca superficial", "appearance": "Media", "quality": "10-32% habitual", "notes": "Material estable y bueno para aprender rutas rentables." },
+        { "system": "Stanton", "planet": "Crusader", "area": "Daymar", "method": "Nave", "deposit": "Roca superficial", "appearance": "Media", "quality": "8-25% habitual", "notes": "Opcion comoda para recorridos tranquilos." },
+        { "system": "Stanton", "planet": "ArcCorp", "area": "Wala", "method": "Nave", "deposit": "Roca superficial", "appearance": "Media", "quality": "8-24% habitual", "notes": "Correcto para rutas con mezcla de minerales." }
+      ],
+      "qualityBands": [
+        { "label": "Baja", "range": "1-12%", "chance": "Frecuente" },
+        { "label": "Media", "range": "13-28%", "chance": "Media" },
+        { "label": "Alta", "range": "29-45%", "chance": "Rara" },
+        { "label": "Excelente", "range": "+45%", "chance": "Muy rara" }
+      ],
+      "tools": ["Prospector", "Mole", "Laser Arbor o Lancet"],
+      "tips": ["Buena opcion si quieres reducir riesgo.", "No requiere tanta preparacion como Quantainium.", "Rentable cuando aparece con otros minerales medianos."]
+    },
+    {
+      "id": "oro",
+      "name": "Oro",
+      "aliases": ["Gold", "Au"],
+      "category": "Mineral comercial",
+      "profit": "Media",
+      "risk": "Bajo",
+      "miningTypes": ["Nave", "ROC"],
+      "bestLocations": [
+        { "system": "Stanton", "planet": "microTech", "area": "Clio", "method": "Nave", "deposit": "Roca superficial", "appearance": "Media", "quality": "12-35% habitual", "notes": "Buen equilibrio entre seguridad, visibilidad y concentracion." },
+        { "system": "Stanton", "planet": "Hurston", "area": "Arial", "method": "Nave", "deposit": "Roca superficial", "appearance": "Media", "quality": "10-32% habitual", "notes": "Zona interesante si tambien buscas Agricium o Taranite." },
+        { "system": "Stanton", "planet": "Crusader", "area": "Daymar", "method": "ROC / Nave", "deposit": "Roca superficial", "appearance": "Media", "quality": "8-28% habitual", "notes": "Opcion flexible para sesiones de bajo riesgo." }
+      ],
+      "qualityBands": [
+        { "label": "Baja", "range": "1-10%", "chance": "Frecuente" },
+        { "label": "Media", "range": "11-25%", "chance": "Frecuente" },
+        { "label": "Alta", "range": "26-45%", "chance": "Media" },
+        { "label": "Excelente", "range": "+45%", "chance": "Rara" }
+      ],
+      "tools": ["Prospector", "Mole", "ROC", "Laser Arbor"],
+      "tips": ["Ideal para rutas de farmeo estable.", "Filtra por calidad si buscas beneficio por minuto.", "Si aparece mezclado con Titanium o Diamond, revisa si compensa llenar bodega."]
+    },
+    {
+      "id": "borase",
+      "name": "Borase",
+      "aliases": ["Bora"],
+      "category": "Mineral comercial",
+      "profit": "Media",
+      "risk": "Bajo",
+      "miningTypes": ["Nave"],
+      "bestLocations": [
+        { "system": "Stanton", "planet": "Hurston", "area": "Aberdeen", "method": "Nave", "deposit": "Roca superficial", "appearance": "Alta", "quality": "12-38% habitual", "notes": "Comun en rutas de mineria estable." },
+        { "system": "Stanton", "planet": "microTech", "area": "Calliope", "method": "Nave", "deposit": "Roca superficial", "appearance": "Media", "quality": "10-30% habitual", "notes": "Aprovechable cuando sale junto a minerales de mayor valor." },
+        { "system": "Stanton", "planet": "ArcCorp", "area": "Wala", "method": "Nave", "deposit": "Roca superficial", "appearance": "Media", "quality": "10-28% habitual", "notes": "Zona secundaria para completar bodega." }
+      ],
+      "qualityBands": [
+        { "label": "Baja", "range": "1-12%", "chance": "Frecuente" },
+        { "label": "Media", "range": "13-30%", "chance": "Frecuente" },
+        { "label": "Alta", "range": "31-50%", "chance": "Media" },
+        { "label": "Excelente", "range": "+50%", "chance": "Rara" }
+      ],
+      "tools": ["Prospector", "Mole", "Laser Arbor"],
+      "tips": ["Buena opcion para no volver de vacio.", "No sacrifiques una roca de alto valor por llenar con Borase bajo.", "Muy util para entrenar fracturas sin demasiado riesgo."]
+    },
+    {
+      "id": "hephaestanite",
+      "name": "Hephaestanite",
+      "aliases": ["Hephae"],
+      "category": "Mineral comercial",
+      "profit": "Media",
+      "risk": "Bajo",
+      "miningTypes": ["Nave"],
+      "bestLocations": [
+        { "system": "Stanton", "planet": "Hurston", "area": "Magda", "method": "Nave", "deposit": "Roca superficial", "appearance": "Media", "quality": "10-30% habitual", "notes": "Buen material para rutas de relleno." },
+        { "system": "Stanton", "planet": "microTech", "area": "Clio", "method": "Nave", "deposit": "Roca superficial", "appearance": "Media", "quality": "8-25% habitual", "notes": "Suele ser aceptable si aparece junto a Oro o Agricium." },
+        { "system": "Stanton", "planet": "Crusader", "area": "Yela", "method": "Nave", "deposit": "Asteroide", "appearance": "Media", "quality": "8-24% habitual", "notes": "Opcion para mineria espacial tranquila." }
+      ],
+      "qualityBands": [
+        { "label": "Baja", "range": "1-10%", "chance": "Frecuente" },
+        { "label": "Media", "range": "11-25%", "chance": "Frecuente" },
+        { "label": "Alta", "range": "26-45%", "chance": "Media" },
+        { "label": "Excelente", "range": "+45%", "chance": "Rara" }
+      ],
+      "tools": ["Prospector", "Mole", "Laser Arbor"],
+      "tips": ["Rentable si la roca tiene buen porcentaje total.", "Mejor como complemento que como objetivo unico.", "Evita rutas largas para concentraciones bajas."]
+    },
+    {
+      "id": "titanium",
+      "name": "Titanium",
+      "aliases": ["Titanio"],
+      "category": "Mineral base",
+      "profit": "Media-baja",
+      "risk": "Bajo",
+      "miningTypes": ["Nave"],
+      "bestLocations": [
+        { "system": "Stanton", "planet": "Hurston", "area": "Aberdeen", "method": "Nave", "deposit": "Roca superficial", "appearance": "Alta", "quality": "20-60% habitual", "notes": "Comun y estable, util para llenar bodega si no hay objetivos mejores." },
+        { "system": "Stanton", "planet": "microTech", "area": "Calliope", "method": "Nave", "deposit": "Roca superficial", "appearance": "Alta", "quality": "18-55% habitual", "notes": "Facil de encontrar en sesiones largas." },
+        { "system": "Stanton", "planet": "Crusader", "area": "Daymar", "method": "Nave", "deposit": "Roca superficial", "appearance": "Alta", "quality": "18-50% habitual", "notes": "Buen recurso de relleno." }
+      ],
+      "qualityBands": [
+        { "label": "Baja", "range": "1-20%", "chance": "Frecuente" },
+        { "label": "Media", "range": "21-45%", "chance": "Frecuente" },
+        { "label": "Alta", "range": "46-70%", "chance": "Media" },
+        { "label": "Excelente", "range": "+70%", "chance": "Rara" }
+      ],
+      "tools": ["Prospector", "Mole"],
+      "tips": ["No suele ser el objetivo principal.", "Aprovechalo si el porcentaje es alto y la roca es facil.", "Buen material para principiantes."]
+    },
+    {
+      "id": "diamond",
+      "name": "Diamond",
+      "aliases": ["Diamante"],
+      "category": "Mineral base",
+      "profit": "Media",
+      "risk": "Bajo",
+      "miningTypes": ["Nave"],
+      "bestLocations": [
+        { "system": "Stanton", "planet": "microTech", "area": "Clio", "method": "Nave", "deposit": "Roca superficial", "appearance": "Media", "quality": "12-35% habitual", "notes": "Mineral estable y facil de combinar con Oro." },
+        { "system": "Stanton", "planet": "Hurston", "area": "Arial", "method": "Nave", "deposit": "Roca superficial", "appearance": "Media", "quality": "10-30% habitual", "notes": "Aceptable si aparece con minerales valiosos." },
+        { "system": "Stanton", "planet": "ArcCorp", "area": "Wala", "method": "Nave", "deposit": "Roca superficial", "appearance": "Media", "quality": "8-28% habitual", "notes": "Bueno como complemento." }
+      ],
+      "qualityBands": [
+        { "label": "Baja", "range": "1-12%", "chance": "Frecuente" },
+        { "label": "Media", "range": "13-28%", "chance": "Frecuente" },
+        { "label": "Alta", "range": "29-50%", "chance": "Media" },
+        { "label": "Excelente", "range": "+50%", "chance": "Rara" }
+      ],
+      "tools": ["Prospector", "Mole"],
+      "tips": ["Buena opcion si quieres mineria estable.", "No lo priorices frente a Quantainium o Bexalite.", "Si aparece alto, ayuda a mejorar el valor total de la carga."]
+    },
+    {
+      "id": "copper",
+      "name": "Copper",
+      "aliases": ["Cobre"],
+      "category": "Mineral base",
+      "profit": "Baja",
+      "risk": "Bajo",
+      "miningTypes": ["Nave"],
+      "bestLocations": [
+        { "system": "Stanton", "planet": "Hurston", "area": "Magda", "method": "Nave", "deposit": "Roca superficial", "appearance": "Alta", "quality": "20-65% habitual", "notes": "Muy comun, util solo si buscas volumen." },
+        { "system": "Stanton", "planet": "microTech", "area": "Euterpe", "method": "Nave", "deposit": "Roca superficial", "appearance": "Alta", "quality": "18-60% habitual", "notes": "Aparece con frecuencia en rocas de bajo valor." },
+        { "system": "Stanton", "planet": "Crusader", "area": "Daymar", "method": "Nave", "deposit": "Roca superficial", "appearance": "Alta", "quality": "18-55% habitual", "notes": "Opcion de entrenamiento." }
+      ],
+      "qualityBands": [
+        { "label": "Baja", "range": "1-25%", "chance": "Frecuente" },
+        { "label": "Media", "range": "26-55%", "chance": "Frecuente" },
+        { "label": "Alta", "range": "56-80%", "chance": "Media" },
+        { "label": "Excelente", "range": "+80%", "chance": "Rara" }
+      ],
+      "tools": ["Prospector", "Mole"],
+      "tips": ["Solo compensa en concentraciones altas.", "Perfecto para practicar escaneo y fractura.", "No llenes bodega de Cobre si estas buscando beneficio por hora."]
+    },
+    {
+      "id": "iron",
+      "name": "Iron",
+      "aliases": ["Hierro"],
+      "category": "Mineral base",
+      "profit": "Baja",
+      "risk": "Bajo",
+      "miningTypes": ["Nave"],
+      "bestLocations": [
+        { "system": "Stanton", "planet": "Hurston", "area": "Aberdeen", "method": "Nave", "deposit": "Roca superficial", "appearance": "Alta", "quality": "25-70% habitual", "notes": "Comun, estable y de bajo riesgo." },
+        { "system": "Stanton", "planet": "microTech", "area": "Calliope", "method": "Nave", "deposit": "Roca superficial", "appearance": "Alta", "quality": "22-65% habitual", "notes": "Facil de encontrar si solo quieres practicar." },
+        { "system": "Stanton", "planet": "Crusader", "area": "Yela", "method": "Nave", "deposit": "Asteroide", "appearance": "Alta", "quality": "20-60% habitual", "notes": "Mineria espacial de bajo valor." }
+      ],
+      "qualityBands": [
+        { "label": "Baja", "range": "1-30%", "chance": "Frecuente" },
+        { "label": "Media", "range": "31-60%", "chance": "Frecuente" },
+        { "label": "Alta", "range": "61-85%", "chance": "Media" },
+        { "label": "Excelente", "range": "+85%", "chance": "Rara" }
+      ],
+      "tools": ["Prospector", "Mole"],
+      "tips": ["Material de aprendizaje y relleno.", "No es buena prioridad economica.", "Sirve para completar carga si la refineria esta cerca."]
+    },
+    {
+      "id": "quartz",
+      "name": "Quartz",
+      "aliases": ["Cuarzo"],
+      "category": "Mineral base",
+      "profit": "Baja-media",
+      "risk": "Bajo",
+      "miningTypes": ["Nave", "ROC"],
+      "bestLocations": [
+        { "system": "Stanton", "planet": "microTech", "area": "Clio", "method": "Nave", "deposit": "Roca superficial", "appearance": "Alta", "quality": "18-55% habitual", "notes": "Comun, sencillo y estable." },
+        { "system": "Stanton", "planet": "Hurston", "area": "Magda", "method": "Nave", "deposit": "Roca superficial", "appearance": "Alta", "quality": "18-52% habitual", "notes": "Buen mineral para practica." },
+        { "system": "Stanton", "planet": "Crusader", "area": "Daymar", "method": "ROC / Nave", "deposit": "Roca superficial", "appearance": "Alta", "quality": "15-45% habitual", "notes": "Zona accesible para sesiones cortas." }
+      ],
+      "qualityBands": [
+        { "label": "Baja", "range": "1-20%", "chance": "Frecuente" },
+        { "label": "Media", "range": "21-45%", "chance": "Frecuente" },
+        { "label": "Alta", "range": "46-70%", "chance": "Media" },
+        { "label": "Excelente", "range": "+70%", "chance": "Rara" }
+      ],
+      "tools": ["Prospector", "Mole", "ROC"],
+      "tips": ["Aprovechable en concentracion alta.", "No deberia desplazar minerales de mas valor.", "Bueno para rutas sin presion."]
+    },
+    {
+      "id": "corundum",
+      "name": "Corundum",
+      "aliases": ["Corindon"],
+      "category": "Mineral base",
+      "profit": "Baja",
+      "risk": "Bajo",
+      "miningTypes": ["Nave"],
+      "bestLocations": [
+        { "system": "Stanton", "planet": "Hurston", "area": "Aberdeen", "method": "Nave", "deposit": "Roca superficial", "appearance": "Alta", "quality": "18-55% habitual", "notes": "Frecuente, estable y de bajo valor." },
+        { "system": "Stanton", "planet": "microTech", "area": "Euterpe", "method": "Nave", "deposit": "Roca superficial", "appearance": "Alta", "quality": "15-50% habitual", "notes": "Comun en rocas de entrenamiento." },
+        { "system": "Stanton", "planet": "ArcCorp", "area": "Wala", "method": "Nave", "deposit": "Roca superficial", "appearance": "Media", "quality": "12-45% habitual", "notes": "Aceptable solo como relleno." }
+      ],
+      "qualityBands": [
+        { "label": "Baja", "range": "1-20%", "chance": "Frecuente" },
+        { "label": "Media", "range": "21-45%", "chance": "Frecuente" },
+        { "label": "Alta", "range": "46-70%", "chance": "Media" },
+        { "label": "Excelente", "range": "+70%", "chance": "Rara" }
+      ],
+      "tools": ["Prospector", "Mole"],
+      "tips": ["No es material prioritario.", "Usalo para completar si ya tienes carga rentable.", "Puede servir para comparar eficiencia de lasers."]
+    },
+    {
+      "id": "aluminum",
+      "name": "Aluminum",
+      "aliases": ["Aluminio"],
+      "category": "Mineral base",
+      "profit": "Baja",
+      "risk": "Bajo",
+      "miningTypes": ["Nave"],
+      "bestLocations": [
+        { "system": "Stanton", "planet": "Hurston", "area": "Magda", "method": "Nave", "deposit": "Roca superficial", "appearance": "Alta", "quality": "20-65% habitual", "notes": "Muy comun, util para entrenamiento." },
+        { "system": "Stanton", "planet": "microTech", "area": "Calliope", "method": "Nave", "deposit": "Roca superficial", "appearance": "Alta", "quality": "18-60% habitual", "notes": "Se encuentra con facilidad." },
+        { "system": "Stanton", "planet": "Crusader", "area": "Yela", "method": "Nave", "deposit": "Asteroide", "appearance": "Alta", "quality": "18-55% habitual", "notes": "Relleno comun en mineria espacial." }
+      ],
+      "qualityBands": [
+        { "label": "Baja", "range": "1-25%", "chance": "Frecuente" },
+        { "label": "Media", "range": "26-55%", "chance": "Frecuente" },
+        { "label": "Alta", "range": "56-80%", "chance": "Media" },
+        { "label": "Excelente", "range": "+80%", "chance": "Rara" }
+      ],
+      "tools": ["Prospector", "Mole"],
+      "tips": ["Bajo valor por unidad.", "No lo priorices salvo concentracion muy alta.", "Perfecto para aprender sin perder material caro."]
+    },
+    {
+      "id": "tungsten",
+      "name": "Tungsten",
+      "aliases": ["Wolframio"],
+      "category": "Mineral base",
+      "profit": "Baja-media",
+      "risk": "Bajo",
+      "miningTypes": ["Nave"],
+      "bestLocations": [
+        { "system": "Stanton", "planet": "Hurston", "area": "Arial", "method": "Nave", "deposit": "Roca superficial", "appearance": "Media", "quality": "12-40% habitual", "notes": "Aceptable como complemento de rutas calientes." },
+        { "system": "Stanton", "planet": "microTech", "area": "Clio", "method": "Nave", "deposit": "Roca superficial", "appearance": "Media", "quality": "10-35% habitual", "notes": "Comun en mezclas de valor medio." },
+        { "system": "Stanton", "planet": "ArcCorp", "area": "Wala", "method": "Nave", "deposit": "Roca superficial", "appearance": "Media", "quality": "10-32% habitual", "notes": "Relleno razonable si la concentracion es buena." }
+      ],
+      "qualityBands": [
+        { "label": "Baja", "range": "1-15%", "chance": "Frecuente" },
+        { "label": "Media", "range": "16-35%", "chance": "Frecuente" },
+        { "label": "Alta", "range": "36-60%", "chance": "Media" },
+        { "label": "Excelente", "range": "+60%", "chance": "Rara" }
+      ],
+      "tools": ["Prospector", "Mole"],
+      "tips": ["Puede compensar si aparece con Oro o Agricium.", "No suele justificar rutas dedicadas.", "Aprovechalo con concentracion media-alta."]
+    },
+    {
+      "id": "beryl",
+      "name": "Beryl",
+      "aliases": ["Berilo"],
+      "category": "Mineral base",
+      "profit": "Media-baja",
+      "risk": "Bajo",
+      "miningTypes": ["Nave"],
+      "bestLocations": [
+        { "system": "Stanton", "planet": "microTech", "area": "Clio", "method": "Nave", "deposit": "Roca superficial", "appearance": "Media", "quality": "10-35% habitual", "notes": "Aceptable para complementar cargas." },
+        { "system": "Stanton", "planet": "Hurston", "area": "Magda", "method": "Nave", "deposit": "Roca superficial", "appearance": "Media", "quality": "10-32% habitual", "notes": "Zona estable para mineria tranquila." },
+        { "system": "Stanton", "planet": "Crusader", "area": "Daymar", "method": "Nave", "deposit": "Roca superficial", "appearance": "Media", "quality": "8-28% habitual", "notes": "No es prioritario, pero suma si el resto de la roca es bueno." }
+      ],
+      "qualityBands": [
+        { "label": "Baja", "range": "1-12%", "chance": "Frecuente" },
+        { "label": "Media", "range": "13-30%", "chance": "Frecuente" },
+        { "label": "Alta", "range": "31-50%", "chance": "Media" },
+        { "label": "Excelente", "range": "+50%", "chance": "Rara" }
+      ],
+      "tools": ["Prospector", "Mole"],
+      "tips": ["Material secundario para mejorar el valor total.", "No pierdas tiempo si sale bajo.", "Puede ser util en rutas relajadas."]
+    },
+    {
+      "id": "hadanite",
+      "name": "Hadanite",
+      "aliases": ["Hada"],
+      "category": "Gema",
+      "profit": "Alta",
+      "risk": "Medio",
+      "miningTypes": ["ROC", "A pie"],
+      "bestLocations": [
+        { "system": "Stanton", "planet": "Hurston", "area": "Aberdeen", "method": "ROC", "deposit": "Gema superficial", "appearance": "Media", "quality": "Nodulos de alto valor", "notes": "Uno de los objetivos mas rentables para ROC." },
+        { "system": "Stanton", "planet": "Crusader", "area": "Daymar", "method": "ROC", "deposit": "Gema superficial", "appearance": "Media", "quality": "Nodulos de alto valor", "notes": "Buena visibilidad y rutas cortas con nave de transporte." },
+        { "system": "Stanton", "planet": "Hurston", "area": "Arial", "method": "ROC", "deposit": "Gema superficial", "appearance": "Media", "quality": "Nodulos de alto valor", "notes": "Zona caliente, prepara soporte y bebida." }
+      ],
+      "qualityBands": [
+        { "label": "Pequena veta", "range": "1-4 nodulos", "chance": "Frecuente" },
+        { "label": "Media", "range": "5-8 nodulos", "chance": "Media" },
+        { "label": "Alta", "range": "9-12 nodulos", "chance": "Rara" },
+        { "label": "Excelente", "range": "+12 nodulos", "chance": "Muy rara" }
+      ],
+      "tools": ["ROC", "Pembroke o Novikov segun bioma", "Nave de transporte"],
+      "tips": ["Busca grupos compactos para reducir tiempo de bajada.", "Marca mentalmente tu nave para no perderla.", "Vende con regularidad si hay riesgo de combate o clima."]
+    },
+    {
+      "id": "dolivine",
+      "name": "Dolivine",
+      "aliases": ["Doli"],
+      "category": "Gema",
+      "profit": "Media",
+      "risk": "Bajo",
+      "miningTypes": ["ROC", "A pie"],
+      "bestLocations": [
+        { "system": "Stanton", "planet": "Crusader", "area": "Daymar", "method": "ROC", "deposit": "Gema superficial", "appearance": "Alta", "quality": "Nodulos medios", "notes": "Buen material para empezar con ROC." },
+        { "system": "Stanton", "planet": "Hurston", "area": "Aberdeen", "method": "ROC", "deposit": "Gema superficial", "appearance": "Alta", "quality": "Nodulos medios", "notes": "Comun y estable." },
+        { "system": "Stanton", "planet": "microTech", "area": "Clio", "method": "ROC", "deposit": "Gema superficial", "appearance": "Media", "quality": "Nodulos medios", "notes": "Zona fria, lleva traje adecuado." }
+      ],
+      "qualityBands": [
+        { "label": "Pequena veta", "range": "1-4 nodulos", "chance": "Frecuente" },
+        { "label": "Media", "range": "5-9 nodulos", "chance": "Frecuente" },
+        { "label": "Alta", "range": "10-14 nodulos", "chance": "Media" },
+        { "label": "Excelente", "range": "+14 nodulos", "chance": "Rara" }
+      ],
+      "tools": ["ROC", "Multi-tool con accesorio minero"],
+      "tips": ["No es tan valioso como Hadanite, pero aparece mas.", "Perfecto para rutas de aprendizaje.", "Agrupa ventas para no perder tiempo."]
+    },
+    {
+      "id": "aphorite",
+      "name": "Aphorite",
+      "aliases": ["Apho"],
+      "category": "Gema",
+      "profit": "Media-baja",
+      "risk": "Bajo",
+      "miningTypes": ["ROC", "A pie"],
+      "bestLocations": [
+        { "system": "Stanton", "planet": "Crusader", "area": "Daymar", "method": "ROC", "deposit": "Gema superficial", "appearance": "Alta", "quality": "Nodulos medios", "notes": "Comun para sesiones rapidas." },
+        { "system": "Stanton", "planet": "Hurston", "area": "Magda", "method": "ROC", "deposit": "Gema superficial", "appearance": "Alta", "quality": "Nodulos medios", "notes": "Buena opcion si buscas practica." },
+        { "system": "Stanton", "planet": "ArcCorp", "area": "Wala", "method": "ROC", "deposit": "Gema superficial", "appearance": "Media", "quality": "Nodulos medios", "notes": "Zona alternativa para evitar competencia." }
+      ],
+      "qualityBands": [
+        { "label": "Pequena veta", "range": "1-5 nodulos", "chance": "Frecuente" },
+        { "label": "Media", "range": "6-10 nodulos", "chance": "Frecuente" },
+        { "label": "Alta", "range": "11-15 nodulos", "chance": "Media" },
+        { "label": "Excelente", "range": "+15 nodulos", "chance": "Rara" }
+      ],
+      "tools": ["ROC", "Multi-tool con accesorio minero"],
+      "tips": ["Es buen relleno si ya estas en ruta.", "No lo priorices por encima de Hadanite.", "Ideal para practicar control de laser ROC."]
+    },
+    {
+      "id": "janalite",
+      "name": "Janalite",
+      "aliases": ["Jana"],
+      "category": "Gema rara",
+      "profit": "Muy alta",
+      "risk": "Alto",
+      "miningTypes": ["A pie"],
+      "bestLocations": [
+        { "system": "Stanton", "planet": "Crusader", "area": "Cuevas de Daymar", "method": "A pie", "deposit": "Cristal de cueva", "appearance": "Muy baja", "quality": "Cristales raros", "notes": "Material raro; conviene explorar cuevas con equipo completo." },
+        { "system": "Stanton", "planet": "Hurston", "area": "Cuevas de Aberdeen", "method": "A pie", "deposit": "Cristal de cueva", "appearance": "Muy baja", "quality": "Cristales raros", "notes": "Riesgo ambiental alto por calor y exploracion subterranea." },
+        { "system": "Stanton", "planet": "microTech", "area": "Cuevas de Clio", "method": "A pie", "deposit": "Cristal de cueva", "appearance": "Muy baja", "quality": "Cristales raros", "notes": "Prepara traje y oxigeno antes de entrar." }
+      ],
+      "qualityBands": [
+        { "label": "Baja", "range": "1 cristal", "chance": "Rara" },
+        { "label": "Media", "range": "2-3 cristales", "chance": "Muy rara" },
+        { "label": "Alta", "range": "4-5 cristales", "chance": "Excepcional" },
+        { "label": "Excelente", "range": "+5 cristales", "chance": "Excepcional" }
+      ],
+      "tools": ["Multi-tool con accesorio minero", "Mochila", "Equipo ambiental"],
+      "tips": ["No lo planifiques como ingreso constante.", "Ve con suministros y marcador de salida.", "Vende cuanto antes si haces ruta de cuevas."]
+    },
+    {
+      "id": "querinite",
+      "name": "Querinite",
+      "aliases": ["Queri"],
+      "category": "Mineral raro",
+      "profit": "Alta",
+      "risk": "Medio",
+      "miningTypes": ["Nave"],
+      "bestLocations": [
+        { "system": "Stanton", "planet": "Hurston", "area": "Arial", "method": "Nave", "deposit": "Roca superficial", "appearance": "Baja", "quality": "4-18% habitual", "notes": "Objetivo secundario rentable cuando aparece junto a minerales de alto valor." },
+        { "system": "Stanton", "planet": "ArcCorp", "area": "Wala", "method": "Nave", "deposit": "Roca superficial", "appearance": "Baja", "quality": "3-16% habitual", "notes": "Buena zona alternativa si buscas mezclas raras sin ir solo a por Quantainium." },
+        { "system": "Stanton", "planet": "microTech", "area": "Clio", "method": "Nave", "deposit": "Roca superficial", "appearance": "Baja", "quality": "3-15% habitual", "notes": "Revisa bien el escaneo antes de fracturar; suele compensar solo en concentracion decente." }
+      ],
+      "qualityBands": [
+        { "label": "Baja", "range": "1-5%", "chance": "Frecuente" },
+        { "label": "Media", "range": "6-14%", "chance": "Media" },
+        { "label": "Alta", "range": "15-28%", "chance": "Rara" },
+        { "label": "Excelente", "range": "+28%", "chance": "Muy rara" }
+      ],
+      "tools": ["Prospector", "Mole", "Laser Lancet", "Modulo Focus"],
+      "tips": ["No lo descartes si aparece combinado con Bexalite, Agricium o Taranite.", "Evita rocas con mucho material inerte.", "Merece la pena marcar zonas donde aparezca varias veces en una misma sesion."]
+    },
+    {
+      "id": "riccite",
+      "name": "Riccite",
+      "aliases": ["Ric"],
+      "category": "Mineral raro",
+      "profit": "Muy alta",
+      "risk": "Alto",
+      "miningTypes": ["Nave"],
+      "bestLocations": [
+        { "system": "Stanton", "planet": "Crusader", "area": "Yela - cinturon de asteroides", "method": "Nave", "deposit": "Asteroide", "appearance": "Muy baja", "quality": "2-12% habitual", "notes": "Tratalo como hallazgo premium, no como material de farmeo constante." },
+        { "system": "Stanton", "planet": "microTech", "area": "Lyria", "method": "Nave", "deposit": "Roca superficial", "appearance": "Muy baja", "quality": "2-10% habitual", "notes": "Si aparece en una roca viable, revisa la masa y la inestabilidad antes de gastar consumibles." },
+        { "system": "Stanton", "planet": "Hurston", "area": "Arial", "method": "Nave", "deposit": "Roca superficial", "appearance": "Muy baja", "quality": "1-9% habitual", "notes": "Normalmente interesa si acompana a otros minerales caros." }
+      ],
+      "qualityBands": [
+        { "label": "Baja", "range": "1-4%", "chance": "Frecuente" },
+        { "label": "Media", "range": "5-10%", "chance": "Media" },
+        { "label": "Alta", "range": "11-18%", "chance": "Rara" },
+        { "label": "Excelente", "range": "+18%", "chance": "Muy rara" }
+      ],
+      "tools": ["Mole", "Prospector", "Laser Helix", "Modulo Surge", "Modulo Rieger"],
+      "tips": ["No persigas Riccite si la ruta se vuelve lenta.", "Prioriza seguridad y refineria cercana.", "Si la roca es dificil, es mejor no perder la carga por sobrecarga."]
+    },
+    {
+      "id": "stileron",
+      "name": "Stileron",
+      "aliases": ["Stile"],
+      "category": "Mineral raro",
+      "profit": "Alta",
+      "risk": "Medio",
+      "miningTypes": ["Nave"],
+      "bestLocations": [
+        { "system": "Stanton", "planet": "Hurston", "area": "Aberdeen", "method": "Nave", "deposit": "Roca superficial", "appearance": "Baja", "quality": "4-18% habitual", "notes": "Buen recurso raro para rutas de nave si aparece con concentracion media." },
+        { "system": "Stanton", "planet": "microTech", "area": "Calliope", "method": "Nave", "deposit": "Roca superficial", "appearance": "Baja", "quality": "3-16% habitual", "notes": "Zona alternativa para buscar materiales poco comunes." },
+        { "system": "Stanton", "planet": "ArcCorp", "area": "Wala", "method": "Nave", "deposit": "Roca superficial", "appearance": "Baja", "quality": "3-15% habitual", "notes": "Interesante si ya estas escaneando para Taranite o Agricium." }
+      ],
+      "qualityBands": [
+        { "label": "Baja", "range": "1-6%", "chance": "Frecuente" },
+        { "label": "Media", "range": "7-16%", "chance": "Media" },
+        { "label": "Alta", "range": "17-30%", "chance": "Rara" },
+        { "label": "Excelente", "range": "+30%", "chance": "Muy rara" }
+      ],
+      "tools": ["Prospector", "Mole", "Laser Lancet"],
+      "tips": ["Buen objetivo secundario, pero no siempre compensa forzar rocas complicadas.", "Compara el valor total de la roca antes de extraer.", "Usa consumibles si la ventana verde es muy pequena."]
+    },
+    {
+      "id": "ouratite",
+      "name": "Ouratite",
+      "aliases": ["Oura"],
+      "category": "Mineral comercial",
+      "profit": "Media-alta",
+      "risk": "Bajo",
+      "miningTypes": ["Nave"],
+      "bestLocations": [
+        { "system": "Stanton", "planet": "Hurston", "area": "Magda", "method": "Nave", "deposit": "Roca superficial", "appearance": "Media", "quality": "8-28% habitual", "notes": "Material estable para rutas de farmeo sin temporizador." },
+        { "system": "Stanton", "planet": "microTech", "area": "Euterpe", "method": "Nave", "deposit": "Roca superficial", "appearance": "Media", "quality": "7-24% habitual", "notes": "Opcion comoda para buscar mezclas de valor medio." },
+        { "system": "Stanton", "planet": "Crusader", "area": "Daymar", "method": "Nave", "deposit": "Roca superficial", "appearance": "Media", "quality": "6-22% habitual", "notes": "Buen relleno si ya estas en ruta." }
+      ],
+      "qualityBands": [
+        { "label": "Baja", "range": "1-10%", "chance": "Frecuente" },
+        { "label": "Media", "range": "11-24%", "chance": "Media" },
+        { "label": "Alta", "range": "25-42%", "chance": "Rara" },
+        { "label": "Excelente", "range": "+42%", "chance": "Muy rara" }
+      ],
+      "tools": ["Prospector", "Mole", "Laser Arbor o Lancet"],
+      "tips": ["Aprovechable en concentracion media-alta.", "No lo priorices frente a materiales premium.", "Buen recurso para completar bodega de forma segura."]
+    },
+    {
+      "id": "lindinium",
+      "name": "Lindinium",
+      "aliases": ["Lindi"],
+      "category": "Mineral comercial",
+      "profit": "Media",
+      "risk": "Bajo",
+      "miningTypes": ["Nave"],
+      "bestLocations": [
+        { "system": "Stanton", "planet": "Hurston", "area": "Aberdeen", "method": "Nave", "deposit": "Roca superficial", "appearance": "Media", "quality": "10-30% habitual", "notes": "Estable y facil de valorar como complemento." },
+        { "system": "Stanton", "planet": "microTech", "area": "Clio", "method": "Nave", "deposit": "Roca superficial", "appearance": "Media", "quality": "8-26% habitual", "notes": "Encaja bien en rutas de Oro y Diamond." },
+        { "system": "Stanton", "planet": "ArcCorp", "area": "Wala", "method": "Nave", "deposit": "Roca superficial", "appearance": "Media", "quality": "8-24% habitual", "notes": "No suele ser objetivo unico, pero suma." }
+      ],
+      "qualityBands": [
+        { "label": "Baja", "range": "1-10%", "chance": "Frecuente" },
+        { "label": "Media", "range": "11-25%", "chance": "Frecuente" },
+        { "label": "Alta", "range": "26-45%", "chance": "Media" },
+        { "label": "Excelente", "range": "+45%", "chance": "Rara" }
+      ],
+      "tools": ["Prospector", "Mole", "Laser Arbor"],
+      "tips": ["Usalo como mineral de apoyo.", "Compensa si la roca tambien lleva recursos mejores.", "No inviertas muchos consumibles en concentraciones bajas."]
+    },
+    {
+      "id": "savrilium",
+      "name": "Savrilium",
+      "aliases": ["Savri"],
+      "category": "Mineral comercial",
+      "profit": "Media",
+      "risk": "Bajo",
+      "miningTypes": ["Nave"],
+      "bestLocations": [
+        { "system": "Stanton", "planet": "Hurston", "area": "Arial", "method": "Nave", "deposit": "Roca superficial", "appearance": "Media", "quality": "8-26% habitual", "notes": "Buen recurso secundario en rutas de valor medio." },
+        { "system": "Stanton", "planet": "microTech", "area": "Calliope", "method": "Nave", "deposit": "Roca superficial", "appearance": "Media", "quality": "8-24% habitual", "notes": "Correcto si quieres mineria tranquila." },
+        { "system": "Stanton", "planet": "Crusader", "area": "Yela - asteroides", "method": "Nave", "deposit": "Asteroide", "appearance": "Media", "quality": "7-22% habitual", "notes": "Puede aparecer como relleno decente en mineria espacial." }
+      ],
+      "qualityBands": [
+        { "label": "Baja", "range": "1-10%", "chance": "Frecuente" },
+        { "label": "Media", "range": "11-24%", "chance": "Frecuente" },
+        { "label": "Alta", "range": "25-40%", "chance": "Media" },
+        { "label": "Excelente", "range": "+40%", "chance": "Rara" }
+      ],
+      "tools": ["Prospector", "Mole", "Laser Arbor"],
+      "tips": ["Material de complemento para no volver de vacio.", "Aprovecha concentraciones altas.", "No es prioridad si aparece junto a demasiado inerte."]
+    },
+    {
+      "id": "aslarite",
+      "name": "Aslarite",
+      "aliases": ["Asla"],
+      "category": "Mineral base",
+      "profit": "Media-baja",
+      "risk": "Bajo",
+      "miningTypes": ["Nave"],
+      "bestLocations": [
+        { "system": "Stanton", "planet": "Hurston", "area": "Aberdeen", "method": "Nave", "deposit": "Roca superficial", "appearance": "Media", "quality": "12-38% habitual", "notes": "Recurso estable para completar bodega." },
+        { "system": "Stanton", "planet": "microTech", "area": "Euterpe", "method": "Nave", "deposit": "Roca superficial", "appearance": "Media", "quality": "10-34% habitual", "notes": "Aparece en rutas de bajo riesgo." },
+        { "system": "Stanton", "planet": "Crusader", "area": "Daymar", "method": "Nave", "deposit": "Roca superficial", "appearance": "Media", "quality": "10-30% habitual", "notes": "Aceptable si no encuentras objetivos mejores." }
+      ],
+      "qualityBands": [
+        { "label": "Baja", "range": "1-12%", "chance": "Frecuente" },
+        { "label": "Media", "range": "13-32%", "chance": "Frecuente" },
+        { "label": "Alta", "range": "33-55%", "chance": "Media" },
+        { "label": "Excelente", "range": "+55%", "chance": "Rara" }
+      ],
+      "tools": ["Prospector", "Mole"],
+      "tips": ["No suele ser objetivo principal.", "Bueno para principiantes.", "Mejor si aparece en rocas faciles de fracturar."]
+    },
+    {
+      "id": "carinite",
+      "name": "Carinite",
+      "aliases": ["Cari"],
+      "category": "Gema",
+      "profit": "Media-alta",
+      "risk": "Medio",
+      "miningTypes": ["ROC", "A pie"],
+      "bestLocations": [
+        { "system": "Stanton", "planet": "Crusader", "area": "Daymar", "method": "ROC", "deposit": "Gema superficial", "appearance": "Media", "quality": "Nodulos medios-altos", "notes": "Busca agrupaciones compactas para mejorar beneficio por minuto." },
+        { "system": "Stanton", "planet": "Hurston", "area": "Aberdeen", "method": "ROC", "deposit": "Gema superficial", "appearance": "Media", "quality": "Nodulos medios-altos", "notes": "Riesgo ambiental; lleva traje y nave de apoyo." },
+        { "system": "Stanton", "planet": "microTech", "area": "Clio", "method": "ROC", "deposit": "Gema superficial", "appearance": "Baja", "quality": "Nodulos medios", "notes": "Buena visibilidad, pero prepara clima frio." }
+      ],
+      "qualityBands": [
+        { "label": "Pequena veta", "range": "1-4 nodulos", "chance": "Frecuente" },
+        { "label": "Media", "range": "5-9 nodulos", "chance": "Media" },
+        { "label": "Alta", "range": "10-14 nodulos", "chance": "Rara" },
+        { "label": "Excelente", "range": "+14 nodulos", "chance": "Muy rara" }
+      ],
+      "tools": ["ROC", "Multi-tool con accesorio minero", "Nave de transporte"],
+      "tips": ["Tratalo como gema de valor medio-alto.", "No ignores Hadanite si aparece en la misma ruta.", "Vende antes de encadenar demasiadas paradas peligrosas."]
+    },
+    {
+      "id": "silicon",
+      "name": "Silicon",
+      "aliases": ["Silicio"],
+      "category": "Recurso industrial",
+      "profit": "Baja-media",
+      "risk": "Bajo",
+      "miningTypes": ["Nave"],
+      "bestLocations": [
+        { "system": "Stanton", "planet": "Hurston", "area": "Magda", "method": "Nave", "deposit": "Roca superficial", "appearance": "Alta", "quality": "20-60% habitual", "notes": "Comun y estable, pensado mas para volumen que para valor." },
+        { "system": "Stanton", "planet": "microTech", "area": "Calliope", "method": "Nave", "deposit": "Roca superficial", "appearance": "Alta", "quality": "18-55% habitual", "notes": "Aparece con frecuencia en rutas de minerales base." },
+        { "system": "Stanton", "planet": "Crusader", "area": "Yela - asteroides", "method": "Nave", "deposit": "Asteroide", "appearance": "Alta", "quality": "16-50% habitual", "notes": "Buen recurso de relleno en mineria espacial." }
+      ],
+      "qualityBands": [
+        { "label": "Baja", "range": "1-20%", "chance": "Frecuente" },
+        { "label": "Media", "range": "21-50%", "chance": "Frecuente" },
+        { "label": "Alta", "range": "51-75%", "chance": "Media" },
+        { "label": "Excelente", "range": "+75%", "chance": "Rara" }
+      ],
+      "tools": ["Prospector", "Mole"],
+      "tips": ["Material de volumen, no de jackpot.", "Perfecto para aprender rutas.", "Solo priorizalo si la concentracion es alta."]
+    },
+    {
+      "id": "tin",
+      "name": "Tin",
+      "aliases": ["Estano"],
+      "category": "Recurso industrial",
+      "profit": "Baja-media",
+      "risk": "Bajo",
+      "miningTypes": ["Nave"],
+      "bestLocations": [
+        { "system": "Stanton", "planet": "Hurston", "area": "Magda", "method": "Nave", "deposit": "Roca superficial", "appearance": "Alta", "quality": "18-55% habitual", "notes": "Recurso comun para completar carga." },
+        { "system": "Stanton", "planet": "microTech", "area": "Euterpe", "method": "Nave", "deposit": "Roca superficial", "appearance": "Alta", "quality": "16-50% habitual", "notes": "Bueno para sesiones de practica." },
+        { "system": "Stanton", "planet": "ArcCorp", "area": "Wala", "method": "Nave", "deposit": "Roca superficial", "appearance": "Media", "quality": "14-45% habitual", "notes": "Aceptable si la roca tiene otros recursos mejores." }
+      ],
+      "qualityBands": [
+        { "label": "Baja", "range": "1-20%", "chance": "Frecuente" },
+        { "label": "Media", "range": "21-45%", "chance": "Frecuente" },
+        { "label": "Alta", "range": "46-70%", "chance": "Media" },
+        { "label": "Excelente", "range": "+70%", "chance": "Rara" }
+      ],
+      "tools": ["Prospector", "Mole"],
+      "tips": ["No es material prioritario.", "Sirve para rellenar si la ruta esta floja.", "Evita dedicar consumibles caros a rocas pobres."]
+    },
+    {
+      "id": "torite",
+      "name": "Torite",
+      "aliases": ["Tori"],
+      "category": "Mineral comercial",
+      "profit": "Media",
+      "risk": "Bajo",
+      "miningTypes": ["Nave"],
+      "bestLocations": [
+        { "system": "Stanton", "planet": "Hurston", "area": "Arial", "method": "Nave", "deposit": "Roca superficial", "appearance": "Media", "quality": "8-28% habitual", "notes": "Buen recurso secundario en rutas de minerales comerciales." },
+        { "system": "Stanton", "planet": "microTech", "area": "Clio", "method": "Nave", "deposit": "Roca superficial", "appearance": "Media", "quality": "8-26% habitual", "notes": "Puede complementar Oro o Diamond." },
+        { "system": "Stanton", "planet": "Crusader", "area": "Daymar", "method": "Nave", "deposit": "Roca superficial", "appearance": "Media", "quality": "7-24% habitual", "notes": "Ruta tranquila para completar bodega." }
+      ],
+      "qualityBands": [
+        { "label": "Baja", "range": "1-10%", "chance": "Frecuente" },
+        { "label": "Media", "range": "11-25%", "chance": "Frecuente" },
+        { "label": "Alta", "range": "26-42%", "chance": "Media" },
+        { "label": "Excelente", "range": "+42%", "chance": "Rara" }
+      ],
+      "tools": ["Prospector", "Mole"],
+      "tips": ["Aprovechalo en concentraciones medias.", "No lo priorices sobre minerales raros.", "Correcto para rutas seguras."]
+    },
+    {
+      "id": "ice",
+      "name": "Ice",
+      "aliases": ["Hielo"],
+      "category": "Recurso industrial",
+      "profit": "Baja",
+      "risk": "Bajo",
+      "miningTypes": ["Nave"],
+      "bestLocations": [
+        { "system": "Stanton", "planet": "microTech", "area": "Calliope", "method": "Nave", "deposit": "Roca superficial / hielo", "appearance": "Alta", "quality": "Volumen alto", "notes": "Recurso de volumen, no de alto beneficio." },
+        { "system": "Stanton", "planet": "microTech", "area": "Clio", "method": "Nave", "deposit": "Roca superficial / hielo", "appearance": "Alta", "quality": "Volumen alto", "notes": "Zona tematica para rutas frias y seguras." },
+        { "system": "Stanton", "planet": "Crusader", "area": "Yela - anillos", "method": "Nave", "deposit": "Asteroide helado", "appearance": "Media", "quality": "Volumen medio", "notes": "Util si quieres probar mineria espacial de bajo riesgo." }
+      ],
+      "qualityBands": [
+        { "label": "Baja", "range": "Baja densidad", "chance": "Frecuente" },
+        { "label": "Media", "range": "Densidad media", "chance": "Frecuente" },
+        { "label": "Alta", "range": "Alta densidad", "chance": "Media" },
+        { "label": "Excelente", "range": "Muy alta densidad", "chance": "Rara" }
+      ],
+      "tools": ["Prospector", "Mole"],
+      "tips": ["No es objetivo economico principal.", "Puede tener valor logistico si el sistema de produccion lo requiere.", "Evita llenar bodega si hay minerales mas valiosos cerca."]
+    }
+  ]
+}

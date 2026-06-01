@@ -17,6 +17,7 @@ loadLocalEnv();
 const clientDistDir = path.join(rootDir, 'dist');
 const dataDir = path.join(rootDir, 'data');
 const componentCatalogPath = path.join(dataDir, 'component-catalog.json');
+const miningMaterialsPath = path.join(dataDir, 'mining-materials.json');
 const port = Number(globalThis.STANTON_PORT || (typeof process !== 'undefined' ? process.env.PORT : 0)) || 4173;
 const env = typeof process !== 'undefined' ? process.env : {};
 const listenHost = env.HOST || '127.0.0.1';
@@ -2941,6 +2942,39 @@ async function readComponentCatalog() {
   }
 }
 
+async function readMiningMaterials() {
+  try {
+    const payload = JSON.parse(await fs.readFile(miningMaterialsPath, 'utf8'));
+    const materials = Array.isArray(payload.materials) ? payload.materials : [];
+    return {
+      generatedAt: payload.generatedAt || '',
+      sourceNote: payload.sourceNote || '',
+      total: materials.length,
+      materials
+    };
+  } catch {
+    return {
+      generatedAt: '',
+      sourceNote: 'Base local de mineria no disponible.',
+      total: 0,
+      materials: []
+    };
+  }
+}
+
+async function readMiningMaterialDetail(identifier) {
+  const decoded = decodeURIComponent(String(identifier || '')).trim();
+  if (!decoded) return null;
+
+  const payload = await readMiningMaterials();
+  const normalized = normalizeComparableName(decoded);
+  const material = payload.materials.find((item) => normalizeComparableName(item.id) === normalized)
+    || payload.materials.find((item) => normalizeComparableName(item.name) === normalized)
+    || payload.materials.find((item) => (item.aliases || []).some((alias) => normalizeComparableName(alias) === normalized));
+
+  return material ? { ...payload, material } : null;
+}
+
 async function readComponentDetail(identifier) {
   const decoded = decodeComponentIdentifier(identifier);
   if (!decoded) return null;
@@ -3427,6 +3461,22 @@ async function handleApi(request, response, pathname) {
     return;
   }
 
+  if (request.method === 'GET' && pathname === '/api/mining-materials') {
+    sendJson(response, 200, await readMiningMaterials());
+    return;
+  }
+
+  if (request.method === 'GET' && pathname.startsWith('/api/mining-materials/')) {
+    const identifier = pathname.slice('/api/mining-materials/'.length);
+    const detail = await readMiningMaterialDetail(identifier);
+    if (!detail) {
+      sendJson(response, 404, { error: 'Material no encontrado en la base local de mineria.' });
+      return;
+    }
+    sendJson(response, 200, detail);
+    return;
+  }
+
   if (request.method === 'GET' && pathname.startsWith('/api/components/')) {
     const identifier = pathname.slice('/api/components/'.length);
     const detail = await readComponentDetail(identifier);
@@ -3739,6 +3789,21 @@ const server = http.createServer(async (request, response) => {
 
       if (request.method === 'GET' && url.pathname === '/api/game-news') {
         sendJson(response, 200, await readGameNews());
+        return;
+      }
+
+      if (request.method === 'GET' && url.pathname === '/api/mining-materials') {
+        sendJson(response, 200, await readMiningMaterials());
+        return;
+      }
+
+      if (request.method === 'GET' && url.pathname.startsWith('/api/mining-materials/')) {
+        const detail = await readMiningMaterialDetail(url.pathname.slice('/api/mining-materials/'.length));
+        if (!detail) {
+          sendJson(response, 404, { error: 'Material no encontrado en la base local de mineria.' });
+          return;
+        }
+        sendJson(response, 200, detail);
         return;
       }
 
