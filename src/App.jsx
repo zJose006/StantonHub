@@ -10,6 +10,8 @@ import { ShipComparePage } from './pages/ShipComparePage.jsx';
 import { ComponentsPage } from './pages/ComponentsPage.jsx';
 import { ComponentDetailPage } from './pages/ComponentDetailPage.jsx';
 import { MiningMaterialsPage } from './pages/MiningMaterialsPage.jsx';
+import { BlueprintFinderPage } from './pages/BlueprintFinderPage.jsx';
+import { CommunityToolsPage } from './pages/CommunityToolsPage.jsx';
 import { GameNewsPage } from './pages/GameNewsPage.jsx';
 import { GameNewsDetailPage } from './pages/GameNewsDetailPage.jsx';
 import { ProfilePage } from './pages/ProfilePage.jsx';
@@ -34,6 +36,8 @@ const pageTitles = {
   components: 'Componentes',
   'component-detail': 'Detalle de componente',
   'mining-materials': 'Materiales de mineria',
+  'blueprint-finder': 'Blueprint Finder',
+  'community-tools': 'Herramientas',
   profile: 'Perfil',
   login: 'Login',
   register: 'Registro',
@@ -75,5 +79,5 @@ export function App() {
     }
   }
 
-  return <><Header page={page} navigate={navigate} currentUser={currentUser} />{page === 'home' && <Home navigate={navigate} />}{['forum','guides','news'].includes(page) && <ContentPage section={page} state={state} setState={setState} currentUser={currentUser} navigate={navigate} stateError={stateError} />}{page === 'game-news' && <GameNewsPage navigate={navigate} />}{page === 'game-news-detail' && <GameNewsDetailPage identifier={getGameNewsIdentifier()} navigate={navigate} />}{page === 'ships' && <ShipsPage currentUser={currentUser} navigate={navigate} />}{page === 'ship-compare' && <ShipComparePage navigate={navigate} />}{page === 'ship-detail' && <ShipDetailPage identifier={getShipIdentifier()} navigate={navigate} />}{page === 'components' && <ComponentsPage navigate={navigate} />}{page === 'component-detail' && <ComponentDetailPage identifier={getComponentIdentifier()} navigate={navigate} />}{page === 'mining-materials' && <MiningMaterialsPage />}{page === 'profile' && <ProfilePage state={state} setState={setState} currentUser={currentUser} navigate={navigate} stateError={stateError} />}{(page === 'login' || page === 'register') && <LoginPage />}{page === 'editor' && <EditorPage setState={setState} navigate={navigate} />}{page === 'admin' && <AdminPage currentUser={currentUser} navigate={navigate} />}<Footer navigate={navigate} /></>;
+  return <><Header page={page} navigate={navigate} currentUser={currentUser} />{page === 'home' && <Home navigate={navigate} />}{['forum','guides','news'].includes(page) && <ContentPage section={page} state={state} setState={setState} currentUser={currentUser} navigate={navigate} stateError={stateError} />}{page === 'game-news' && <GameNewsPage navigate={navigate} />}{page === 'game-news-detail' && <GameNewsDetailPage identifier={getGameNewsIdentifier()} navigate={navigate} />}{page === 'ships' && <ShipsPage currentUser={currentUser} navigate={navigate} />}{page === 'ship-compare' && <ShipComparePage navigate={navigate} />}{page === 'ship-detail' && <ShipDetailPage identifier={getShipIdentifier()} navigate={navigate} />}{page === 'components' && <ComponentsPage navigate={navigate} />}{page === 'component-detail' && <ComponentDetailPage identifier={getComponentIdentifier()} navigate={navigate} />}{page === 'mining-materials' && <MiningMaterialsPage />}{page === 'blueprint-finder' && <BlueprintFinderPage />}{page === 'community-tools' && <CommunityToolsPage navigate={navigate} />}{page === 'profile' && <ProfilePage state={state} setState={setState} currentUser={currentUser} navigate={navigate} stateError={stateError} />}{(page === 'login' || page === 'register') && <LoginPage />}{page === 'editor' && <EditorPage setState={setState} navigate={navigate} />}{page === 'admin' && <AdminPage currentUser={currentUser} navigate={navigate} />}<Footer navigate={navigate} /></>;
 }

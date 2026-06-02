@@ -66,11 +66,15 @@ export function Header({ page, navigate, currentUser }) {
           </div>
           <a className="mobile-home-link" href={routes.home} onClick={(event) => { routeClick(event, routes.home, navigate); closeMobileNav(); }}>Inicio</a>
           <nav className="site-nav" aria-label="Navegacion principal">
-            <NavGroup name="Naves y Componentes" active={page === 'ships' || page === 'ship-detail' || page === 'ship-compare' || page === 'components' || page === 'component-detail' || page === 'mining-materials'} openMenu={openMenu} setOpenMenu={toggleMenu}>
+            <NavGroup name="Naves y Componentes" active={page === 'ships' || page === 'ship-detail' || page === 'components' || page === 'component-detail'} openMenu={openMenu} setOpenMenu={toggleMenu}>
               <MenuItem path={routes.ships} title="Naves" text="Catalogo con precios, filtros y detalles tecnicos." navigate={navigate} closeMobileNav={closeMobileNav} />
-              <MenuItem path={routes.shipCompare} title="Comparador" text="Compara dos naves con grafico operativo y datos clave." navigate={navigate} closeMobileNav={closeMobileNav} />
               <MenuItem path={routes.components} title="Componentes" text="Armas, escudos, quantum y sistemas instalables." navigate={navigate} closeMobileNav={closeMobileNav} />
+            </NavGroup>
+            <NavGroup name="Herramientas" active={page === 'community-tools' || page === 'blueprint-finder' || page === 'ship-compare' || page === 'mining-materials'} openMenu={openMenu} setOpenMenu={toggleMenu}>
+              <MenuItem path={routes.shipCompare} title="Comparador de naves" text="Enfrenta dos naves con grafico operativo y datos clave." navigate={navigate} closeMobileNav={closeMobileNav} />
               <MenuItem path={routes.miningMaterials} title="Materiales" text="Donde minar, calidad esperada y rutas recomendadas." navigate={navigate} closeMobileNav={closeMobileNav} />
+              <MenuItem path={routes.blueprintFinder} title="Blueprint Finder" text="Busca planos crafteables por contrato, faccion y reputacion." navigate={navigate} closeMobileNav={closeMobileNav} />
+              <MenuItem path={routes.communityTools} title="Centro de herramientas" text="Accesos y utilidades preparadas para pilotos." navigate={navigate} closeMobileNav={closeMobileNav} />
             </NavGroup>
             {link(routes.gameNews, 'Noticias', 'page-btn', page === 'game-news' || page === 'game-news-detail')}
           </nav>
@@ -85,7 +89,7 @@ export function Header({ page, navigate, currentUser }) {
 /** Grupo desplegable del header. */
 function NavGroup({ name, active, openMenu, setOpenMenu, triggerContent, children }) {
   const isOpen = openMenu === name;
-  const introText = { 'Naves y Componentes': 'Catalogos tecnicos del verso', Cuenta: 'Perfil y acceso de piloto' }[name] || 'Secciones de Stanton Hub';
+  const introText = { 'Naves y Componentes': 'Catalogos tecnicos del verso', Herramientas: 'Utilidades de planificacion y farmeo', Cuenta: 'Perfil y acceso de piloto' }[name] || 'Secciones de Stanton Hub';
   return (
     <div className={`nav-group ${triggerContent ? 'account-nav' : ''} ${isOpen ? 'is-open' : ''}`}>
       <button className={`nav-trigger ${active ? 'active' : ''}`} type="button" aria-expanded={isOpen} aria-label={triggerContent ? name : undefined} title={triggerContent ? name : undefined} onClick={(event) => { event.stopPropagation(); setOpenMenu(name, isOpen); }}>

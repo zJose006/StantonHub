@@ -31,6 +31,7 @@ export function Home({ navigate }) {
     [routes.ships, 'Catalogo tecnico', 'Naves', 'Filtra vehiculos por fabricante, rol, tamano, precio y revisa fichas con hardpoints, modulos y puntuacion operacional.'],
     [routes.components, 'Equipamiento', 'Componentes', 'Consulta armas, escudos, quantum, propulsion y sistemas relacionados con las naves del catalogo.'],
     [routes.miningMaterials, 'Mineria', 'Materiales', 'Consulta donde minar recursos, calidades esperadas, metodos y consejos de extraccion.'],
+    [routes.communityTools, 'Directorio', 'Herramientas', 'Utilidades internas y externas para comercio, mineria, flota, mapas, controles y operaciones.'],
     [routes.gameNews, 'Noticias', 'Comunicaciones oficiales', 'Ultimas novedades del desarrollo traducidas y enlazadas a su fuente original.'],
     [routes.profile, 'Cuenta', 'Perfil', 'Acceso con Discord, actividad y herramientas disponibles para usuarios registrados.']
   ];
@@ -78,6 +79,7 @@ export function Home({ navigate }) {
             <a className="action-btn primary-action" href={routes.ships} onClick={(event) => routeClick(event, routes.ships, navigate)}>Explorar naves</a>
             <a className="action-btn" href={routes.components} onClick={(event) => routeClick(event, routes.components, navigate)}>Ver componentes</a>
             <a className="action-btn" href={routes.miningMaterials} onClick={(event) => routeClick(event, routes.miningMaterials, navigate)}>Planificar mineria</a>
+            <a className="action-btn" href={routes.communityTools} onClick={(event) => routeClick(event, routes.communityTools, navigate)}>Ver herramientas</a>
             <a className="action-btn" href={routes.gameNews} onClick={(event) => routeClick(event, routes.gameNews, navigate)}>Leer noticias</a>
           </div>
           <dl className="home-status-strip">
@@ -116,6 +118,11 @@ export function Home({ navigate }) {
           <span>Materiales minables</span>
           <strong>Rutas de extraccion</strong>
           <p>Busca Oro, Quantainium o gemas de ROC y revisa ubicaciones, riesgo, calidad y equipo recomendado.</p>
+        </article>
+        <article className="home-mission-card">
+          <span>Herramientas externas</span>
+          <strong>Directorio operativo</strong>
+          <p>Accede rapido a calculadoras, mapas, mercados, rutas, CCU, loadouts y planificadores usados por la comunidad.</p>
         </article>
         <article className="home-mission-card">
           <span>Noticias oficiales</span>

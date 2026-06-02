@@ -52,6 +52,7 @@ const oauthStateCookieName = 'stanton_oauth_state';
 const sessionMaxAgeSeconds = 60 * 60 * 24 * 14;
 const oauthStateMaxAgeSeconds = 60 * 10;
 let gameNewsCache = { expiresAt: 0, payload: null };
+let wikiBlueprintItemsCache = { expiresAt: 0, payload: null };
 const translationCache = new Map();
 const roleDefinitions = [
   {
@@ -856,6 +857,54 @@ function wikiVehicleSlug(wikiVehicle) {
 
 async function fetchWikiVehiclesList() {
   return asArray(wikiData(await fetchStarCitizenWikiJson('/vehicles')));
+}
+
+async function readWikiBlueprintItems() {
+  if (wikiBlueprintItemsCache.payload && Date.now() < wikiBlueprintItemsCache.expiresAt) return wikiBlueprintItemsCache.payload;
+
+  const filters = ['weapons', 'armor', 'ammo', 'clothing', 'utility', 'weapon-attachments'];
+  const items = [];
+
+  for (const category of filters) {
+    try {
+      const payload = await fetchStarCitizenWikiJson('/items', { 'filter[category]': category });
+      for (const item of normalizeWikiItemList(payload)) {
+        const name = textValue(item.name || item.title);
+        if (!name) continue;
+        items.push({
+          id: textValue(item.uuid || item.id || item.slug || name),
+          name,
+          category: textValue(item.category || item.type || category),
+          type: textValue(item.type || item.sub_type || item.subType || ''),
+          manufacturer: textValue(item.manufacturer?.name || item.manufacturer || ''),
+          size: Number(item.size || item.item_size || 0) || null,
+          grade: textValue(item.grade || ''),
+          className: textValue(item.class_name || item.className || ''),
+          sourceCategory: category
+        });
+      }
+    } catch (error) {
+      console.warn(`No se pudieron cargar items blueprint ${category}: ${error.message}`);
+    }
+  }
+
+  const deduped = [...new Map(items.map((item) => [`${item.name}|${item.category}|${item.type}|${item.size || ''}`.toLowerCase(), item])).values()];
+  const payload = {
+    generatedAt: new Date().toISOString(),
+    total: deduped.length,
+    items: deduped
+  };
+  wikiBlueprintItemsCache = { expiresAt: Date.now() + 1000 * 60 * 60 * 6, payload };
+  return payload;
+}
+
+function normalizeWikiItemList(payload) {
+  const data = wikiData(payload);
+  if (Array.isArray(data)) return data;
+  if (Array.isArray(data?.data)) return data.data;
+  if (Array.isArray(data?.items)) return data.items;
+  if (Array.isArray(data?.results)) return data.results;
+  return [];
 }
 
 async function fetchWikiVehicleDetail(vehicle, wikiVehicles = []) {
@@ -2949,6 +2998,8 @@ async function readMiningMaterials() {
     return {
       generatedAt: payload.generatedAt || '',
       sourceNote: payload.sourceNote || '',
+      sourceSpreadsheet: payload.sourceSpreadsheet || null,
+      equipment: payload.equipment || { miningLasers: [], miningModulesAndGadgets: [] },
       total: materials.length,
       materials
     };
@@ -2956,6 +3007,8 @@ async function readMiningMaterials() {
     return {
       generatedAt: '',
       sourceNote: 'Base local de mineria no disponible.',
+      sourceSpreadsheet: null,
+      equipment: { miningLasers: [], miningModulesAndGadgets: [] },
       total: 0,
       materials: []
     };
@@ -3789,6 +3842,11 @@ const server = http.createServer(async (request, response) => {
 
       if (request.method === 'GET' && url.pathname === '/api/game-news') {
         sendJson(response, 200, await readGameNews());
+        return;
+      }
+
+      if (request.method === 'GET' && url.pathname === '/api/blueprints/wiki-items') {
+        sendJson(response, 200, await readWikiBlueprintItems());
         return;
       }
 

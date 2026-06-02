@@ -9,6 +9,7 @@ export function MiningMaterialsPage() {
   const [search, setSearch] = useState('');
   const [method, setMethod] = useState(allMethods);
   const [profit, setProfit] = useState(allMethods);
+  const [category, setCategory] = useState(allMethods);
   const [selectedId, setSelectedId] = useState('');
 
   useEffect(() => {
@@ -30,6 +31,8 @@ export function MiningMaterialsPage() {
   const materials = payload.materials || [];
   const methods = useMemo(() => uniqueSorted(materials.flatMap((item) => item.miningTypes || [])), [materials]);
   const profits = useMemo(() => uniqueSorted(materials.map((item) => item.profit).filter(Boolean)), [materials]);
+  const categories = useMemo(() => uniqueSorted(materials.map((item) => item.category).filter(Boolean)), [materials]);
+  const equipment = payload.equipment || { miningLasers: [], miningModulesAndGadgets: [] };
 
   const filtered = useMemo(() => {
     const token = normalize(search);
@@ -37,9 +40,10 @@ export function MiningMaterialsPage() {
       const matchesSearch = !token || normalize([material.name, material.category, ...(material.aliases || [])].join(' ')).includes(token);
       const matchesMethod = method === allMethods || (material.miningTypes || []).includes(method);
       const matchesProfit = profit === allMethods || material.profit === profit;
-      return matchesSearch && matchesMethod && matchesProfit;
+      const matchesCategory = category === allMethods || material.category === category;
+      return matchesSearch && matchesMethod && matchesProfit && matchesCategory;
     });
-  }, [materials, search, method, profit]);
+  }, [category, materials, search, method, profit]);
 
   const selected = materials.find((item) => item.id === selectedId) || filtered[0] || materials[0] || null;
 
@@ -60,7 +64,7 @@ export function MiningMaterialsPage() {
         <div className="mining-briefing-stats">
           <Metric value={materials.length} label="Materiales" />
           <Metric value={methods.length} label="Metodos" />
-          <Metric value={filtered.length} label="Filtrados" />
+          <Metric value={(equipment.miningLasers || []).length + (equipment.miningModulesAndGadgets || []).length} label="Equipos" />
         </div>
       </section>
 
@@ -84,9 +88,18 @@ export function MiningMaterialsPage() {
               {profits.map((item) => <option key={item}>{item}</option>)}
             </select>
           </label>
+          <label>
+            <span>Categoria</span>
+            <select value={category} onChange={(event) => setCategory(event.target.value)}>
+              <option>{allMethods}</option>
+              {categories.map((item) => <option key={item}>{item}</option>)}
+            </select>
+          </label>
         </div>
         <p>{status}</p>
       </section>
+
+      <EquipmentIntel equipment={equipment} />
 
       <section className="mining-layout">
         <aside className="panel mining-material-list" aria-label="Listado de materiales">
@@ -119,6 +132,9 @@ function MaterialDetail({ material, sourceNote }) {
     return <section className="panel mining-detail-panel"><p className="empty-state">Selecciona un material para ver su ficha minera.</p></section>;
   }
 
+  const sheetData = material.sheetData || {};
+  const bestRefineries = material.bestRefineries || [];
+
   return (
     <section className="panel mining-detail-panel">
       <div className="mining-detail-hero">
@@ -137,6 +153,14 @@ function MaterialDetail({ material, sourceNote }) {
           <strong>{priorityLabel(material)}</strong>
           <small>{material.bestLocations?.[0]?.area || 'Ruta pendiente'}</small>
         </div>
+      </div>
+
+      <div className="mining-kpi-grid">
+        <DataCard label="Precio medio" value={sheetData.averageUnitPrice ? `${formatNumber(sheetData.averageUnitPrice)} aUEC/u` : 'N/D'} />
+        <DataCard label="Densidad" value={formatValue(sheetData.density)} />
+        <DataCard label="Inestabilidad" value={formatValue(sheetData.instability)} tone={Number(sheetData.instability) >= 5 ? 'warn' : 'ok'} />
+        <DataCard label="Resistencia" value={formatValue(sheetData.resistance)} />
+        <DataCard label="Ventana optima" value={formatValue(sheetData.optimalWindowThickness)} />
       </div>
 
       <div className="mining-detail-grid">
@@ -166,6 +190,26 @@ function MaterialDetail({ material, sourceNote }) {
         </section>
 
         <aside className="mining-side-column">
+          {bestRefineries.length ? (
+            <section className="mining-block">
+              <div className="section-heading compact">
+                <span className="eyebrow">Refineria</span>
+                <h3>Mejores bonus de rendimiento</h3>
+              </div>
+              <div className="refinery-bonus-list">
+                {bestRefineries.map((refinery) => (
+                  <div className="refinery-bonus-card" key={`${refinery.code}-${refinery.station}`}>
+                    <span>
+                      <strong>{refinery.code}</strong>
+                      <small>{refinery.station}</small>
+                    </span>
+                    <b className={Number(refinery.yieldBonus) >= 0 ? 'positive' : 'negative'}>{refinery.label}</b>
+                  </div>
+                ))}
+              </div>
+            </section>
+          ) : null}
+
           <section className="mining-block">
             <div className="section-heading compact">
               <span className="eyebrow">Calidad</span>
@@ -208,8 +252,54 @@ function MaterialDetail({ material, sourceNote }) {
   );
 }
 
+function EquipmentIntel({ equipment }) {
+  const lasers = (equipment.miningLasers || []).slice(0, 4);
+  const modules = (equipment.miningModulesAndGadgets || []).slice(0, 6);
+  if (!lasers.length && !modules.length) return null;
+
+  return (
+    <section className="panel mining-equipment-panel">
+      <div className="section-heading">
+        <span className="eyebrow">Equipo minero</span>
+        <h2>Laseres, modulos y gadgets importados</h2>
+      </div>
+      <div className="mining-equipment-grid">
+        <div className="mining-equipment-column">
+          <h3>Laseres de mineria</h3>
+          {lasers.map((laser) => (
+            <article className="mining-equipment-card" key={laser.name}>
+              <strong>{laser.name}</strong>
+              <span>S{laser.size || 'N/D'} - {laser.miningLaserPower ? `${formatNumber(laser.miningLaserPower)} potencia` : 'potencia N/D'}</span>
+              <small>{laser.moduleSlots ? `${laser.moduleSlots} ranuras de modulo` : 'Ranuras no indicadas'}</small>
+            </article>
+          ))}
+        </div>
+        <div className="mining-equipment-column">
+          <h3>Modulos y gadgets</h3>
+          {modules.map((module) => (
+            <article className="mining-equipment-card" key={`${module.category}-${module.name}`}>
+              <strong>{module.name}</strong>
+              <span>{module.category || 'Modulo'} - {module.price ? `${formatNumber(module.price)} aUEC` : 'precio N/D'}</span>
+              <small>{module.duration ? `Duracion ${module.duration}` : module.uses ? `${module.uses} usos` : 'Datos de uso pendientes'}</small>
+            </article>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
 function Metric({ value, label }) {
   return <div><strong>{value}</strong><span>{label}</span></div>;
+}
+
+function DataCard({ label, value, tone }) {
+  return (
+    <div className={`mining-data-card ${tone ? `is-${tone}` : ''}`}>
+      <span>{label}</span>
+      <strong>{value}</strong>
+    </div>
+  );
 }
 
 function aliasText(aliases = []) {
@@ -233,4 +323,16 @@ function normalize(value) {
     .replace(/[\u0300-\u036f]/g, '')
     .toLowerCase()
     .trim();
+}
+
+function formatNumber(value) {
+  const numberValue = Number(value);
+  if (!Number.isFinite(numberValue)) return 'N/D';
+  return new Intl.NumberFormat('es-ES', { maximumFractionDigits: numberValue >= 100 ? 0 : 2 }).format(numberValue);
+}
+
+function formatValue(value) {
+  const numberValue = Number(value);
+  if (!Number.isFinite(numberValue)) return 'N/D';
+  return formatNumber(numberValue);
 }

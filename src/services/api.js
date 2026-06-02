@@ -48,6 +48,11 @@ export async function loadMiningMaterialDetail(identifier) {
   return requestJson('/api/mining-materials/' + encodeURIComponent(identifier));
 }
 
+/** Carga items externos candidatos a blueprints desde el backend. */
+export async function loadBlueprintWikiItems() {
+  return requestJson('/api/blueprints/wiki-items');
+}
+
 /** Carga noticias recientes del Comm-Link oficial con cache en backend. */
 export async function loadGameNews() {
   return requestJson('/api/game-news');
