@@ -10,7 +10,7 @@ export function CommunityToolsPage({ navigate }) {
 
   const categories = useMemo(() => ['Todas', ...new Set(communityTools.map((tool) => tool.category).sort())], []);
   const types = useMemo(() => ['Todas', ...new Set(communityTools.map((tool) => tool.type).sort())], []);
-  const featured = useMemo(() => ['blueprint-finder', 'mining-material-finder', 'ship-compare', 'component-catalog']
+  const featured = useMemo(() => ['operation-timers', 'blueprint-finder', 'mining-material-finder', 'ship-compare', 'component-catalog']
     .map((id) => communityTools.find((tool) => tool.id === id))
     .filter(Boolean), []);
   const filteredTools = useMemo(() => {

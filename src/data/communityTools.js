@@ -73,10 +73,10 @@ export const communityTools = [
     provider: 'Stanton Hub',
     category: 'Operaciones',
     type: 'Interna',
-    status: 'Pendiente',
-    url: routes.communityTools,
-    description: 'Modulo previsto para agrupar timers, objetivos y checklist de actividades de grupo.',
-    useCases: ['Escuadra', 'Eventos', 'Contested Zones']
+    status: 'Disponible',
+    url: routes.operationTimers,
+    description: 'Controla ciclos de hangares ejecutivos y temporizadores manuales para tarjetas, objetivos y ventanas de grupo.',
+    useCases: ['Hangares', 'Tarjetas', 'Contested Zones']
   },
   {
     id: 'keybind-planner',

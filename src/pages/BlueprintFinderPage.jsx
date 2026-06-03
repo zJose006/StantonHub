@@ -5,72 +5,142 @@ import { uniqueSorted } from '../utils/format.js';
 const all = 'Todos';
 const acquisitionOptions = ['Con ruta', 'Todos crafteables', 'Sin ruta'];
 
-/** Buscador interno de blueprints centrado en contratos y recompensas. */
+const roleToneMap = {
+  FPS: 'fps',
+  'Combate nave': 'ship',
+  Proteccion: 'armor',
+  Sistemas: 'systems',
+  Utilidad: 'utility',
+  Logistica: 'logistics',
+  Referencia: 'reference'
+};
+
+/** Buscador interno de blueprints centrado en contratos, rol y ruta de obtencion. */
 export function BlueprintFinderPage() {
+  const defaultBlueprint = craftingBlueprints.find((item) => item.missions.length) || craftingBlueprints[0];
   const [filters, setFilters] = useState({ search: '', category: all, role: all, acquisition: 'Con ruta', mission: all, system: all, rarity: all });
-  const [selectedId, setSelectedId] = useState(craftingBlueprints.find((item) => item.missions.length)?.id || craftingBlueprints[0]?.id || '');
+  const [selectedId, setSelectedId] = useState(defaultBlueprint?.id || '');
+
   const categories = useMemo(() => [all, ...uniqueSorted(blueprintSummary.map((item) => item.label))], []);
   const roles = useMemo(() => [all, ...uniqueSorted(craftingBlueprints.map((item) => item.roleLabel))], []);
   const missions = useMemo(() => [all, ...uniqueSorted(blueprintMissions.map((item) => item.name))], []);
   const systems = useMemo(() => [all, ...uniqueSorted(blueprintMissions.map((item) => item.system))], []);
   const rarities = useMemo(() => [all, ...uniqueSorted(craftingBlueprints.map((item) => item.rarity))], []);
-  const filtered = useMemo(() => craftingBlueprints.filter((blueprint) => blueprintMatches(blueprint, filters)).slice(0, 260), [filters]);
-  const selected = craftingBlueprints.find((item) => item.id === selectedId) || filtered[0] || craftingBlueprints[0];
+  const roleCards = useMemo(() => roles.filter((item) => item !== all).map((role) => ({
+    role,
+    count: craftingBlueprints.filter((item) => item.roleLabel === role).length,
+    routed: craftingBlueprints.filter((item) => item.roleLabel === role && item.missions.length).length,
+    tone: roleToneMap[role] || 'reference'
+  })), [roles]);
+
+  const filtered = useMemo(() => craftingBlueprints.filter((blueprint) => blueprintMatches(blueprint, filters)).slice(0, 320), [filters]);
+  const selected = craftingBlueprints.find((item) => item.id === selectedId) || filtered[0] || defaultBlueprint || null;
 
   useEffect(() => {
-    if (selected && !filtered.some((item) => item.id === selected.id)) setSelectedId(filtered[0]?.id || craftingBlueprints[0]?.id || '');
-  }, [filtered, selected]);
+    if (selected && !filtered.some((item) => item.id === selected.id)) {
+      setSelectedId(filtered[0]?.id || defaultBlueprint?.id || '');
+    }
+  }, [defaultBlueprint, filtered, selected]);
+
+  const setFilter = (key, value) => setFilters((current) => ({ ...current, [key]: value }));
+  const clearFilters = () => setFilters({ search: '', category: all, role: all, acquisition: 'Con ruta', mission: all, system: all, rarity: all });
 
   return (
     <main className="container blueprint-shell">
-      <section className="panel blueprint-briefing blueprint-briefing-missions">
-        <div>
-          <span className="section-label">Mission Contract Rewards Guide</span>
-          <h2>Blueprint Finder</h2>
-          <p>Base local importada desde el dataset de recompensas por contrato: armas personales, municion, armaduras, trajes, armas de nave y componentes.</p>
+      <section className="blueprint-command">
+        <div className="blueprint-command-copy">
+          <span className="eyebrow">Mission Contract Rewards Guide</span>
+          <h2>Encuentra el plano y la mision que lo desbloquea</h2>
+          <p>Filtra por rol, categoria, sistema o contrato. La prioridad es saber que actividad repetir y que recompensa esperar, sin convertir la pagina en una hoja de calculo.</p>
+          <div className="blueprint-command-actions">
+            <button type="button" onClick={() => setFilter('search', 'Pulverizer')}>Pulverizer</button>
+            <button type="button" onClick={() => setFilter('role', 'FPS')}>Armas FPS</button>
+            <button type="button" onClick={() => setFilter('role', 'Combate nave')}>Naves</button>
+            <button type="button" onClick={clearFilters}>Limpiar filtros</button>
+          </div>
         </div>
-        <div className="blueprint-stats blueprint-stats-wide">
-          {blueprintSummary.slice(0, 6).map((item) => <Metric key={item.label} value={item.count} label={item.label} />)}
+        <div className="blueprint-command-grid">
+          <Metric value={craftingBlueprints.length} label="Planos" />
+          <Metric value={blueprintMissions.length} label="Contratos" />
+          <Metric value={filtered.length} label="Resultados" />
+          <Metric value={craftingBlueprints.filter((item) => item.missions.length).length} label="Con ruta" />
         </div>
       </section>
 
-      <section className="panel blueprint-mission-strip" aria-label="Misiones destacadas">
-        {blueprintMissions.slice(0, 6).map((mission) => (
-          <button key={mission.id} type="button" className={filters.mission === mission.name ? 'active' : ''} onClick={() => setFilters({ ...filters, mission: filters.mission === mission.name ? all : mission.name })}>
-            <span>{mission.faction}</span>
-            <strong>{mission.name}</strong>
-            <small>{mission.system} / {mission.activity}</small>
+      <section className="blueprint-role-board" aria-label="Roles de blueprints">
+        <button type="button" className={`blueprint-role-filter role-all ${filters.role === all ? 'active' : ''}`} onClick={() => setFilter('role', all)}>
+          <span>Todos</span>
+          <strong>{craftingBlueprints.length}</strong>
+          <small>Vista completa</small>
+        </button>
+        {roleCards.map((item) => (
+          <button
+            key={item.role}
+            type="button"
+            className={`blueprint-role-filter role-${item.tone} ${filters.role === item.role ? 'active' : ''}`}
+            onClick={() => setFilter('role', filters.role === item.role ? all : item.role)}
+          >
+            <span>{item.role}</span>
+            <strong>{item.count}</strong>
+            <small>{item.routed} con ruta</small>
           </button>
         ))}
       </section>
 
-      <section className="panel blueprint-controls blueprint-controls-missions">
-        <label>Buscar<input value={filters.search} onChange={(event) => setFilters({ ...filters, search: event.target.value })} placeholder="Pulverizer, P4-AR, WAR Neutron, Sukoran..." /></label>
-        <Select label="Categoria" value={filters.category} values={categories} onChange={(value) => setFilters({ ...filters, category: value })} />
-        <Select label="Rol" value={filters.role} values={roles} onChange={(value) => setFilters({ ...filters, role: value })} />
-        <Select label="Obtencion" value={filters.acquisition} values={acquisitionOptions} onChange={(value) => setFilters({ ...filters, acquisition: value })} />
-        <Select label="Contrato" value={filters.mission} values={missions} onChange={(value) => setFilters({ ...filters, mission: value })} />
-        <Select label="Sistema" value={filters.system} values={systems} onChange={(value) => setFilters({ ...filters, system: value })} />
-        <Select label="Rareza" value={filters.rarity} values={rarities} onChange={(value) => setFilters({ ...filters, rarity: value })} />
-      </section>
-
-      <section className="blueprint-layout">
-        <aside className="panel blueprint-results" aria-label="Blueprints encontrados">
+      <section className="blueprint-workbench">
+        <aside className="blueprint-filter-panel">
           <div className="section-heading compact">
-            <span className="section-label">Base cargada</span>
-            <h2>{filtered.length} de {craftingBlueprints.length} registros</h2>
+            <span className="eyebrow">Filtros</span>
+            <h3>Afina la busqueda</h3>
           </div>
-          {filtered.map((blueprint) => (
-            <button key={blueprint.id} type="button" className={`blueprint-result ${selected?.id === blueprint.id ? 'active' : ''}`} onClick={() => setSelectedId(blueprint.id)}>
-              <span>
-                <strong>{blueprint.name}</strong>
-                <small>{blueprint.category} / {blueprint.roleLabel} / {blueprint.acquisition.primaryFaction}</small>
-              </span>
-              <b title="Contratos detectados">{blueprint.missions.length || 'N/D'}</b>
-            </button>
-          ))}
-          {!filtered.length ? <p className="empty-state">No hay blueprints con esos filtros.</p> : null}
+          <label className="blueprint-search-field">
+            <span>Nombre, mision, faccion o codigo</span>
+            <input value={filters.search} onChange={(event) => setFilter('search', event.target.value)} placeholder="Ej: P4-AR, WAR, Headhunters..." />
+          </label>
+          <div className="blueprint-filter-grid">
+            <Select label="Categoria" value={filters.category} values={categories} onChange={(value) => setFilter('category', value)} />
+            <Select label="Obtencion" value={filters.acquisition} values={acquisitionOptions} onChange={(value) => setFilter('acquisition', value)} />
+            <Select label="Sistema" value={filters.system} values={systems} onChange={(value) => setFilter('system', value)} />
+            <Select label="Rareza" value={filters.rarity} values={rarities} onChange={(value) => setFilter('rarity', value)} />
+          </div>
+          <Select label="Contrato concreto" value={filters.mission} values={missions} onChange={(value) => setFilter('mission', value)} />
+
+          <section className="blueprint-mission-focus">
+            <span className="eyebrow">Contratos utiles</span>
+            <div className="blueprint-mission-stack">
+              {blueprintMissions.slice(0, 5).map((mission) => (
+                <button key={mission.id} type="button" className={filters.mission === mission.name ? 'active' : ''} onClick={() => setFilter('mission', filters.mission === mission.name ? all : mission.name)}>
+                  <strong>{mission.name}</strong>
+                  <span>{mission.faction} / {mission.system}</span>
+                </button>
+              ))}
+            </div>
+          </section>
         </aside>
+
+        <section className="blueprint-results-panel">
+          <div className="blueprint-results-head">
+            <div>
+              <span className="eyebrow">Resultados</span>
+              <h3>{filtered.length} de {craftingBlueprints.length}</h3>
+            </div>
+            <span>{filters.role === all ? 'Todos los roles' : filters.role}</span>
+          </div>
+          <div className="blueprint-result-list" aria-label="Blueprints encontrados">
+            {filtered.length ? filtered.map((blueprint) => (
+              <button key={blueprint.id} type="button" className={`blueprint-result-card role-${roleToneMap[blueprint.roleLabel] || 'reference'} ${selected?.id === blueprint.id ? 'active' : ''}`} onClick={() => setSelectedId(blueprint.id)}>
+                <span className="blueprint-result-main">
+                  <strong>{blueprint.name}</strong>
+                  <small>{blueprint.category} / {blueprint.acquisition.primaryFaction}</small>
+                </span>
+                <span className="blueprint-result-meta">
+                  <b>{blueprint.missions.length || 'N/D'}</b>
+                  <small>{blueprint.roleLabel}</small>
+                </span>
+              </button>
+            )) : <p className="empty-state">No hay blueprints con esos filtros.</p>}
+          </div>
+        </section>
 
         <BlueprintDetail blueprint={selected} />
       </section>
@@ -79,87 +149,90 @@ export function BlueprintFinderPage() {
 }
 
 function BlueprintDetail({ blueprint }) {
-  if (!blueprint) return <section className="panel blueprint-detail"><p className="empty-state">Selecciona un blueprint para ver donde se consigue.</p></section>;
+  if (!blueprint) {
+    return (
+      <section className="blueprint-detail-panel">
+        <span className="eyebrow">Sin seleccion</span>
+        <h3>Selecciona un blueprint</h3>
+        <p>El detalle mostrara mision, faccion, sistema, reputacion y consejos para farmearlo.</p>
+      </section>
+    );
+  }
+
+  const roleTone = roleToneMap[blueprint.roleLabel] || 'reference';
+  const bestMissions = blueprint.missions.slice(0, 6);
 
   return (
-    <section className="panel blueprint-detail">
-      <div className="blueprint-detail-hero">
+    <section className={`blueprint-detail-panel role-${roleTone}`}>
+      <div className="blueprint-detail-top">
         <div>
-          <span className="section-label">{blueprint.category}</span>
+          <span className="eyebrow">{blueprint.category}</span>
           <h2>{blueprint.name}</h2>
           <p>{blueprint.notes}</p>
-          <div className="component-chip-row">
+          <div className="ship-meta-strip">
             <span>{blueprint.rarity}</span>
             <span>Tier {blueprint.tier}</span>
-            <span className={`blueprint-role-chip role-${blueprint.role}`}>{blueprint.roleLabel}</span>
+            <span>{blueprint.roleLabel}</span>
             <span>{blueprint.activity}</span>
-            {blueprint.blueprintCode ? <span>{blueprint.blueprintCode}</span> : null}
           </div>
         </div>
-        <div className="blueprint-priority-card">
+        <div className="blueprint-reward-card">
           <span>Recompensa</span>
           <strong>{blueprint.rewardType}</strong>
           <small>{blueprint.family}</small>
         </div>
       </div>
 
-      <section className="blueprint-acquisition">
+      <section className="blueprint-route-summary">
         <div>
-          <span className="section-label">Obtencion automatizada</span>
+          <span className="eyebrow">Ruta de obtencion</span>
           <h3>{blueprint.acquisition.status}</h3>
-          <p>{blueprint.missions.length ? `Ruta principal por ${blueprint.acquisition.primaryFaction}, repitiendo contratos del mismo pool hasta que rote el blueprint.` : 'No hay contrato enlazado en la fuente descargada.'}</p>
+          <p>{blueprint.missions.length ? `Prioriza ${blueprint.acquisition.primaryMission} con ${blueprint.acquisition.primaryFaction}. Si no aparece, repite contratos del mismo proveedor hasta refrescar el pool.` : 'Este plano existe como receta crafteable, pero no hay contrato enlazado en la base actual.'}</p>
         </div>
-        <dl>
-          <div><dt>Faccion</dt><dd>{blueprint.acquisition.primaryFaction}</dd></div>
-          <div><dt>Mision clave</dt><dd>{blueprint.acquisition.primaryMission}</dd></div>
-          <div><dt>Sistema</dt><dd>{blueprint.acquisition.systems.join(', ') || 'N/D'}</dd></div>
-          <div><dt>Rep. objetivo</dt><dd>{blueprint.acquisition.maxRep ? blueprint.acquisition.maxRep.toLocaleString('es-ES') : 'N/D'}</dd></div>
-          <div><dt>Rep. media</dt><dd>{blueprint.acquisition.averageRepReward ? blueprint.acquisition.averageRepReward.toLocaleString('es-ES') : 'N/D'}</dd></div>
-          <div><dt>Legal / Ilegal</dt><dd>{blueprint.acquisition.lawfulCount} / {blueprint.acquisition.unlawfulCount}</dd></div>
-        </dl>
+        <div className="blueprint-route-grid">
+          <InfoTile label="Faccion" value={blueprint.acquisition.primaryFaction} />
+          <InfoTile label="Sistema" value={blueprint.acquisition.systems.join(', ') || 'N/D'} />
+          <InfoTile label="Rep. objetivo" value={blueprint.acquisition.maxRep ? blueprint.acquisition.maxRep.toLocaleString('es-ES') : 'N/D'} />
+          <InfoTile label="Legal / ilegal" value={`${blueprint.acquisition.lawfulCount} / ${blueprint.acquisition.unlawfulCount}`} />
+        </div>
       </section>
 
-      {blueprint.missions.length ? (
-        <section className="blueprint-mission-grid">
-          {blueprint.missions.map((mission) => (
-            <article className={`blueprint-mission-card ${mission.lawful ? 'is-lawful' : 'is-unlawful'} difficulty-${normalize(mission.difficulty)}`} key={`${blueprint.id}-${mission.id}`}>
-              <div className="blueprint-mission-card-head">
-                <span>{mission.faction}</span>
-                <b>{mission.lawful ? 'Legal' : 'Ilegal'}</b>
-              </div>
-              <h3>{mission.name}</h3>
-              <p>{mission.notes}</p>
-              <div className="blueprint-mission-tags">
-                <span>{mission.activity}</span>
-                <span>{mission.contractRank}</span>
-                <span>{mission.probability}</span>
-              </div>
-              <dl>
-                <div><dt>Sistema</dt><dd>{mission.system}</dd></div>
-                <div><dt>Tipo</dt><dd>{mission.activity}</dd></div>
-                <div><dt>Rango</dt><dd>{mission.contractRank}</dd></div>
-                <div><dt>Reputacion</dt><dd>{mission.minRep ? mission.minRep.toLocaleString('es-ES') : 'N/D'}</dd></div>
-                <div><dt>Ganancia</dt><dd>{mission.repReward ? mission.repReward.toLocaleString('es-ES') : 'N/D'}</dd></div>
-                <div><dt>Legalidad</dt><dd>{mission.lawful ? 'Legal' : 'Ilegal'}</dd></div>
-              </dl>
-            </article>
-          ))}
-        </section>
-      ) : (
-        <section className="blueprint-empty-route">
-          <span className="section-label">Sin contrato detectado</span>
-          <h3>No hay ruta de drop en el dataset</h3>
-          <p>Este registro existe como item o receta, pero la fuente descargada no lo enlaza a una mision concreta. Lo dejamos visible para busqueda y seguimiento.</p>
-        </section>
-      )}
+      <section className="blueprint-mission-board">
+        <div className="section-heading compact">
+          <span className="eyebrow">Misiones detectadas</span>
+          <h3>{bestMissions.length ? 'Contratos recomendados' : 'Sin ruta detectada'}</h3>
+        </div>
+        {bestMissions.length ? (
+          <div className="blueprint-mission-cards">
+            {bestMissions.map((mission) => (
+              <article className={`blueprint-mission-tile ${mission.lawful ? 'is-lawful' : 'is-unlawful'}`} key={`${blueprint.id}-${mission.id}`}>
+                <div>
+                  <span>{mission.faction}</span>
+                  <b>{mission.lawful ? 'Legal' : 'Ilegal'}</b>
+                </div>
+                <h4>{mission.name}</h4>
+                <p>{mission.notes}</p>
+                <dl>
+                  <InfoPair label="Sistema" value={mission.system} />
+                  <InfoPair label="Rango" value={mission.contractRank} />
+                  <InfoPair label="Rep." value={mission.minRep ? mission.minRep.toLocaleString('es-ES') : 'N/D'} />
+                  <InfoPair label="Drop" value={mission.probability} />
+                </dl>
+              </article>
+            ))}
+          </div>
+        ) : (
+          <p className="empty-state">No hay mision concreta para este plano. Mantenlo como referencia hasta que el dataset tenga ruta.</p>
+        )}
+      </section>
 
-      <section className="blueprint-advice">
+      <section className="blueprint-advice-panel">
         <div>
-          <span className="section-label">Ruta recomendada</span>
-          <h3>Como farmearlo</h3>
+          <span className="eyebrow">Uso recomendado</span>
+          <h3>Para que sirve</h3>
           <p>{blueprint.unlockAdvice}</p>
         </div>
-        <div className="tool-pill-list">
+        <div className="blueprint-pill-list">
           {blueprint.bestFor.map((item) => <span key={item}>{item}</span>)}
         </div>
       </section>
@@ -172,12 +245,36 @@ function Metric({ value, label }) {
 }
 
 function Select({ label, value, values, onChange }) {
-  return <label>{label}<select value={value} onChange={(event) => onChange(event.target.value)}>{values.map((item) => <option key={item}>{item}</option>)}</select></label>;
+  return (
+    <label>
+      <span>{label}</span>
+      <select value={value} onChange={(event) => onChange(event.target.value)}>
+        {values.map((item) => <option key={item}>{item}</option>)}
+      </select>
+    </label>
+  );
+}
+
+function InfoTile({ label, value }) {
+  return <div><span>{label}</span><strong>{value}</strong></div>;
+}
+
+function InfoPair({ label, value }) {
+  return <div><dt>{label}</dt><dd>{value}</dd></div>;
 }
 
 function blueprintMatches(blueprint, filters) {
   const token = normalize(filters.search);
-  const haystack = normalize([blueprint.name, blueprint.category, blueprint.family, blueprint.activity, blueprint.rarity, blueprint.blueprintCode, ...blueprint.bestFor, ...blueprint.missions.flatMap((mission) => [mission.name, mission.faction, mission.system, mission.region, mission.activity, mission.repStanding])].join(' '));
+  const haystack = normalize([
+    blueprint.name,
+    blueprint.category,
+    blueprint.family,
+    blueprint.activity,
+    blueprint.rarity,
+    blueprint.blueprintCode,
+    ...blueprint.bestFor,
+    ...blueprint.missions.flatMap((mission) => [mission.name, mission.faction, mission.system, mission.region, mission.activity, mission.repStanding])
+  ].join(' '));
   if (token && !haystack.includes(token)) return false;
   if (filters.category !== all && blueprint.category !== filters.category) return false;
   if (filters.role !== all && blueprint.roleLabel !== filters.role) return false;

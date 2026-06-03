@@ -18,6 +18,7 @@ export function HeroContent({ page, navigate }) {
     'component-detail': ['Ficha tecnica de componente', 'Datos de uso, clase, tamano, grado y naves relacionadas.'],
     'mining-materials': ['Materiales de mineria', 'Rutas, calidades esperadas y consejos para extraer recursos del verso.'],
     'blueprint-finder': ['Blueprint Finder', 'Planos, materiales y usos recomendados para fabricacion y soporte.'],
+    'operation-timers': ['Temporizadores de operaciones', 'Hangares ejecutivos, tarjetas y ventanas manuales para coordinar escuadra.'],
     'community-tools': ['Herramientas comunitarias', 'Utilidades externas e internas para mineria, comercio, flota, mapas y operaciones.'],
     profile: ['Perfil de piloto', 'Identidad, acceso y actividad de tu cuenta.'],
     login: ['Acceso de piloto', 'Inicia sesion para publicar contenido.'],
@@ -49,6 +50,7 @@ function Breadcrumb({ page, navigate }) {
     'component-detail': 'Detalle componente',
     'mining-materials': 'Materiales',
     'blueprint-finder': 'Blueprints',
+    'operation-timers': 'Temporizadores',
     'community-tools': 'Herramientas',
     profile: 'Perfil',
     login: 'Login',
@@ -67,6 +69,8 @@ function Breadcrumb({ page, navigate }) {
       ? [[routes.home, 'Stanton Hub'], [routes.ships, 'Naves y componentes'], ['', 'Materiales']]
     : page === 'blueprint-finder'
       ? [[routes.home, 'Stanton Hub'], [routes.communityTools, 'Herramientas'], ['', 'Blueprints']]
+    : page === 'operation-timers'
+      ? [[routes.home, 'Stanton Hub'], [routes.communityTools, 'Herramientas'], ['', 'Temporizadores']]
     : page === 'community-tools'
       ? [[routes.home, 'Stanton Hub'], ['', 'Herramientas']]
     : page === 'game-news-detail'

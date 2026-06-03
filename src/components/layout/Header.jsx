@@ -70,10 +70,11 @@ export function Header({ page, navigate, currentUser }) {
               <MenuItem path={routes.ships} title="Naves" text="Catalogo con precios, filtros y detalles tecnicos." navigate={navigate} closeMobileNav={closeMobileNav} />
               <MenuItem path={routes.components} title="Componentes" text="Armas, escudos, quantum y sistemas instalables." navigate={navigate} closeMobileNav={closeMobileNav} />
             </NavGroup>
-            <NavGroup name="Herramientas" active={page === 'community-tools' || page === 'blueprint-finder' || page === 'ship-compare' || page === 'mining-materials'} openMenu={openMenu} setOpenMenu={toggleMenu}>
+            <NavGroup name="Herramientas" active={page === 'community-tools' || page === 'blueprint-finder' || page === 'ship-compare' || page === 'mining-materials' || page === 'operation-timers'} openMenu={openMenu} setOpenMenu={toggleMenu}>
               <MenuItem path={routes.shipCompare} title="Comparador de naves" text="Enfrenta dos naves con grafico operativo y datos clave." navigate={navigate} closeMobileNav={closeMobileNav} />
               <MenuItem path={routes.miningMaterials} title="Materiales" text="Donde minar, calidad esperada y rutas recomendadas." navigate={navigate} closeMobileNav={closeMobileNav} />
               <MenuItem path={routes.blueprintFinder} title="Blueprint Finder" text="Busca planos crafteables por contrato, faccion y reputacion." navigate={navigate} closeMobileNav={closeMobileNav} />
+              <MenuItem path={routes.operationTimers} title="Temporizadores" text="Hangares ejecutivos, tarjetas y ventanas de operacion." navigate={navigate} closeMobileNav={closeMobileNav} />
               <MenuItem path={routes.communityTools} title="Centro de herramientas" text="Accesos y utilidades preparadas para pilotos." navigate={navigate} closeMobileNav={closeMobileNav} />
             </NavGroup>
             {link(routes.gameNews, 'Noticias', 'page-btn', page === 'game-news' || page === 'game-news-detail')}

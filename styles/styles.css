@@ -20,10 +20,17 @@
   --page-max: 1740px;
   --page-gutter: clamp(1.25rem, 4vw, 5rem);
   --page-width: min(var(--page-max), calc(100vw - var(--page-gutter) - var(--page-gutter)));
+  --section-gap: clamp(1rem, 1.6vw, 1.55rem);
+  --panel-pad: clamp(1rem, 2vw, 1.35rem);
+  --scrollbar-track: rgba(15, 16, 18, 0.72);
+  --scrollbar-thumb: linear-gradient(180deg, rgba(24, 197, 220, 0.92), rgba(246, 197, 0, 0.82));
+  --scrollbar-thumb-hover: linear-gradient(180deg, rgba(44, 230, 248, 0.98), rgba(255, 224, 122, 0.92));
 }
 
 html {
   scrollbar-gutter: stable;
+  scrollbar-color: rgba(24, 197, 220, 0.72) rgba(15, 16, 18, 0.72);
+  scrollbar-width: thin;
   min-height: 100%;
   background: #0F1012;
   background-color: #0F1012;
@@ -32,6 +39,37 @@ html {
 
 * {
   box-sizing: border-box;
+  scrollbar-color: rgba(24, 197, 220, 0.72) rgba(15, 16, 18, 0.72);
+  scrollbar-width: thin;
+}
+
+*::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+*::-webkit-scrollbar-track {
+  border-radius: 999px;
+  background:
+    linear-gradient(180deg, rgba(47, 49, 54, 0.78), rgba(15, 16, 18, 0.92)),
+    var(--scrollbar-track);
+}
+
+*::-webkit-scrollbar-thumb {
+  min-height: 3.4rem;
+  border: 2px solid rgba(15, 16, 18, 0.88);
+  border-radius: 999px;
+  background: var(--scrollbar-thumb);
+  box-shadow: inset 0 0 0 1px rgba(255, 224, 122, 0.18), 0 0 18px rgba(24, 197, 220, 0.18);
+}
+
+*::-webkit-scrollbar-thumb:hover {
+  background: var(--scrollbar-thumb-hover);
+  box-shadow: inset 0 0 0 1px rgba(255, 224, 122, 0.34), 0 0 22px rgba(24, 197, 220, 0.28);
+}
+
+*::-webkit-scrollbar-corner {
+  background: transparent;
 }
 
 body {
@@ -1847,11 +1885,18 @@ body::after {
   z-index: 5;
   display: grid;
   grid-template-columns: minmax(0, 1fr);
-  gap: 1rem;
+  gap: var(--section-gap);
   align-items: start;
   width: var(--page-width);
   min-height: 48vh;
-  margin: 1rem auto 3rem;
+  margin: var(--section-gap) auto clamp(2.25rem, 4vw, 3.75rem);
+}
+
+.container > *,
+.panel,
+.content-panel,
+.section-card {
+  min-width: 0;
 }
 
 .sr-only {
@@ -2456,14 +2501,14 @@ body::after {
 .content-panel {
   display: flex;
   flex-direction: column;
-  gap: 1.1rem;
-  padding: clamp(1rem, 3vw, 1.6rem);
+  gap: var(--section-gap);
+  padding: var(--panel-pad);
 }
 
 .profile-panel,
 .profile-page,
 .auth-panel {
-  padding: clamp(1rem, 3vw, 1.35rem);
+  padding: var(--panel-pad);
 }
 
 .profile-panel {
@@ -3632,6 +3677,7 @@ body::after {
   max-height: 360px;
   margin: 0;
   overflow: auto;
+  scrollbar-gutter: stable;
   white-space: pre-wrap;
   color: rgba(238, 248, 255, 0.78);
   font-size: 0.78rem;
@@ -3639,7 +3685,7 @@ body::after {
 }
 
 .ship-detail-redesign {
-  gap: 1.35rem;
+  gap: var(--section-gap);
 }
 
 .container.ship-detail-redesign {
@@ -4203,7 +4249,7 @@ body::after {
 .ship-loadout-board {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(320px, 0.34fr);
-  gap: 1rem;
+  gap: var(--section-gap);
   align-items: start;
 }
 
@@ -4309,7 +4355,8 @@ body::after {
   gap: 0.75rem;
   max-height: calc(100vh - 2rem);
   overflow: auto;
-  padding: 1rem;
+  padding: var(--panel-pad);
+  scrollbar-gutter: stable;
   border: 1px solid rgba(74, 151, 191, 0.14);
   border-radius: 8px;
   background: rgba(15, 16, 18, 0.34);
@@ -5773,6 +5820,7 @@ select:focus {
   min-height: 300px;
   max-height: 620px;
   overflow: auto;
+  scrollbar-gutter: stable;
   border: 1px solid var(--border);
   border-radius: var(--radius);
   background: rgba(15, 16, 18, 0.8);
@@ -5988,7 +6036,7 @@ select:focus {
     overflow-y: auto;
     overscroll-behavior: contain;
     scrollbar-width: thin;
-    scrollbar-color: rgba(24, 197, 220, 0.45) rgba(15, 16, 18, 0.45);
+    scrollbar-color: rgba(246, 197, 0, 0.72) rgba(15, 16, 18, 0.58);
     margin: 0;
     padding: 0.85rem 0.75rem;
     border: 0;
@@ -6011,12 +6059,12 @@ select:focus {
   }
 
   .header-nav-panel::-webkit-scrollbar-track {
-    background: rgba(15, 16, 18, 0.45);
+    background: rgba(15, 16, 18, 0.58);
   }
 
   .header-nav-panel::-webkit-scrollbar-thumb {
     border-radius: 999px;
-    background: rgba(24, 197, 220, 0.45);
+    background: var(--scrollbar-thumb);
   }
 
   .header-nav-panel.is-open {
@@ -6769,6 +6817,22 @@ select:focus {
   }
 }
 
+.section-heading {
+  display: grid;
+  gap: 0.3rem;
+}
+
+.section-heading h2,
+.section-heading h3 {
+  margin: 0;
+  color: var(--ink);
+  font-size: clamp(1.25rem, 2.4vw, 1.9rem);
+}
+
+.section-heading.compact h3 {
+  font-size: 1.2rem;
+}
+
 .community-tools-shell {
   display: grid;
   gap: 1rem;
@@ -7096,6 +7160,7 @@ select:focus {
   gap: 0.7rem;
   padding: 0.9rem;
   overflow: auto;
+  scrollbar-gutter: stable;
 }
 
 .blueprint-mission-strip button {
@@ -7187,7 +7252,8 @@ select:focus {
   top: 1rem;
   max-height: calc(100vh - 2rem);
   overflow: auto;
-  padding: 1rem;
+  padding: var(--panel-pad);
+  scrollbar-gutter: stable;
 }
 
 .blueprint-result {
@@ -7579,99 +7645,1610 @@ select:focus {
   }
 }
 
-.mining-materials-shell {
-  display: grid;
-  gap: 1rem;
-  padding-block: 2rem 3rem;
+.blueprint-command,
+.blueprint-role-board,
+.blueprint-filter-panel,
+.blueprint-results-panel,
+.blueprint-detail-panel {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background:
+    radial-gradient(circle at 15% 12%, rgba(24, 197, 220, 0.1), transparent 30%),
+    linear-gradient(145deg, rgba(47, 49, 54, 0.88), rgba(15, 16, 18, 0.94));
+  box-shadow: var(--shadow);
 }
 
-.mining-briefing {
+.blueprint-shell {
+  gap: var(--section-gap);
+}
+
+.blueprint-command {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(18rem, 0.45fr);
-  gap: 1rem;
+  grid-template-columns: minmax(0, 1fr) minmax(20rem, 0.42fr);
+  gap: var(--section-gap);
   align-items: end;
-  padding: clamp(1.2rem, 2vw, 1.65rem);
   overflow: hidden;
+  padding: clamp(1.2rem, 2vw, 1.75rem);
 }
 
-.mining-briefing h2,
-.mining-detail-hero h2 {
-  margin: 0.35rem 0 0.55rem;
+.blueprint-command-copy h2 {
+  max-width: 14ch;
+  margin: 0.35rem 0 0.75rem;
   color: var(--ink);
-  font-size: clamp(2rem, 5vw, 4rem);
-  line-height: 0.95;
+  font-size: clamp(2.35rem, 5vw, 4.8rem);
+  line-height: 0.92;
 }
 
-.mining-briefing p,
-.mining-controls-panel p,
-.mining-detail-hero p,
-.location-card p,
-.mining-source-note {
+.blueprint-command-copy p,
+.blueprint-route-summary p,
+.blueprint-mission-tile p,
+.blueprint-advice-panel p,
+.blueprint-detail-panel > p {
   margin: 0;
   color: var(--muted);
-  line-height: 1.7;
+  line-height: 1.65;
 }
 
-.mining-briefing-stats {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 0.65rem;
+.blueprint-command-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.55rem;
+  margin-top: 1.1rem;
 }
 
-.mining-briefing-stats div,
-.mining-rating-card,
-.quality-band,
-.location-card dl div {
-  border: 1px solid var(--border);
-  background: rgba(15, 16, 18, 0.72);
+.blueprint-command-actions button,
+.blueprint-role-filter,
+.mining-role-filter {
+  border: 1px solid rgba(201, 206, 214, 0.14);
   border-radius: 8px;
+  background: rgba(7, 12, 18, 0.72);
+  color: var(--ink);
+  font: inherit;
+  cursor: pointer;
+  transition: border-color 160ms ease, background 160ms ease, box-shadow 160ms ease, transform 160ms ease;
+}
+
+.blueprint-command-actions button {
+  padding: 0.65rem 0.85rem;
+  font-weight: 900;
+}
+
+.blueprint-command-actions button:hover,
+.blueprint-role-filter:hover,
+.blueprint-role-filter.active,
+.mining-role-filter:hover,
+.mining-role-filter.active {
+  border-color: var(--role-color, rgba(246, 197, 0, 0.55));
+  background:
+    linear-gradient(135deg, color-mix(in srgb, var(--role-color, var(--primary)) 16%, transparent), rgba(246, 197, 0, 0.06)),
+    rgba(7, 12, 18, 0.84);
+  box-shadow: inset 0 0 0 1px rgba(255, 224, 122, 0.05), 0 0 28px color-mix(in srgb, var(--role-color, var(--primary)) 18%, transparent);
+  transform: translateY(-1px);
+}
+
+.blueprint-command-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.7rem;
+}
+
+.blueprint-command-grid div {
+  min-height: 6rem;
+  display: grid;
+  align-content: center;
+  border: 1px solid rgba(201, 206, 214, 0.13);
+  border-radius: 8px;
+  background: rgba(15, 16, 18, 0.72);
+  padding: 0.8rem;
+}
+
+.blueprint-command-grid strong {
+  color: var(--accent);
+  font-size: 1.9rem;
+  line-height: 1;
+}
+
+.blueprint-command-grid span,
+.blueprint-role-filter span,
+.mining-role-filter span {
+  color: rgba(201, 206, 214, 0.76);
+  font-size: 0.72rem;
+  font-weight: 950;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.blueprint-role-board,
+.mining-role-board {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(10.5rem, 1fr));
+  gap: 0.7rem;
   padding: 0.85rem;
 }
 
-.mining-briefing-stats strong,
-.mining-rating-card strong {
-  display: block;
-  color: var(--accent);
-  font-family: inherit;
-  font-size: 1.45rem;
+.blueprint-role-filter,
+.mining-role-filter {
+  --role-color: var(--primary);
+  display: grid;
+  gap: 0.25rem;
+  min-height: 6.2rem;
+  align-content: center;
+  padding: 0.85rem;
+  text-align: left;
 }
 
-.mining-briefing-stats span,
-.mining-rating-card span,
-.mining-rating-card small {
+.blueprint-role-filter strong,
+.mining-role-filter strong {
+  color: var(--role-color);
+  font-size: 1.65rem;
+  line-height: 1;
+}
+
+.blueprint-role-filter small,
+.mining-role-filter small {
+  color: var(--muted);
+  font-size: 0.78rem;
+}
+
+.role-all { --role-color: var(--accent); }
+.role-fps { --role-color: #18c5dc; }
+.role-ship { --role-color: #f6c500; }
+.role-armor { --role-color: #8ee6b8; }
+.role-systems { --role-color: #c9ced6; }
+.role-utility { --role-color: #b58cff; }
+.role-logistics { --role-color: #ffe07a; }
+.role-reference { --role-color: #9aa3af; }
+.role-premium { --role-color: #ffe07a; }
+.role-roc { --role-color: #f6c500; }
+.role-hand { --role-color: #8ee6b8; }
+.role-refinery { --role-color: #b58cff; }
+
+.blueprint-workbench {
+  display: grid;
+  grid-template-columns: minmax(18rem, 0.28fr) minmax(20rem, 0.36fr) minmax(0, 0.72fr);
+  gap: var(--section-gap);
+  align-items: start;
+}
+
+.blueprint-filter-panel,
+.blueprint-results-panel,
+.blueprint-detail-panel {
+  display: grid;
+  gap: 1rem;
+  padding: var(--panel-pad);
+}
+
+.blueprint-filter-panel {
+  position: sticky;
+  top: 1rem;
+}
+
+.blueprint-search-field,
+.blueprint-filter-grid label,
+.blueprint-filter-panel > label {
+  display: grid;
+  gap: 0.42rem;
   color: rgba(201, 206, 214, 0.72);
-  font-family: inherit;
   font-size: 0.72rem;
-  letter-spacing: 0.04em;
+  font-weight: 950;
+  letter-spacing: 0.05em;
   text-transform: uppercase;
 }
 
-.mining-controls-panel {
+.blueprint-filter-grid {
   display: grid;
-  gap: 0.9rem;
+  gap: 0.7rem;
+}
+
+.blueprint-search-field input,
+.blueprint-filter-panel select {
+  width: 100%;
+  min-height: 3rem;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: rgba(7, 12, 18, 0.84);
+  color: var(--ink);
+  padding: 0 0.9rem;
+  font: inherit;
+  text-transform: none;
+}
+
+.blueprint-search-field input:focus,
+.blueprint-filter-panel select:focus {
+  border-color: var(--primary);
+  outline: 2px solid rgba(24, 197, 220, 0.28);
+}
+
+.blueprint-mission-focus {
+  display: grid;
+  gap: 0.65rem;
+  padding-top: 0.8rem;
+  border-top: 1px solid var(--border);
+}
+
+.blueprint-mission-stack,
+.blueprint-result-list {
+  display: grid;
+  gap: 0.6rem;
+}
+
+.blueprint-mission-stack button,
+.blueprint-result-card {
+  width: 100%;
+  border: 1px solid rgba(201, 206, 214, 0.13);
+  border-radius: 8px;
+  background: rgba(7, 12, 18, 0.72);
+  color: var(--ink);
+  padding: 0.75rem;
+  text-align: left;
+  cursor: pointer;
+}
+
+.blueprint-mission-stack button:hover,
+.blueprint-mission-stack button.active {
+  border-color: var(--accent);
+  background: linear-gradient(135deg, rgba(246, 197, 0, 0.1), rgba(24, 197, 220, 0.08));
+}
+
+.blueprint-mission-stack strong,
+.blueprint-mission-stack span {
+  display: block;
+}
+
+.blueprint-mission-stack span {
+  margin-top: 0.2rem;
+  color: var(--muted);
+  font-size: 0.78rem;
+}
+
+.blueprint-results-panel {
+  position: sticky;
+  top: 1rem;
+  max-height: calc(100vh - 2rem);
+  overflow: auto;
+  scrollbar-gutter: stable;
+}
+
+.blueprint-results-head {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 0.85rem;
+  padding-bottom: 0.85rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.blueprint-results-head h3 {
+  margin: 0.25rem 0 0;
+  color: var(--ink);
+  font-size: 1.5rem;
+}
+
+.blueprint-results-head > span {
+  color: var(--accent);
+  font-size: 0.78rem;
+  font-weight: 950;
+  white-space: nowrap;
+}
+
+.blueprint-result-card {
+  --role-color: var(--primary);
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 0.8rem;
+  align-items: center;
+  border-left: 3px solid color-mix(in srgb, var(--role-color) 70%, transparent);
+  transition: border-color 160ms ease, background 160ms ease, transform 160ms ease;
+}
+
+.blueprint-result-card:hover,
+.blueprint-result-card.active {
+  border-color: var(--role-color);
+  background:
+    linear-gradient(135deg, color-mix(in srgb, var(--role-color) 14%, transparent), rgba(246, 197, 0, 0.05)),
+    rgba(7, 12, 18, 0.86);
+  transform: translateY(-1px);
+}
+
+.blueprint-result-main strong,
+.blueprint-result-main small,
+.blueprint-result-meta b,
+.blueprint-result-meta small {
+  display: block;
+}
+
+.blueprint-result-main strong {
+  color: var(--ink);
+}
+
+.blueprint-result-main small,
+.blueprint-result-meta small {
+  margin-top: 0.18rem;
+  color: var(--muted);
+  font-size: 0.78rem;
+}
+
+.blueprint-result-meta {
+  min-width: 3.2rem;
+  text-align: right;
+}
+
+.blueprint-result-meta b {
+  color: var(--role-color);
+  font-size: 1.25rem;
+}
+
+.blueprint-detail-panel {
+  --role-color: var(--primary);
+}
+
+.blueprint-detail-top,
+.blueprint-route-summary,
+.blueprint-advice-panel {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(14rem, 0.28fr);
+  gap: 1rem;
+  align-items: end;
+}
+
+.blueprint-detail-top {
+  padding-bottom: 1rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.blueprint-detail-top h2 {
+  margin: 0.35rem 0 0.65rem;
+  color: var(--ink);
+  font-size: clamp(2rem, 4vw, 4rem);
+  line-height: 0.95;
+}
+
+.blueprint-reward-card {
+  min-height: 8rem;
+  display: grid;
+  align-content: center;
+  border: 1px solid color-mix(in srgb, var(--role-color) 42%, transparent);
+  border-radius: 10px;
+  background:
+    radial-gradient(circle at 18% 12%, color-mix(in srgb, var(--role-color) 18%, transparent), transparent 42%),
+    rgba(7, 12, 18, 0.72);
   padding: 1rem;
 }
 
-.mining-controls {
+.blueprint-reward-card span,
+.blueprint-reward-card small {
+  color: var(--muted);
+  font-size: 0.72rem;
+  font-weight: 950;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.blueprint-reward-card strong {
+  margin: 0.35rem 0;
+  color: var(--role-color);
+  font-size: 1.35rem;
+  line-height: 1.05;
+}
+
+.blueprint-route-summary {
+  align-items: stretch;
+  border: 1px solid rgba(201, 206, 214, 0.13);
+  border-radius: 10px;
+  background: rgba(7, 12, 18, 0.54);
+  padding: 1rem;
+}
+
+.blueprint-route-summary h3,
+.blueprint-mission-board h3,
+.blueprint-advice-panel h3 {
+  margin: 0.35rem 0 0.45rem;
+  color: var(--ink);
+}
+
+.blueprint-route-grid {
   display: grid;
-  grid-template-columns: minmax(16rem, 1.5fr) repeat(3, minmax(11rem, 1fr));
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.6rem;
+}
+
+.blueprint-route-grid div {
+  border: 1px solid rgba(201, 206, 214, 0.13);
+  border-radius: 8px;
+  background: rgba(15, 16, 18, 0.72);
+  padding: 0.75rem;
+}
+
+.blueprint-route-grid span {
+  color: rgba(201, 206, 214, 0.72);
+  font-size: 0.68rem;
+  font-weight: 950;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.blueprint-route-grid strong {
+  display: block;
+  margin-top: 0.2rem;
+  color: var(--ink);
+  overflow-wrap: anywhere;
+}
+
+.blueprint-mission-board {
+  display: grid;
   gap: 0.85rem;
 }
 
-.mining-controls label {
+.blueprint-mission-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(16rem, 1fr));
+  gap: 0.75rem;
+}
+
+.blueprint-mission-tile {
+  display: grid;
+  gap: 0.65rem;
+  border: 1px solid rgba(24, 197, 220, 0.22);
+  border-radius: 10px;
+  background: rgba(7, 12, 18, 0.68);
+  padding: 0.9rem;
+}
+
+.blueprint-mission-tile.is-unlawful {
+  border-color: rgba(255, 122, 122, 0.42);
+}
+
+.blueprint-mission-tile > div:first-child {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.7rem;
+}
+
+.blueprint-mission-tile span {
+  color: var(--primary);
+  font-size: 0.72rem;
+  font-weight: 950;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.blueprint-mission-tile b {
+  color: var(--accent);
+  font-size: 0.78rem;
+}
+
+.blueprint-mission-tile.is-unlawful b {
+  color: #ff8f8f;
+}
+
+.blueprint-mission-tile h4 {
+  margin: 0;
+  color: var(--ink);
+  font-size: 1.1rem;
+  line-height: 1.12;
+}
+
+.blueprint-mission-tile dl {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.55rem;
+  margin: 0;
+}
+
+.blueprint-mission-tile dl div {
+  border: 1px solid rgba(201, 206, 214, 0.12);
+  border-radius: 8px;
+  background: rgba(15, 16, 18, 0.66);
+  padding: 0.65rem;
+}
+
+.blueprint-mission-tile dt {
+  color: rgba(201, 206, 214, 0.72);
+  font-size: 0.66rem;
+  font-weight: 950;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.blueprint-mission-tile dd {
+  margin: 0.2rem 0 0;
+  color: var(--ink);
+  font-weight: 850;
+}
+
+.blueprint-advice-panel {
+  align-items: center;
+  border-top: 1px solid var(--border);
+  padding-top: 1rem;
+}
+
+.blueprint-pill-list {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 0.5rem;
+}
+
+.blueprint-pill-list span {
+  border: 1px solid color-mix(in srgb, var(--role-color) 38%, transparent);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--role-color) 10%, transparent);
+  color: var(--ink);
+  padding: 0.5rem 0.65rem;
+  font-weight: 850;
+}
+
+.operation-timers-page {
+  display: grid;
+  gap: var(--section-gap);
+  padding-block: 2rem 3rem;
+}
+
+.timer-command,
+.timer-cycle-panel,
+.timer-control-panel,
+.timer-list-panel,
+.timer-intel-grid article {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background:
+    radial-gradient(circle at 18% 12%, rgba(24, 197, 220, 0.12), transparent 34%),
+    linear-gradient(145deg, rgba(47, 49, 54, 0.88), rgba(15, 16, 18, 0.95));
+  box-shadow: var(--shadow);
+}
+
+.timer-command {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(17rem, 0.34fr);
+  gap: var(--section-gap);
+  align-items: stretch;
+  padding: clamp(1.2rem, 2.4vw, 1.8rem);
+}
+
+.timer-command-copy h2 {
+  max-width: 15ch;
+  margin: 0.4rem 0 0.75rem;
+  color: var(--ink);
+  font-size: clamp(2.35rem, 5vw, 4.8rem);
+  line-height: 0.92;
+}
+
+.timer-command-copy p,
+.timer-sync-card p,
+.timer-phase-card p,
+.timer-intel-grid p {
+  margin: 0;
+  color: var(--muted);
+  line-height: 1.65;
+}
+
+.timer-command-tags,
+.timer-card-actions,
+.timer-sync-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.55rem;
+}
+
+.timer-command-tags {
+  margin-top: 1rem;
+}
+
+.timer-command-tags span {
+  border: 1px solid rgba(24, 197, 220, 0.25);
+  border-radius: 999px;
+  background: rgba(15, 16, 18, 0.72);
+  color: var(--muted);
+  padding: 0.45rem 0.65rem;
+  font-weight: 850;
+}
+
+.timer-live-card {
+  display: grid;
+  align-content: center;
+  gap: 0.55rem;
+  min-height: 15rem;
+  border: 1px solid rgba(24, 197, 220, 0.24);
+  border-radius: 12px;
+  background:
+    linear-gradient(135deg, rgba(24, 197, 220, 0.13), transparent 52%),
+    rgba(7, 12, 18, 0.72);
+  padding: 1.1rem;
+}
+
+.timer-live-red {
+  border-color: rgba(255, 122, 122, 0.42);
+}
+
+.timer-live-green {
+  border-color: rgba(104, 255, 172, 0.42);
+}
+
+.timer-live-black {
+  border-color: rgba(201, 206, 214, 0.34);
+}
+
+.timer-phase-kicker,
+.timer-live-card small,
+.timer-card-meta,
+.timer-form-grid label span,
+.timer-card-head span {
+  color: rgba(201, 206, 214, 0.72);
+  font-size: 0.72rem;
+  font-weight: 900;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.timer-live-card strong {
+  color: var(--accent);
+  font-size: 1rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.timer-live-card b {
+  color: var(--ink);
+  font-size: clamp(2.2rem, 5vw, 4.1rem);
+  line-height: 0.92;
+}
+
+.timer-progress {
+  width: 100%;
+  height: 0.55rem;
+  overflow: hidden;
+  border: 1px solid rgba(24, 197, 220, 0.22);
+  border-radius: 999px;
+  background: rgba(15, 16, 18, 0.86);
+}
+
+.timer-progress::-webkit-progress-bar {
+  background: rgba(15, 16, 18, 0.86);
+}
+
+.timer-progress::-webkit-progress-value {
+  border-radius: 999px;
+  background: linear-gradient(90deg, var(--primary), var(--accent));
+}
+
+.timer-progress::-moz-progress-bar {
+  border-radius: 999px;
+  background: linear-gradient(90deg, var(--primary), var(--accent));
+}
+
+.timer-cycle-panel,
+.timer-control-panel,
+.timer-list-panel {
+  display: grid;
+  gap: 1rem;
+  padding: clamp(1rem, 2vw, 1.25rem);
+}
+
+.timer-cycle-panel {
+  grid-template-columns: minmax(16rem, 0.32fr) minmax(18rem, 0.38fr) minmax(0, 1fr);
+  align-items: stretch;
+}
+
+.timer-cycle-panel .section-heading,
+.timer-control-panel .section-heading,
+.timer-list-panel .section-heading {
+  align-content: start;
+}
+
+.timer-sync-card {
+  display: grid;
+  gap: 0.8rem;
+  border: 1px solid rgba(201, 206, 214, 0.13);
+  border-radius: 10px;
+  background: rgba(7, 12, 18, 0.58);
+  padding: 1rem;
+}
+
+.timer-sync-card small {
+  color: var(--muted);
+}
+
+.timer-sync-buttons button,
+.timer-card-actions button,
+.timer-preset-grid button,
+.timer-start-button,
+.timer-clear-button {
+  border: 1px solid rgba(24, 197, 220, 0.3);
+  border-radius: 8px;
+  background: rgba(15, 16, 18, 0.78);
+  color: var(--ink);
+  padding: 0.65rem 0.8rem;
+  font: inherit;
+  font-weight: 900;
+  cursor: pointer;
+  transition: border-color 160ms ease, background 160ms ease, transform 160ms ease;
+}
+
+.timer-sync-buttons button:hover,
+.timer-card-actions button:hover,
+.timer-preset-grid button:hover,
+.timer-clear-button:hover {
+  border-color: var(--accent);
+  background: linear-gradient(135deg, rgba(24, 197, 220, 0.14), rgba(246, 197, 0, 0.1));
+  transform: translateY(-1px);
+}
+
+.timer-sync-red {
+  color: #ff9b9b;
+}
+
+.timer-sync-green {
+  color: #92ffbd;
+}
+
+.timer-sync-black {
+  color: var(--muted);
+}
+
+.timer-phase-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.75rem;
+}
+
+.timer-phase-card {
   display: grid;
   gap: 0.45rem;
+  min-height: 10rem;
+  border: 1px solid rgba(201, 206, 214, 0.13);
+  border-radius: 10px;
+  background: rgba(15, 16, 18, 0.62);
+  padding: 0.95rem;
+}
+
+.timer-phase-card.active {
+  border-color: var(--accent);
+  background:
+    radial-gradient(circle at 20% 10%, rgba(246, 197, 0, 0.13), transparent 48%),
+    rgba(15, 16, 18, 0.78);
+}
+
+.timer-phase-card span,
+.timer-intel-grid span {
+  color: var(--primary);
+  font-size: 0.72rem;
+  font-weight: 950;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.timer-phase-card h3,
+.timer-intel-grid h3 {
+  margin: 0;
+  color: var(--ink);
+}
+
+.timer-phase-card b {
+  margin-top: auto;
+  color: var(--accent);
+  font-size: 1.25rem;
+}
+
+.timer-workbench {
+  display: grid;
+  grid-template-columns: minmax(22rem, 0.38fr) minmax(0, 1fr);
+  gap: var(--section-gap);
+}
+
+.compact-heading {
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+}
+
+.timer-form-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.3fr) minmax(7rem, 0.5fr) minmax(0, 1fr);
+  gap: 0.7rem;
+}
+
+.timer-form-grid label {
+  display: grid;
+  gap: 0.35rem;
+}
+
+.timer-form-grid input,
+.timer-form-grid select {
+  width: 100%;
+  border: 1px solid rgba(24, 197, 220, 0.25);
+  border-radius: 8px;
+  background: rgba(7, 12, 18, 0.78);
+  color: var(--ink);
+  padding: 0.75rem 0.8rem;
+  font: inherit;
+  font-weight: 800;
+}
+
+.timer-start-button {
+  justify-self: start;
+  background: linear-gradient(135deg, var(--primary), color-mix(in srgb, var(--primary) 50%, var(--accent)));
+  color: #071016;
+}
+
+.timer-preset-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.7rem;
+}
+
+.timer-preset-grid button {
+  display: grid;
+  gap: 0.25rem;
+  text-align: left;
+}
+
+.timer-preset-grid button span {
+  color: var(--accent);
+  font-size: 0.8rem;
+}
+
+.timer-list {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.timer-card {
+  display: grid;
+  gap: 0.65rem;
+  border: 1px solid rgba(24, 197, 220, 0.22);
+  border-radius: 10px;
+  background: rgba(7, 12, 18, 0.7);
+  padding: 0.9rem;
+}
+
+.timer-card.is-expired {
+  border-color: rgba(246, 197, 0, 0.36);
+  opacity: 0.82;
+}
+
+.timer-card-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.timer-card-head div {
+  display: grid;
+  gap: 0.2rem;
+}
+
+.timer-card-head strong {
+  color: var(--ink);
+  font-size: 1.05rem;
+  overflow-wrap: anywhere;
+}
+
+.timer-card-head b {
+  color: var(--accent);
+  font-size: 1.25rem;
+}
+
+.timer-card-meta {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 0.5rem;
+  text-transform: none;
+}
+
+.timer-clear-button {
+  justify-self: start;
+}
+
+.timer-intel-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.85rem;
+}
+
+.timer-intel-grid article {
+  display: grid;
+  gap: 0.45rem;
+  padding: 1rem;
+}
+
+.executive-hangar-page {
+  display: grid;
+  gap: var(--section-gap);
+  padding-block: 2rem 3rem;
+}
+
+.hangar-hero-console,
+.hangar-cycle-board,
+.hangar-slot-board,
+.hangar-brief-panel,
+.hangar-timer-board,
+.hangar-location-card {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background:
+    radial-gradient(circle at 12% 10%, rgba(24, 197, 220, 0.13), transparent 34%),
+    linear-gradient(145deg, rgba(47, 49, 54, 0.86), rgba(15, 16, 18, 0.95));
+  box-shadow: var(--shadow);
+}
+
+.hangar-hero-console {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(22rem, 0.34fr);
+  gap: clamp(1.2rem, 2.5vw, 2rem);
+  align-items: stretch;
+  padding: clamp(1.25rem, 2.6vw, 2.1rem);
+}
+
+.hangar-hero-copy h2 {
+  max-width: 14ch;
+  margin: 0.35rem 0 0.65rem;
+  color: var(--ink);
+  font-size: clamp(2.55rem, 5vw, 5rem);
+  line-height: 0.9;
+}
+
+.hangar-hero-copy p,
+.hangar-sync-panel p,
+.hangar-brief-panel p,
+.hangar-location-head p {
+  margin: 0;
+  color: var(--muted);
+  line-height: 1.65;
+}
+
+.hangar-kpi-row {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.8rem;
+  margin-top: 1.25rem;
+}
+
+.hangar-kpi-row div,
+.hangar-light,
+.hangar-slot,
+.hangar-fixed-timer {
+  border: 1px solid rgba(201, 206, 214, 0.13);
+  border-radius: 10px;
+  background: rgba(7, 12, 18, 0.68);
+  padding: 0.85rem;
+}
+
+.hangar-kpi-row span,
+.hangar-cycle-card span,
+.hangar-light span,
+.hangar-slot span,
+.hangar-fixed-timer span,
+.hangar-location-head span {
   color: rgba(201, 206, 214, 0.72);
-  font-family: inherit;
-  font-size: 0.75rem;
+  font-size: 0.72rem;
+  font-weight: 950;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.hangar-kpi-row strong {
+  display: block;
+  margin-top: 0.25rem;
+  color: var(--accent);
+  font-size: 1.45rem;
+}
+
+.hangar-cycle-card {
+  display: grid;
+  align-content: center;
+  gap: 0.7rem;
+  border: 1px solid rgba(24, 197, 220, 0.3);
+  border-radius: 12px;
+  background:
+    linear-gradient(135deg, rgba(24, 197, 220, 0.13), transparent 48%),
+    rgba(7, 12, 18, 0.76);
+  padding: clamp(1rem, 2vw, 1.35rem);
+}
+
+.hangar-cycle-card strong {
+  color: var(--accent);
+  font-size: 1rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.hangar-cycle-card b {
+  color: var(--ink);
+  font-size: clamp(2.3rem, 5vw, 4.2rem);
+  line-height: 0.92;
+}
+
+.hangar-cycle-card em {
+  color: var(--accent);
+  font-style: normal;
+  font-weight: 950;
   letter-spacing: 0.04em;
   text-transform: uppercase;
 }
 
-.mining-controls input,
-.mining-controls select {
+.hangar-cycle-card small {
+  color: var(--muted);
+  font-weight: 800;
+}
+
+.hangar-cycle-red {
+  border-color: rgba(255, 122, 122, 0.46);
+}
+
+.hangar-cycle-green {
+  border-color: rgba(98, 246, 166, 0.46);
+}
+
+.hangar-cycle-blackout {
+  border-color: rgba(201, 206, 214, 0.34);
+}
+
+.hangar-cycle-board,
+.hangar-timer-board,
+.hangar-slot-board,
+.hangar-brief-panel {
+  display: grid;
+  gap: clamp(0.9rem, 1.8vw, 1.25rem);
+  padding: clamp(1.05rem, 2vw, 1.45rem);
+}
+
+.hangar-cycle-board {
+  grid-template-columns: minmax(16rem, 0.24fr) minmax(0, 1fr) minmax(22rem, 0.34fr);
+  align-items: stretch;
+}
+
+.hangar-light-strip,
+.hangar-slot-grid,
+.hangar-location-grid {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.hangar-light-strip {
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  align-items: stretch;
+}
+
+.hangar-light {
+  display: grid;
+  min-height: 6.2rem;
+  align-content: center;
+  gap: 0.35rem;
+  text-align: center;
+}
+
+.hangar-light strong {
+  color: var(--muted);
+}
+
+.hangar-light-green {
+  border-color: rgba(98, 246, 166, 0.48);
+  background:
+    radial-gradient(circle at 50% 10%, rgba(98, 246, 166, 0.22), transparent 52%),
+    rgba(7, 12, 18, 0.7);
+}
+
+.hangar-light-green strong {
+  color: #80ffb7;
+}
+
+.hangar-light-red {
+  border-color: rgba(255, 122, 122, 0.42);
+}
+
+.hangar-light-red strong {
+  color: #ff9f9f;
+}
+
+.hangar-light-off {
+  opacity: 0.62;
+}
+
+.hangar-sync-panel {
+  display: grid;
+  align-content: center;
+  gap: 0.9rem;
+  border: 1px solid rgba(201, 206, 214, 0.13);
+  border-radius: 10px;
+  background: rgba(7, 12, 18, 0.58);
+  padding: 1rem;
+}
+
+.hangar-sync-panel small {
+  color: var(--muted);
+  line-height: 1.5;
+}
+
+.hangar-phase-warning {
+  border: 1px solid rgba(246, 197, 0, 0.28);
+  border-radius: 8px;
+  background: rgba(246, 197, 0, 0.08);
+  padding: 0.75rem;
+}
+
+.hangar-phase-warning strong {
+  color: var(--accent);
+  line-height: 1.35;
+}
+
+.timer-sync-blackout {
+  color: var(--muted);
+}
+
+.timer-sync-global {
+  color: var(--accent);
+}
+
+.hangar-mission-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(22rem, 0.3fr);
+  gap: clamp(1.1rem, 2vw, 1.55rem);
+}
+
+.hangar-slot-grid {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.8rem;
+}
+
+.hangar-slot {
+  display: grid;
+  gap: 0.36rem;
+  color: var(--ink);
+  text-align: left;
+  cursor: pointer;
+  transition: border-color 160ms ease, background 160ms ease, transform 160ms ease;
+}
+
+.hangar-slot:hover,
+.hangar-slot.is-placed {
+  border-color: var(--primary);
+  background:
+    linear-gradient(135deg, rgba(24, 197, 220, 0.14), rgba(246, 197, 0, 0.08)),
+    rgba(7, 12, 18, 0.78);
+  transform: translateY(-1px);
+}
+
+.hangar-slot strong {
+  color: var(--ink);
+  overflow-wrap: anywhere;
+}
+
+.hangar-slot small {
+  color: var(--muted);
+}
+
+.hangar-slot b {
+  justify-self: start;
+  border: 1px solid rgba(201, 206, 214, 0.18);
+  border-radius: 999px;
+  color: var(--muted);
+  padding: 0.28rem 0.5rem;
+  font-size: 0.72rem;
+}
+
+.hangar-slot.is-placed b {
+  border-color: rgba(98, 246, 166, 0.42);
+  color: #80ffb7;
+}
+
+.hangar-reset-button {
+  justify-self: start;
+}
+
+.hangar-brief-panel {
+  align-content: start;
+}
+
+.hangar-brief-panel h3,
+.hangar-location-head h3 {
+  margin: 0.25rem 0 0;
+  color: var(--ink);
+}
+
+.hangar-brief-panel ul {
+  display: grid;
+  gap: 0.45rem;
+  margin: 0;
+  padding-left: 1.1rem;
+  color: var(--muted);
+}
+
+.hangar-location-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.hangar-location-card {
+  display: grid;
+  gap: 1rem;
+  padding: clamp(0.95rem, 1.8vw, 1.2rem);
+}
+
+.hangar-location-head {
+  display: grid;
+  gap: 0.55rem;
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 0.85rem;
+}
+
+.hangar-fixed-timer-list {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.75rem;
+}
+
+.hangar-fixed-timer {
+  display: grid;
+  gap: 0.65rem;
+  border-color: rgba(238, 248, 255, 0.28);
+  min-height: 9.4rem;
+}
+
+.hangar-fixed-timer.is-active {
+  border-color: rgba(255, 122, 122, 0.58);
+  background:
+    radial-gradient(circle at 18% 12%, rgba(255, 122, 122, 0.12), transparent 42%),
+    rgba(7, 12, 18, 0.72);
+}
+
+.hangar-fixed-timer.is-warning {
+  border-color: rgba(246, 197, 0, 0.42);
+  background:
+    radial-gradient(circle at 18% 12%, rgba(246, 197, 0, 0.12), transparent 42%),
+    rgba(7, 12, 18, 0.72);
+}
+
+.hangar-fixed-timer.is-complete {
+  border-color: rgba(98, 246, 166, 0.54);
+  background:
+    radial-gradient(circle at 18% 12%, rgba(98, 246, 166, 0.14), transparent 42%),
+    rgba(7, 12, 18, 0.72);
+}
+
+.hangar-fixed-timer strong {
+  display: block;
+  margin-top: 0.15rem;
+  color: var(--ink);
+  overflow-wrap: anywhere;
+}
+
+.hangar-fixed-timer b {
+  color: var(--ink);
+  font-size: 1.25rem;
+}
+
+.hangar-fixed-timer.is-active b {
+  color: #ff9f9f;
+}
+
+.hangar-fixed-timer.is-warning b {
+  color: var(--accent);
+}
+
+.hangar-fixed-timer.is-complete b {
+  color: #80ffb7;
+}
+
+.hangar-fixed-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: auto;
+}
+
+.hangar-fixed-actions button {
+  border: 1px solid rgba(24, 197, 220, 0.28);
+  border-radius: 8px;
+  background: rgba(15, 16, 18, 0.78);
+  color: var(--ink);
+  min-width: 2.25rem;
+  padding: 0.52rem 0.68rem;
+  font: inherit;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.hangar-fixed-actions button:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+
+.hangar-fixed-actions button:hover {
+  border-color: var(--accent);
+  background: linear-gradient(135deg, rgba(24, 197, 220, 0.14), rgba(246, 197, 0, 0.1));
+}
+
+.hangar-fixed-actions button:disabled:hover {
+  border-color: rgba(24, 197, 220, 0.28);
+  background: rgba(15, 16, 18, 0.78);
+}
+
+@media (max-width: 1280px) {
+  .blueprint-workbench {
+    grid-template-columns: minmax(17rem, 0.36fr) minmax(0, 1fr);
+  }
+
+  .blueprint-detail-panel {
+    grid-column: 1 / -1;
+  }
+
+  .blueprint-results-panel {
+    position: static;
+    max-height: none;
+  }
+}
+
+@media (max-width: 1180px) {
+  .timer-cycle-panel,
+  .timer-workbench,
+  .hangar-hero-console,
+  .hangar-cycle-board,
+  .hangar-mission-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .timer-phase-grid,
+  .timer-intel-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .hangar-slot-grid,
+  .hangar-location-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 900px) {
+  .blueprint-command,
+  .blueprint-workbench,
+  .blueprint-detail-top,
+  .blueprint-route-summary,
+  .blueprint-advice-panel {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .timer-command,
+  .timer-form-grid,
+  .hangar-light-strip,
+  .hangar-fixed-timer-list {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .blueprint-filter-panel {
+    position: static;
+  }
+
+  .blueprint-pill-list {
+    justify-content: flex-start;
+  }
+}
+
+@media (max-width: 560px) {
+  .blueprint-command,
+  .blueprint-filter-panel,
+  .blueprint-results-panel,
+  .blueprint-detail-panel {
+    padding: 0.85rem;
+  }
+
+  .blueprint-command-grid,
+  .blueprint-route-grid,
+  .blueprint-mission-tile dl {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .timer-phase-grid,
+  .timer-preset-grid,
+  .timer-intel-grid,
+  .hangar-kpi-row,
+  .hangar-slot-grid,
+  .hangar-location-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .timer-command,
+  .timer-cycle-panel,
+  .timer-control-panel,
+  .timer-list-panel,
+  .hangar-hero-console,
+  .hangar-cycle-board,
+  .hangar-slot-board,
+  .hangar-brief-panel,
+  .hangar-timer-board,
+  .hangar-location-card {
+    padding: 0.9rem;
+  }
+
+  .timer-card-head {
+    display: grid;
+  }
+}
+
+.mining-page {
+  display: grid;
+  gap: var(--section-gap);
+  padding-block: 2rem 3rem;
+}
+
+.mining-command,
+.mining-role-board,
+.mining-planner,
+.mining-workbench,
+.mining-detail,
+.mining-equipment-dock,
+.mining-detail-empty {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background:
+    radial-gradient(circle at 14% 10%, rgba(24, 197, 220, 0.12), transparent 32%),
+    linear-gradient(145deg, rgba(47, 49, 54, 0.88), rgba(15, 16, 18, 0.94));
+  box-shadow: var(--shadow);
+}
+
+.mining-command {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(18rem, 0.42fr);
+  gap: var(--section-gap);
+  align-items: end;
+  padding: clamp(1.2rem, 2vw, 1.75rem);
+  overflow: hidden;
+}
+
+.mining-command-copy h2 {
+  max-width: 13ch;
+  margin: 0.35rem 0 0.65rem;
+  color: var(--ink);
+  font-size: clamp(2.35rem, 5vw, 4.8rem);
+  line-height: 0.92;
+}
+
+.mining-command-copy p,
+.mining-search-panel p,
+.mining-route-card p,
+.mining-detail-header p,
+.mining-location-card p,
+.mining-source-note,
+.mining-detail-empty p {
+  margin: 0;
+  color: var(--muted);
+  line-height: 1.65;
+}
+
+.mining-command-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.55rem;
+  margin-top: 1rem;
+}
+
+.mining-command-actions button {
+  border: 1px solid rgba(24, 197, 220, 0.32);
+  border-radius: 8px;
+  background: rgba(15, 16, 18, 0.72);
+  color: var(--ink);
+  padding: 0.65rem 0.85rem;
+  font: inherit;
+  font-weight: 900;
+  cursor: pointer;
+  transition: border-color 160ms ease, background 160ms ease, transform 160ms ease;
+}
+
+.mining-command-actions button:hover {
+  border-color: var(--accent);
+  background: linear-gradient(135deg, rgba(24, 197, 220, 0.14), rgba(246, 197, 0, 0.08));
+  transform: translateY(-1px);
+}
+
+.mining-command-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.7rem;
+}
+
+.mining-command-grid div,
+.mining-route-steps div,
+.mining-data-card,
+.mining-location-meta div,
+.mining-quality-row,
+.mining-refinery-card {
+  border: 1px solid rgba(201, 206, 214, 0.13);
+  border-radius: 8px;
+  background: rgba(15, 16, 18, 0.72);
+  padding: 0.8rem;
+}
+
+.mining-command-grid strong {
+  display: block;
+  color: var(--accent);
+  font-size: 1.7rem;
+}
+
+.mining-command-grid span,
+.mining-route-steps span,
+.mining-data-card span,
+.mining-location-meta span,
+.mining-quality-row small {
+  color: rgba(201, 206, 214, 0.72);
+  font-size: 0.72rem;
+  font-weight: 900;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.mining-planner {
+  display: grid;
+  grid-template-columns: minmax(21rem, 0.5fr) minmax(0, 1fr);
+  gap: var(--section-gap);
+  padding: clamp(1rem, 2vw, 1.2rem);
+}
+
+.mining-route-card {
+  display: grid;
+  gap: 1rem;
+  border: 1px solid rgba(246, 197, 0, 0.28);
+  border-radius: 10px;
+  background:
+    radial-gradient(circle at 12% 18%, rgba(246, 197, 0, 0.12), transparent 36%),
+    rgba(15, 16, 18, 0.68);
+  padding: 1rem;
+}
+
+.mining-route-card h3,
+.mining-search-panel h3,
+.mining-results h3,
+.mining-support-panel h3,
+.mining-equipment-dock h3,
+.mining-detail-empty h3 {
+  margin: 0;
+  color: var(--ink);
+}
+
+.mining-route-card h3 {
+  margin-top: 0.35rem;
+  font-size: clamp(1.8rem, 3vw, 2.6rem);
+  line-height: 0.95;
+}
+
+.mining-route-steps {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.6rem;
+}
+
+.mining-route-steps strong,
+.mining-data-card strong,
+.mining-location-meta strong {
+  display: block;
+  margin-top: 0.25rem;
+  color: var(--ink);
+  overflow-wrap: anywhere;
+}
+
+.mining-search-panel {
+  display: grid;
+  gap: 0.85rem;
+  align-content: start;
+}
+
+.mining-filter-grid {
+  display: grid;
+  grid-template-columns: minmax(16rem, 1.5fr) repeat(3, minmax(10rem, 1fr));
+  gap: 0.75rem;
+}
+
+.mining-filter-grid label {
+  display: grid;
+  gap: 0.4rem;
+  color: rgba(201, 206, 214, 0.72);
+  font-size: 0.72rem;
+  font-weight: 900;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.mining-filter-grid input,
+.mining-filter-grid select {
   width: 100%;
-  min-height: 3.1rem;
+  min-height: 3.15rem;
   border: 1px solid var(--border);
   border-radius: 8px;
   background: rgba(7, 12, 18, 0.82);
@@ -7681,135 +9258,161 @@ select:focus {
   text-transform: none;
 }
 
-.mining-controls input:focus,
-.mining-controls select:focus {
-  outline: 2px solid rgba(0, 229, 255, 0.35);
+.mining-filter-grid input:focus,
+.mining-filter-grid select:focus {
   border-color: var(--primary);
+  outline: 2px solid rgba(24, 197, 220, 0.28);
 }
 
-.mining-layout {
+.mining-workbench {
   display: grid;
-  grid-template-columns: minmax(18rem, 0.36fr) minmax(0, 1fr);
-  gap: 1rem;
+  grid-template-columns: minmax(18rem, 0.34fr) minmax(0, 1fr);
+  gap: var(--section-gap);
+  padding: var(--panel-pad);
   align-items: start;
 }
 
-.mining-material-list {
+.mining-results {
   display: grid;
-  gap: 0.75rem;
-  padding: 1rem;
+  gap: 0.8rem;
   position: sticky;
   top: 1rem;
   max-height: calc(100vh - 2rem);
   overflow: auto;
+  padding-right: 0.25rem;
+  scrollbar-gutter: stable;
 }
 
-.section-heading {
+.mining-results-list {
   display: grid;
-  gap: 0.3rem;
+  gap: 0.6rem;
 }
 
-.section-heading h2,
-.section-heading h3 {
-  margin: 0;
-  color: var(--ink);
-  font-size: clamp(1.25rem, 2.4vw, 1.9rem);
-}
-
-.section-heading.compact h3 {
-  font-size: 1.2rem;
-}
-
-.mining-material-card {
+.mining-result-card {
+  width: 100%;
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
-  gap: 0.8rem;
+  gap: 0.7rem;
   align-items: center;
-  width: 100%;
-  border: 1px solid var(--border);
+  border: 1px solid rgba(201, 206, 214, 0.13);
   border-radius: 8px;
-  background: rgba(7, 12, 18, 0.78);
+  background: rgba(7, 12, 18, 0.74);
   color: var(--ink);
-  padding: 0.85rem;
+  padding: 0.75rem;
   text-align: left;
   cursor: pointer;
   transition: border-color 160ms ease, background 160ms ease, transform 160ms ease;
 }
 
-.mining-material-card:hover,
-.mining-material-card.active {
+.mining-result-card:hover,
+.mining-result-card.active {
   border-color: var(--primary);
-  background: linear-gradient(135deg, rgba(0, 229, 255, 0.14), rgba(246, 197, 0, 0.08));
+  background:
+    linear-gradient(135deg, rgba(24, 197, 220, 0.13), rgba(246, 197, 0, 0.07)),
+    rgba(7, 12, 18, 0.82);
   transform: translateY(-1px);
 }
 
-.mining-material-card strong,
-.mining-material-card b {
+.mining-result-main strong,
+.mining-result-main small {
   display: block;
+}
+
+.mining-result-main strong {
   color: var(--ink);
 }
 
-.mining-material-card small {
-  display: block;
+.mining-result-main small {
   margin-top: 0.2rem;
   color: var(--muted);
   font-size: 0.78rem;
 }
 
-.material-card-meta {
-  text-align: right;
-}
-
-.material-card-meta b {
+.mining-result-profit {
+  border: 1px solid rgba(246, 197, 0, 0.34);
+  border-radius: 999px;
   color: var(--accent);
-  font-size: 0.85rem;
+  padding: 0.35rem 0.55rem;
+  font-size: 0.72rem;
+  font-weight: 950;
+  white-space: nowrap;
 }
 
-.mining-detail-panel {
+.mining-result-profit.is-premium,
+.mining-priority.is-premium strong {
+  color: #ffe07a;
+}
+
+.mining-result-profit.is-high,
+.mining-priority.is-high strong {
+  color: var(--accent);
+}
+
+.mining-result-profit.is-low,
+.mining-priority.is-low strong {
+  color: var(--muted);
+}
+
+.mining-detail {
   display: grid;
   gap: 1rem;
-  padding: clamp(1rem, 2vw, 1.35rem);
+  padding: clamp(1rem, 2vw, 1.25rem);
 }
 
-.mining-detail-hero {
+.mining-detail-header {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(13rem, 0.24fr);
   gap: 1rem;
   align-items: end;
-  padding-bottom: 1rem;
   border-bottom: 1px solid var(--border);
+  padding-bottom: 1rem;
 }
 
-.mining-kpi-grid {
+.mining-detail-header h2 {
+  margin: 0.35rem 0 0.55rem;
+  color: var(--ink);
+  font-size: clamp(2.4rem, 5vw, 4.4rem);
+  line-height: 0.92;
+}
+
+.mining-priority {
+  min-height: 8rem;
+  display: grid;
+  align-content: center;
+  gap: 0.25rem;
+  border: 1px solid rgba(246, 197, 0, 0.3);
+  border-radius: 10px;
+  background:
+    radial-gradient(circle at 20% 18%, rgba(246, 197, 0, 0.18), transparent 40%),
+    rgba(7, 12, 18, 0.76);
+  padding: 1rem;
+}
+
+.mining-priority span,
+.mining-priority small {
+  color: var(--muted);
+  font-size: 0.72rem;
+  font-weight: 900;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.mining-priority strong {
+  color: var(--accent);
+  font-size: 1.5rem;
+}
+
+.mining-stats-strip {
   display: grid;
   grid-template-columns: repeat(5, minmax(0, 1fr));
   gap: 0.65rem;
 }
 
 .mining-data-card {
-  min-height: 5.1rem;
+  min-height: 5rem;
   display: grid;
   align-content: center;
-  gap: 0.35rem;
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  background:
-    linear-gradient(135deg, rgba(0, 229, 255, 0.08), transparent 58%),
-    rgba(7, 12, 18, 0.72);
-  padding: 0.85rem;
-}
-
-.mining-data-card span {
-  color: rgba(201, 206, 214, 0.72);
-  font-size: 0.72rem;
-  font-weight: 900;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-}
-
-.mining-data-card strong {
-  color: var(--ink);
-  font-size: 1.12rem;
+  gap: 0.25rem;
 }
 
 .mining-data-card.is-warn strong {
@@ -7820,213 +9423,112 @@ select:focus {
   color: var(--primary);
 }
 
-.mining-rating-card {
-  min-height: 9rem;
+.mining-detail-sections {
   display: grid;
-  align-content: center;
-  gap: 0.35rem;
-  background:
-    radial-gradient(circle at 20% 20%, rgba(0, 229, 255, 0.22), transparent 42%),
-    rgba(15, 16, 18, 0.72);
-}
-
-.mining-detail-grid {
-  display: grid;
-  grid-template-columns: minmax(0, 1.25fr) minmax(18rem, 0.55fr);
+  grid-template-columns: minmax(0, 1.15fr) minmax(19rem, 0.58fr);
   gap: 1rem;
   align-items: start;
 }
 
-.mining-side-column,
-.mining-block {
-  display: grid;
-  gap: 0.85rem;
-}
-
-.mining-block {
-  border: 1px solid var(--border);
+.mining-card {
+  border: 1px solid rgba(201, 206, 214, 0.13);
   border-radius: 10px;
-  background: rgba(7, 12, 18, 0.58);
+  background: rgba(7, 12, 18, 0.62);
   padding: 1rem;
 }
 
-.mining-equipment-panel {
+.mining-location-section,
+.mining-support-panel {
   display: grid;
-  gap: 1rem;
+  gap: 0.9rem;
 }
 
-.mining-equipment-grid {
+.mining-location-grid,
+.mining-refinery-list,
+.mining-quality-list,
+.mining-tool-tags {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 0.85rem;
+  gap: 0.65rem;
 }
 
-.mining-equipment-column {
-  display: grid;
-  gap: 0.7rem;
-}
-
-.mining-equipment-column h3 {
-  margin: 0;
-  color: var(--primary);
-  font-size: 0.92rem;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-}
-
-.mining-equipment-card {
-  min-height: 5.4rem;
-  display: grid;
-  gap: 0.25rem;
-  border: 1px solid rgba(201, 206, 214, 0.12);
-  border-radius: 8px;
-  background: rgba(15, 16, 18, 0.7);
-  padding: 0.85rem;
-}
-
-.mining-equipment-card strong {
-  color: var(--ink);
-}
-
-.mining-equipment-card span {
-  color: var(--accent);
-  font-weight: 900;
-}
-
-.mining-equipment-card small {
-  color: var(--muted);
-}
-
-.location-list {
-  display: grid;
-  gap: 0.8rem;
-}
-
-.location-card {
+.mining-location-card {
   display: grid;
   grid-template-columns: auto minmax(0, 1fr);
-  gap: 0.85rem;
+  gap: 0.8rem;
   border: 1px solid rgba(201, 206, 214, 0.12);
   border-radius: 10px;
   background: rgba(15, 16, 18, 0.62);
   padding: 0.9rem;
 }
 
-.location-rank {
-  width: 2.35rem;
-  height: 2.35rem;
+.mining-location-rank {
+  width: 2.4rem;
+  height: 2.4rem;
   display: grid;
   place-items: center;
-  border-radius: 50%;
-  background: rgba(246, 197, 0, 0.16);
   border: 1px solid rgba(246, 197, 0, 0.42);
+  border-radius: 50%;
+  background: rgba(246, 197, 0, 0.14);
   color: var(--accent);
-  font-family: inherit;
+  font-weight: 950;
 }
 
-.location-card strong {
+.mining-location-card strong,
+.mining-refinery-card strong,
+.mining-quality-row strong,
+.mining-equipment-chip strong {
   display: block;
   color: var(--ink);
-  font-size: 1.05rem;
 }
 
-.location-card span {
+.mining-location-card span {
   display: block;
-  margin-top: 0.15rem;
+  margin-top: 0.1rem;
   color: var(--primary);
 }
 
-.location-card dl {
+.mining-location-meta {
   grid-column: 1 / -1;
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 0.5rem;
-  margin: 0;
 }
 
-.location-card dt,
-.quality-band small {
-  color: rgba(201, 206, 214, 0.72);
-  font-family: inherit;
-  font-size: 0.68rem;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-}
-
-.location-card dd {
-  margin: 0.2rem 0 0;
-  color: var(--ink);
-  font-weight: 800;
-}
-
-.quality-band-list,
-.mining-chip-list,
-.mining-tip-list,
-.refinery-bonus-list {
-  display: grid;
-  gap: 0.55rem;
-}
-
-.refinery-bonus-card {
+.mining-refinery-card,
+.mining-quality-row {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 0.8rem;
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  background: rgba(15, 16, 18, 0.72);
-  padding: 0.75rem;
 }
 
-.refinery-bonus-card strong,
-.refinery-bonus-card small {
+.mining-refinery-card small,
+.mining-quality-row small,
+.mining-equipment-chip small {
   display: block;
-}
-
-.refinery-bonus-card strong {
-  color: var(--ink);
-}
-
-.refinery-bonus-card small {
-  margin-top: 0.15rem;
+  margin-top: 0.12rem;
   color: var(--muted);
 }
 
-.refinery-bonus-card b.positive {
-  color: #59f2a4;
+.mining-refinery-card b.positive {
+  color: #6cf0a7;
 }
 
-.refinery-bonus-card b.negative {
-  color: #ff6b6b;
+.mining-refinery-card b.negative {
+  color: #ff7a7a;
 }
 
-.quality-band {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 0.8rem;
+.mining-tool-tags {
+  grid-template-columns: repeat(auto-fit, minmax(8rem, 1fr));
 }
 
-.quality-band strong {
-  display: block;
-  color: var(--ink);
-}
-
-.quality-band b {
-  color: var(--accent);
-}
-
-.mining-chip-list {
-  grid-template-columns: repeat(auto-fit, minmax(9rem, 1fr));
-}
-
-.mining-chip-list span {
-  border: 1px solid var(--border);
+.mining-tool-tags span {
+  border: 1px solid rgba(24, 197, 220, 0.28);
   border-radius: 999px;
-  background: rgba(0, 229, 255, 0.08);
+  background: rgba(24, 197, 220, 0.08);
   color: var(--ink);
   padding: 0.55rem 0.7rem;
-  font-weight: 800;
+  font-weight: 850;
 }
 
 .mining-tip-list {
@@ -8038,8 +9540,40 @@ select:focus {
 
 .mining-source-note {
   border-top: 1px solid var(--border);
-  padding-top: 0.9rem;
-  font-size: 0.9rem;
+  padding-top: 0.85rem;
+  font-size: 0.88rem;
+}
+
+.mining-equipment-dock {
+  display: grid;
+  gap: 1rem;
+  padding: 1rem;
+}
+
+.mining-equipment-rail {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(13rem, 1fr));
+  gap: 0.65rem;
+}
+
+.mining-equipment-chip {
+  border: 1px solid rgba(201, 206, 214, 0.13);
+  border-radius: 8px;
+  background: rgba(7, 12, 18, 0.72);
+  padding: 0.8rem;
+}
+
+.mining-equipment-chip > span {
+  display: block;
+  color: var(--accent);
+  font-size: 0.72rem;
+  font-weight: 900;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.mining-detail-empty {
+  padding: 1rem;
 }
 
 .empty-state {
@@ -8048,69 +9582,61 @@ select:focus {
 }
 
 @media (max-width: 1180px) {
-  .mining-briefing,
-  .mining-layout,
-  .mining-detail-hero,
-  .mining-detail-grid,
-  .mining-equipment-grid {
+  .mining-command,
+  .mining-planner,
+  .mining-workbench,
+  .mining-detail-header,
+  .mining-detail-sections {
     grid-template-columns: minmax(0, 1fr);
   }
 
-  .mining-kpi-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
-  .mining-material-list {
+  .mining-results {
     position: static;
     max-height: none;
   }
 }
 
-@media (max-width: 760px) {
-  .mining-materials-shell {
+@media (max-width: 840px) {
+  .mining-page {
     padding-block: 1rem 2rem;
   }
 
-  .mining-controls,
-  .location-card dl,
-  .mining-briefing-stats,
-  .mining-kpi-grid {
-    grid-template-columns: minmax(0, 1fr);
-  }
-
-  .mining-material-list {
+  .mining-filter-grid,
+  .mining-stats-strip,
+  .mining-location-meta {
     grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
-  .mining-material-list .section-heading,
-  .mining-material-list .empty-state {
-    grid-column: 1 / -1;
-  }
-
-  .mining-material-card,
-  .location-card {
-    grid-template-columns: minmax(0, 1fr);
-  }
-
-  .material-card-meta {
-    text-align: left;
-  }
-
-  .mining-detail-hero h2,
-  .mining-briefing h2 {
-    font-size: clamp(2rem, 13vw, 3.2rem);
   }
 }
 
-@media (max-width: 480px) {
-  .mining-material-list {
+@media (max-width: 560px) {
+  .mining-command,
+  .mining-planner,
+  .mining-workbench,
+  .mining-detail,
+  .mining-equipment-dock,
+  .mining-card {
+    padding: 0.85rem;
+  }
+
+  .mining-command-grid,
+  .mining-route-steps,
+  .mining-filter-grid,
+  .mining-stats-strip,
+  .mining-location-meta {
     grid-template-columns: minmax(0, 1fr);
   }
 
-  .mining-briefing,
-  .mining-controls-panel,
-  .mining-detail-panel,
-  .mining-block {
-    padding: 0.85rem;
+  .mining-result-card,
+  .mining-location-card {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .mining-result-profit {
+    justify-self: start;
+  }
+
+  .mining-detail-header h2,
+  .mining-command-copy h2 {
+    font-size: clamp(2.1rem, 14vw, 3.2rem);
   }
 }

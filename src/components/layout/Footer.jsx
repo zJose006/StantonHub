@@ -4,7 +4,7 @@ import { routeClick } from '../../utils/navigation.js';
 
 /** Pie de pagina comun con enlaces basicos y texto institucional. */
 export function Footer({ navigate }) {
-  const footerLinks = [[routes.home,'Inicio'],[routes.ships,'Naves'],[routes.shipCompare,'Comparador'],[routes.components,'Componentes'],[routes.miningMaterials,'Materiales'],[routes.communityTools,'Herramientas'],[routes.gameNews,'Noticias'],[routes.profile,'Perfil']];
+  const footerLinks = [[routes.home,'Inicio'],[routes.ships,'Naves'],[routes.shipCompare,'Comparador'],[routes.components,'Componentes'],[routes.miningMaterials,'Materiales'],[routes.operationTimers,'Temporizadores'],[routes.communityTools,'Herramientas'],[routes.gameNews,'Noticias'],[routes.profile,'Perfil']];
   return (
     <footer className="site-footer"><div className="site-footer-inner">
       <section><span className="footer-mark">Stanton Hub</span><p>Hub tecnico para consultar naves, componentes, noticias y recursos de Star Citizen.</p></section>
